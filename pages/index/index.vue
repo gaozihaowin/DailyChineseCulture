@@ -49,7 +49,7 @@
 					</view>
 				</view>
 
-				<button class="btn-login ripple" @tap="handleLogin" hover-class="btn-hover-active">登录</button>
+				<button class="btn-login ripple" @tap="handleLogin" hover-class="btn-hover-active">登录/注册</button>
 
 				<view class="links-row">
 					<text class="link-text" @tap="forgetPassword">忘记密码?</text>
@@ -85,29 +85,90 @@ export default {
 		return {
 			username: '',
 			password: '',
-			showPassword: false
+			showPassword: false,
+			// 【重要】这里填入 Apifox 提供的云端 Mock 地址 (稍后在 Apifox 教程中获取)
+			// 格式通常是: https://mock.apifox.com/m1/xxxxxx-0-default
+			baseUrl: '请在此处填入你的Apifox_Mock_URL' 
 		};
 	},
 	methods: {
 		togglePassword() {
 			this.showPassword = !this.showPassword;
 		},
-		handleLogin() {
+		
+		// --- 改造后的登录方法 ---
+		async handleLogin() {
+			// 1. 本地校验
 			if (!this.username || !this.password) {
-				uni.showToast({ title: '请填写账号密码', icon: 'none' });
+				uni.showToast({ title: '请输入账号和密码', icon: 'none' });
 				return;
 			}
-			uni.showLoading({ title: '正在开启智慧...' });
-			setTimeout(() => {
+
+			// 2. 显示加载动画
+			uni.showLoading({ title: '登录中...', mask: true });
+
+			try {
+				// 3. 发起网络请求
+				const res = await uni.request({
+					url: this.baseUrl + '/login', // 接口路径，需与 Apifox 一致
+					method: 'POST',
+					header: {
+						'content-type': 'application/json' 
+					},
+					data: {
+						username: this.username,
+						password: this.password
+					}
+				});
+				
+				// 隐藏加载动画
 				uni.hideLoading();
-				uni.showToast({ title: '登入成功', icon: 'success' });
-			}, 1500);
+
+				// uni.request 返回的 res 结构：{ data: { code: 200, ... }, statusCode: 200, ... }
+				// 这里假设后端返回格式为: { code: 200, msg: "success", data: { token: "..." } }
+				const apiData = res.data;
+
+				// 4. 处理响应结果
+				if (res.statusCode === 200 && apiData.code === 200) {
+					
+					// 登录成功：保存 Token
+					uni.setStorageSync('token', apiData.data.token);
+					uni.setStorageSync('userInfo', apiData.data.userInfo);
+
+					uni.showToast({ title: '登录成功', icon: 'success' });
+
+					// 延迟跳转到首页 (假设首页路径为 /pages/home/index)
+					setTimeout(() => {
+						// uni.switchTab({ url: '/pages/home/index' }); // 如果是 TabBar 页面
+						// uni.navigateTo({ url: '/pages/home/index' }); // 如果是普通页面
+						console.log("跳转首页...", apiData.data.token);
+					}, 1500);
+
+				} else {
+					// 登录失败 (如密码错误)
+					uni.showToast({ 
+						title: apiData.msg || '登录失败，请检查账号密码', 
+						icon: 'none',
+						duration: 2000
+					});
+				}
+
+			} catch (error) {
+				uni.hideLoading();
+				console.error('API Error:', error);
+				uni.showToast({ title: '网络连接异常', icon: 'none' });
+			}
 		},
+
 		wechatLogin() {
-			uni.showToast({ title: '正在唤起微信...', icon: 'none' });
+			uni.showToast({ title: '功能开发中...', icon: 'none' });
 		},
-		forgetPassword() {},
-		register() {},
+		forgetPassword() {
+			uni.showToast({ title: '请联系管理员重置', icon: 'none' });
+		},
+		register() {
+			uni.showToast({ title: '暂未开放注册', icon: 'none' });
+		},
 		showAgreement() {},
 		showPrivacy() {}
 	}
