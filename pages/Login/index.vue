@@ -88,7 +88,7 @@ export default {
 			showPassword: false,
 			// 【重要】这里填入 Apifox 提供的云端 Mock 地址 (稍后在 Apifox 教程中获取)
 			// 格式通常是: https://mock.apifox.com/m1/xxxxxx-0-default
-			baseUrl: '请在此处填入你的Apifox_Mock_URL' 
+			baseUrl: 'http://127.0.0.1:4523/m1/7779396-7525646-default' 
 		};
 	},
 	methods: {
