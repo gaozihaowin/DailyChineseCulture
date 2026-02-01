@@ -141,6 +141,11 @@ export default {
 					setTimeout(() => {
 						// uni.switchTab({ url: '/pages/home/index' }); // 如果是 TabBar 页面
 						// uni.navigateTo({ url: '/pages/home/index' }); // 如果是普通页面
+						
+						uni.reLaunch({
+						            url: '/pages/home/home' 
+						        });
+						
 						console.log("跳转首页...", apiData.data.token);
 					}, 1500);
 
