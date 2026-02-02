@@ -8,12 +8,8 @@
 			}
 		},
 		{
-			// 2. 首页：对应 pages/home/home.vue
-			// 注意：文件夹是 home，文件名也是 home，千万别写成 index/home
-			"path": "pages/home/home",
-			"style": {
-				"navigationStyle": "custom" // 隐藏系统导航栏
-			}
+		        "path": "pages/Main/index",
+		        "style": { "navigationStyle": "custom" }
 		}
 	],
 	"globalStyle": {

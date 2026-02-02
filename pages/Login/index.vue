@@ -143,7 +143,7 @@ export default {
 						// uni.navigateTo({ url: '/pages/home/index' }); // 如果是普通页面
 						
 						uni.reLaunch({
-						            url: '/pages/home/home' 
+						            url: '/pages/Main/index' 
 						        });
 						
 						console.log("跳转首页...", apiData.data.token);
