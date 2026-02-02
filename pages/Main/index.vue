@@ -11,7 +11,7 @@
             
             <view v-show="currentTab === 3" class="placeholder-page">
                 <uni-icons type="gift-filled" size="80" color="#e0e0e0"></uni-icons>
-                <text class="tip-text">文创商城 敬请期待</text>
+                <text class="tip-text">聊天功能 敬请期待</text>
             </view>
         </view>
 
