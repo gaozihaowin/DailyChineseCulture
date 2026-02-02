@@ -100,7 +100,7 @@
           </view>
         </view>
         
-        <view class="footer-version">致良知教育 v1.3.0</view>
+        <view class="footer-version">致良知教育</view>
       </view>
 
       <view class="safe-area-spacer"></view>
