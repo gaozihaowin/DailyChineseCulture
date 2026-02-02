@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>致良知教育 - 登录</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- 全局变量 --- */
+        :root {
+            --brand-red: #9e2a2b;    /* 朱红 */
+            --brand-gold: #c5a065;   /* 鎏金 */
+            --bg-paper: #f9f7f2;     /* 宣纸白 */
+            --text-main: #2d2424;    /* 墨色 */
+            --text-sub: #8c8686;     /* 浅墨 */
+            --input-bg: #ffffff;
+            --radius-btn: 50px;      /* 圆润按钮 */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- 手机容器 (16:8) --- */
+        .mobile-frame {
+            width: 360px;
+            height: 720px;
+            background-color: var(--bg-paper);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2), 0 0 0 8px #fff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 背景装饰 (写意山水模拟) --- */
+        .bg-decoration {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 35%;
+            background: linear-gradient(to top, rgba(197, 160, 101, 0.1), transparent);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-decoration::before {
+            content: ''; position: absolute; bottom: -50px; right: -50px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(158, 42, 43, 0.05), transparent 70%);
+            border-radius: 50%;
+        }
+
+        /* --- 顶部 Logo 区 --- */
+        .header-section {
+            padding-top: 80px;
+            padding-bottom: 40px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .logo-seal {
+            width: 64px; height: 64px;
+            background-color: var(--brand-red);
+            color: #fff;
+            font-family: "Kaiti", serif; /* 楷体 */
+            font-size: 32px;
+            line-height: 64px;
+            border-radius: 8px;
+            margin: 0 auto 16px;
+            box-shadow: 0 4px 15px rgba(158, 42, 43, 0.3);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .app-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-main);
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .app-slogan {
+            font-size: 12px;
+            color: var(--text-sub);
+            font-family: "Kaiti", serif;
+        }
+
+        /* --- 表单区域 --- */
+        .form-section {
+            padding: 0 32px;
+            z-index: 1;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-sub);
+            font-size: 18px;
+            transition: color 0.3s;
+        }
+
+        .form-input {
+            width: 100%;
+            height: 52px;
+            padding: 0 16px 0 48px; /* 给图标留位置 */
+            border: 1px solid transparent;
+            background-color: #fff;
+            border-radius: 12px;
+            font-size: 14px;
+            color: var(--text-main);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            box-shadow: 0 4px 15px rgba(197, 160, 101, 0.15);
+            border-color: rgba(197, 160, 101, 0.5); /* 聚焦时显示淡金色 */
+        }
+        .form-input:focus + .input-icon { color: var(--brand-red); }
+
+        /* 密码切换眼 */
+        .toggle-password {
+            position: absolute;
+            right: 16px; top: 50%;
+            transform: translateY(-50%);
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        /* 登录按钮 */
+        .btn-login {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(135deg, #9e2a2b, #b53b3c);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(158, 42, 43, 0.25);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+            letter-spacing: 4px;
+        }
+        .btn-login:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(158, 42, 43, 0.2); }
+
+        /* 辅助链接行 */
+        .links-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            font-size: 12px;
+        }
+        .link-text {
+            color: var(--text-sub);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .link-text.highlight { color: var(--brand-gold); font-weight: 500;}
+
+        /* --- 底部第三方登录 --- */
+        .footer-section {
+            margin-top: auto; /* 推到底部 */
+            padding-bottom: 40px;
+            text-align: center;
+            z-index: 1;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+            font-size: 10px;
+            margin-bottom: 20px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            width: 40px; height: 1px;
+            background-color: #e0e0e0;
+            margin: 0 10px;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+        }
+        .social-btn {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #eee;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 22px;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .social-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .social-btn.wechat { color: #07c160; }
+        .social-btn.qq { color: #1296db; }
+
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        
+        <div class="bg-decoration"></div>
+
+        <div class="header-section">
+            <div class="logo-seal">良知</div>
+            <div class="app-name">致良知教育</div>
+            <div class="app-slogan">让内心充满力量的生命哲学课</div>
+        </div>
+
+        <div class="form-section">
+            
+            <div class="input-group">
+                <input type="text" class="form-input" placeholder="请输入手机号/账号">
+                <i class="fa-regular fa-user input-icon"></i>
+            </div>
+
+            <div class="input-group">
+                <input type="password" class="form-input" placeholder="请输入密码">
+                <i class="fa-solid fa-lock input-icon"></i>
+                <i class="fa-regular fa-eye-slash toggle-password"></i>
+            </div>
+
+            <button class="btn-login">登录</button>
+
+            <div class="links-row">
+                <span class="link-text">忘记密码?</span>
+                <span class="link-text highlight">立即注册</span>
+            </div>
+        </div>
+
+        <div class="footer-section">
+            <div class="divider">其他方式登录</div>
+            <div class="social-icons">
+                <div class="social-btn wechat"><i class="fa-brands fa-weixin"></i></div>
+                <div class="social-btn qq"><i class="fa-brands fa-qq"></i></div>
+            </div>
+            
+            <div style="font-size: 10px; color: #999; margin-top: 20px;">
+                登录即代表同意 <span style="color:#9e2a2b">《用户协议》</span> 和 <span style="color:#9e2a2b">《隐私政策》</span>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>现代化个人中心</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- 基础设置 --- */
+        :root {
+            --primary-color: #3b82f6; /* 现代蓝 */
+            --bg-color: #f4f6f8;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --card-radius: 16px;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e5e7eb; /* 桌面背景色 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- 手机容器 (模拟 16:10 竖屏比例) --- */
+        .mobile-frame {
+            width: 375px;
+            height: 720px; /* 约 9:18 ~ 10:16 比例，适应现代全面屏 */
+            background-color: var(--bg-color);
+            border-radius: 36px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), 0 0 0 10px #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 隐藏滚动条但保留功能 */
+        .scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 80px; /* 底部留白 */
+        }
+        .scroll-container::-webkit-scrollbar { display: none; }
+
+        /* --- 顶部 Header --- */
+        .header {
+            padding: 20px 20px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+        }
+        .brand {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .brand i { color: #b91c1c; font-size: 20px;}
+        
+        .header-actions i {
+            font-size: 20px;
+            color: var(--text-main);
+            margin-left: 16px;
+            cursor: pointer;
+        }
+
+        /* --- 用户卡片 (Hero Card) --- */
+        .user-section {
+            background: #fff;
+            padding: 10px 16px 20px;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 16px;
+        }
+
+        .user-card {
+            background: linear-gradient(120deg, #2563eb, #3b82f6);
+            border-radius: 20px;
+            padding: 24px 20px;
+            color: white;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 装饰背景圆圈 */
+        .user-card::before {
+            content: ''; position: absolute; top: -50px; right: -50px;
+            width: 150px; height: 150px; background: rgba(255,255,255,0.1); border-radius: 50%;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            margin-bottom: 24px;
+            position: relative; z-index: 1;
+        }
+
+        .avatar {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.8);
+            background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix');
+            background-size: cover;
+            background-color: #fff;
+            margin-right: 16px;
+        }
+
+        .user-info h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .tag {
+            background: rgba(0,0,0,0.15);
+            padding: 2px 10px; border-radius: 20px; font-size: 11px;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            position: relative; z-index: 1;
+        }
+
+        .stat-box { text-align: center; }
+        .stat-num { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+        .stat-label { font-size: 11px; opacity: 0.8; }
+
+        /* --- 宫格导航 (Grid Nav - 现代化替换列表) --- */
+        .grid-nav {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: #fff;
+            padding: 20px 10px;
+            margin: 0 16px 16px;
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .icon-box {
+            width: 44px; height: 44px;
+            border-radius: 14px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        .grid-item:active .icon-box { transform: scale(0.95); }
+        
+        .grid-label { font-size: 12px; color: var(--text-main); font-weight: 500;}
+
+        /* 图标颜色配置 */
+        .bg-blue { background: #eff6ff; color: #3b82f6; }
+        .bg-orange { background: #fff7ed; color: #f97316; }
+        .bg-purple { background: #f3e8ff; color: #a855f7; }
+        .bg-green { background: #f0fdf4; color: #22c55e; }
+        .bg-red { background: #fef2f2; color: #ef4444; }
+
+        /* --- 列表分组 (List Groups) --- */
+        .list-group {
+            background: #fff;
+            margin: 0 16px 16px;
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        /* 列表项按压效果 */
+        .list-item:active { background-color: #f9fafb; }
+        
+        /* 分隔线：除了最后一项 */
+        .list-item:not(:last-child)::after {
+            content: ''; position: absolute; bottom: 0; left: 56px; right: 0;
+            height: 1px; background: #f3f4f6;
+        }
+
+        .list-icon { width: 24px; font-size: 18px; margin-right: 12px; text-align: center; }
+        .list-text { flex: 1; font-size: 14px; color: var(--text-main); }
+        .list-arrow { color: #d1d5db; font-size: 12px; }
+
+        /* --- 底部导航 (Glassmorphism) --- */
+        .tab-bar {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px); /* 毛玻璃 */
+            border-top: 1px solid rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 10px; /* 适配 iPhone 底部横条 */
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #9ca3af;
+            font-size: 10px;
+            cursor: pointer;
+            width: 60px;
+        }
+
+        .tab-item i { font-size: 22px; transition: 0.3s; }
+        
+        .tab-item.active { color: var(--primary-color); }
+        .tab-item.active i { transform: translateY(-2px); }
+
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        
+        <header class="header">
+            <div class="brand">
+                <i class="fa-solid fa-shapes"></i>
+                <span>致良知教育</span>
+            </div>
+            <div class="header-actions">
+                <i class="fa-regular fa-bell"></i>
+                <i class="fa-solid fa-gear"></i>
+            </div>
+        </header>
+
+        <div class="scroll-container">
+            
+            <div class="user-section">
+                <div class="user-card">
+                    <div class="user-profile">
+                        <div class="avatar"></div>
+                        <div class="user-info">
+                            <h2>Mystery</h2>
+                            <div class="tag">
+                                <i class="fa-solid fa-crown" style="color:#fcd34d"></i> 资深学员
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-num">¥0.00</div>
+                            <div class="stat-label">账户余额</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-num">0</div>
+                            <div class="stat-label">优惠券</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-num">12</div>
+                            <div class="stat-label">我的积分</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-nav">
+                <div class="grid-item">
+                    <div class="icon-box bg-blue"><i class="fa-solid fa-book-open"></i></div>
+                    <span class="grid-label">我的课程</span>
+                </div>
+                <div class="grid-item">
+                    <div class="icon-box bg-orange"><i class="fa-solid fa-file-lines"></i></div>
+                    <span class="grid-label">我的订单</span>
+                </div>
+                <div class="grid-item">
+                    <div class="icon-box bg-purple"><i class="fa-solid fa-certificate"></i></div>
+                    <span class="grid-label">我的证书</span>
+                </div>
+                <div class="grid-item">
+                    <div class="icon-box bg-green"><i class="fa-solid fa-pen-to-square"></i></div>
+                    <span class="grid-label">我的考试</span>
+                </div>
+            </div>
+
+            <div class="list-group">
+                <div class="list-item">
+                    <i class="fa-solid fa-headset list-icon" style="color: #ef4444;"></i>
+                    <span class="list-text">咨询服务单</span>
+                    <i class="fa-solid fa-chevron-right list-arrow"></i>
+                </div>
+                <div class="list-item">
+                    <i class="fa-solid fa-wallet list-icon" style="color: #f59e0b;"></i>
+                    <span class="list-text">返现与提现</span>
+                    <i class="fa-solid fa-chevron-right list-arrow"></i>
+                </div>
+            </div>
+
+            <div class="list-group">
+                <div class="list-item">
+                    <i class="fa-solid fa-users list-icon" style="color: #3b82f6;"></i>
+                    <span class="list-text">加入社群</span>
+                    <i class="fa-solid fa-chevron-right list-arrow"></i>
+                </div>
+                <div class="list-item">
+                    <i class="fa-solid fa-shield-halved list-icon" style="color: #10b981;"></i>
+                    <span class="list-text">用户协议</span>
+                    <i class="fa-solid fa-chevron-right list-arrow"></i>
+                </div>
+                <div class="list-item">
+                    <i class="fa-solid fa-circle-info list-icon" style="color: #6b7280;"></i>
+                    <span class="list-text">关于我们</span>
+                    <i class="fa-solid fa-chevron-right list-arrow"></i>
+                </div>
+            </div>
+
+        </div>
+
+        <nav class="tab-bar">
+            <div class="tab-item">
+                <i class="fa-solid fa-house"></i>
+                <span>首页</span>
+            </div>
+            <div class="tab-item">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>课程</span>
+            </div>
+            <div class="tab-item">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span>文创</span>
+            </div>
+            <div class="tab-item active">
+                <i class="fa-regular fa-user"></i>
+                <span>我的</span>
+            </div>
+        </nav>
+
+    </div>
+
+</body>
+</html>

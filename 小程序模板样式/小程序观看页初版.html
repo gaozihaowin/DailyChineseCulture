@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简课程学习页</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- 变量定义 --- */
+        :root {
+            --primary: #ff7e5f; /* 现代珊瑚橙 */
+            --primary-gradient: linear-gradient(135deg, #ff7e5f, #feb47b);
+            --secondary: #4facfe; /* 强调蓝 */
+            --text-main: #2c3e50;
+            --text-light: #95a5a6;
+            --bg-body: #fdfbfb;
+            --card-bg: #ffffff;
+            --shadow-soft: 0 10px 20px rgba(0,0,0,0.03);
+            --shadow-float: 0 15px 30px rgba(255, 126, 95, 0.2);
+            --radius-l: 24px;
+            --radius-m: 16px;
+            --radius-s: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            background-color: #eef1f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* --- 16:9 手机容器 (9:16 竖屏) --- */
+        .mobile-frame {
+            width: 360px;
+            height: 640px; /* 严格 9:16 */
+            background: #fafafa;
+            border-radius: var(--radius-l);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 10px #fff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 沉浸式视频区 --- */
+        .video-header {
+            position: relative;
+            width: 100%;
+            height: 202px; /* 16:9 video height */
+            background: #000;
+            z-index: 10;
+        }
+        
+        .nav-overlay {
+            position: absolute; top: 0; left: 0; width: 100%;
+            padding: 15px;
+            display: flex; justify-content: space-between;
+            color: #fff;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.4), transparent);
+            pointer-events: none; /* 让点击穿透 */
+        }
+        .nav-overlay i { pointer-events: auto; cursor: pointer; text-shadow: 0 1px 2px rgba(0,0,0,0.3);}
+
+        .play-overlay {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .play-icon {
+            font-size: 48px; color: rgba(255,255,255,0.9);
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+            transition: transform 0.2s;
+        }
+        .play-icon:hover { transform: scale(1.1); }
+
+        /* --- 内容滚动区 --- */
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            background: linear-gradient(to bottom, #fff 0%, #f9f9f9 100%);
+            border-radius: var(--radius-l) var(--radius-l) 0 0;
+            margin-top: -15px; /* 稍微覆盖视频底部，制造层级感 */
+            position: relative;
+            z-index: 11;
+            padding-bottom: 80px;
+        }
+        .content-scroll::-webkit-scrollbar { display: none; }
+
+        /* 课程信息卡 */
+        .info-card {
+            padding: 24px 20px 10px;
+        }
+        .course-tag {
+            background: rgba(255, 126, 95, 0.1); color: var(--primary);
+            font-size: 10px; font-weight: bold; padding: 4px 8px; border-radius: 4px;
+            display: inline-block; margin-bottom: 8px;
+        }
+        .course-title {
+            font-size: 18px; font-weight: 700; color: var(--text-main);
+            margin-bottom: 8px; line-height: 1.3;
+        }
+        .course-meta {
+            display: flex; align-items: center; gap: 15px;
+            font-size: 12px; color: var(--text-light);
+        }
+        .meta-item i { margin-right: 4px; color: #cbd5e0; }
+
+        /* 极简 Tab 切换 */
+        .tab-container {
+            display: flex;
+            padding: 0 20px;
+            margin-top: 15px;
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+        }
+        .tab {
+            margin-right: 25px;
+            padding-bottom: 10px;
+            font-size: 14px;
+            color: var(--text-light);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+        .tab.active {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .tab.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+            height: 3px; background: var(--primary-gradient); border-radius: 3px;
+        }
+
+        /* 每日任务 (时间轴样式) */
+        .daily-section { padding: 20px; }
+        .date-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .date-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
+        .date-sub { font-size: 12px; color: var(--primary); background: #fff0eb; padding: 4px 10px; border-radius: 20px; }
+
+        .timeline { position: relative; padding-left: 15px; }
+        /* 左侧线条 */
+        .timeline::before {
+            content: ''; position: absolute; left: 6px; top: 10px; bottom: 10px;
+            width: 2px; background: #f0f0f0; border-radius: 2px;
+        }
+
+        .task-card {
+            position: relative;
+            background: var(--card-bg);
+            border-radius: var(--radius-m);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-soft);
+            display: flex; align-items: center; justify-content: space-between;
+            transition: transform 0.2s;
+            border: 1px solid rgba(0,0,0,0.01);
+        }
+        .task-card:active { transform: scale(0.98); }
+
+        /* 列表左侧的时间点装饰 */
+        .task-card::before {
+            content: ''; position: absolute; left: -24px; top: 50%; transform: translateY(-50%);
+            width: 10px; height: 10px; border-radius: 50%;
+            background: #fff; border: 2px solid #e0e0e0; z-index: 2;
+        }
+        .task-card.active::before { border-color: var(--primary); background: var(--primary); box-shadow: 0 0 0 3px rgba(255, 126, 95, 0.2); }
+
+        .task-left { display: flex; align-items: center; gap: 12px; }
+        .icon-box {
+            width: 40px; height: 40px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .icon-read { background: #e0f2fe; color: #0ea5e9; } /* 蓝底蓝字 */
+        .icon-video { background: #ffedd5; color: #f97316; } /* 橙底橙字 */
+        .icon-work { background: #dcfce7; color: #22c55e; } /* 绿底绿字 */
+
+        .task-info h4 { font-size: 14px; color: var(--text-main); font-weight: 600; margin-bottom: 3px; }
+        .task-info p { font-size: 11px; color: var(--text-light); }
+        
+        .btn-action {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #f8f9fa; color: #cbd5e0;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s;
+        }
+        .task-card.active .btn-action {
+            background: var(--primary-gradient); color: #fff;
+            box-shadow: 0 4px 10px rgba(255, 126, 95, 0.3);
+        }
+
+        /* 悬浮 FAB 按钮 */
+        .fab-btn {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #fff;
+            padding: 10px 24px;
+            border-radius: 30px;
+            box-shadow: var(--shadow-float);
+            display: flex; align-items: center; gap: 8px;
+            color: var(--primary); font-weight: 600; font-size: 14px;
+            z-index: 20; cursor: pointer;
+            border: 1px solid rgba(255, 126, 95, 0.1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        
+        <div class="video-header">
+            <div class="nav-overlay">
+                <i class="fa-solid fa-arrow-left"></i>
+                <i class="fa-solid fa-ellipsis"></i>
+            </div>
+            <div class="play-overlay">
+                <i class="fa-regular fa-circle-play play-icon"></i>
+            </div>
+        </div>
+
+        <div class="content-scroll">
+            
+            <div class="info-card">
+                <span class="course-tag">诚意班 · 第69期</span>
+                <h1 class="course-title">致良知：让内心充满力量的生命哲学课</h1>
+                <div class="course-meta">
+                    <div class="meta-item"><i class="fa-solid fa-user-group"></i> 52,979 学员</div>
+                    <div class="meta-item"><i class="fa-solid fa-clock"></i> 每日更新</div>
+                </div>
+            </div>
+
+            <div class="tab-container">
+                <div class="tab">课程介绍</div>
+                <div class="tab active">今日学习</div>
+                <div class="tab">我的数据</div>
+            </div>
+
+            <div class="daily-section">
+                <div class="date-header">
+                    <span class="date-title">Day 16 · 深入经义</span>
+                    <span class="date-sub">进行中</span>
+                </div>
+
+                <div class="timeline">
+                    
+                    <div class="task-card">
+                        <div class="task-left">
+                            <div class="icon-box icon-read">
+                                <i class="fa-solid fa-book-open"></i>
+                            </div>
+                            <div class="task-info">
+                                <h4>原文诵读</h4>
+                                <p>《送宗伯乔白岩序》</p>
+                            </div>
+                        </div>
+                        <div class="btn-action" style="color: #0ea5e9;">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                    </div>
+
+                    <div class="task-card active">
+                        <div class="task-left">
+                            <div class="icon-box icon-video">
+                                <i class="fa-solid fa-play"></i>
+                            </div>
+                            <div class="task-info">
+                                <h4>名师导读</h4>
+                                <p>博仁老师 · 15分钟深度解析</p>
+                            </div>
+                        </div>
+                        <div class="btn-action">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </div>
+                    </div>
+
+                    <div class="task-card">
+                        <div class="task-left">
+                            <div class="icon-box icon-work">
+                                <i class="fa-solid fa-pen-nib"></i>
+                            </div>
+                            <div class="task-info">
+                                <h4>心得打卡</h4>
+                                <p>分享今日感悟，获20积分</p>
+                            </div>
+                        </div>
+                        <div class="btn-action">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="fab-btn">
+            <i class="fa-solid fa-users"></i>
+            进入小组讨论
+        </div>
+
+    </div>
+
+</body>
+</html>

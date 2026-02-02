@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>16:7 现代极简学习页</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #6366f1; /* 现代靛蓝 */
+            --accent-soft: rgba(99, 102, 241, 0.08);
+            --bg-base: #f1f5f9;
+            --surface: #ffffff;
+            --text-title: #0f172a;
+            --text-body: #64748b;
+            --radius-main: 32px;
+            --shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+        body {
+            background-color: #cbd5e1;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            font-family: 'SF Pro Display', 'Inter', -apple-system, sans-serif;
+        }
+
+        /* --- 16:7 竖屏容器 (360x822) --- */
+        .app-container {
+            width: 360px;
+            height: 822px; 
+            background: var(--bg-base);
+            border-radius: 44px;
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.2);
+            border: 8px solid #fff;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 沉浸式顶部视频区 --- */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 240px;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        /* 视频背景图模拟 */
+        .video-placeholder {
+            width: 100%; height: 100%;
+            background: linear-gradient(45deg, #1e293b, #334155);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .nav-bar {
+            position: absolute; top: 20px; width: 100%; padding: 0 24px;
+            display: flex; justify-content: space-between; z-index: 10;
+        }
+        .nav-btn {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 14px; cursor: pointer;
+        }
+
+        .play-btn {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 24px; transition: 0.3s;
+        }
+        .play-btn:hover { transform: scale(1.1); background: rgba(255,255,255,0.25); }
+
+        /* --- 内容容器 --- */
+        .main-content {
+            flex: 1;
+            background: var(--bg-base);
+            margin-top: -30px;
+            border-top-left-radius: var(--radius-main);
+            border-top-right-radius: var(--radius-main);
+            position: relative;
+            z-index: 5;
+            padding: 30px 24px;
+            overflow-y: auto;
+        }
+        .main-content::-webkit-scrollbar { display: none; }
+
+        /* 课程介绍 */
+        .tag-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .badge {
+            background: #fff; padding: 4px 12px; border-radius: 100px;
+            font-size: 11px; font-weight: 700; color: var(--accent);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+
+        .title { font-size: 24px; font-weight: 800; color: var(--text-title); line-height: 1.25; margin-bottom: 12px; }
+        .meta-line { display: flex; gap: 16px; font-size: 13px; color: var(--text-body); margin-bottom: 24px; }
+        .meta-line i { color: var(--accent); opacity: 0.7; }
+
+        /* 现代化 Tab */
+        .tabs {
+            display: flex; background: #e2e8f0; padding: 4px; border-radius: 14px;
+            margin-bottom: 30px;
+        }
+        .tab-item {
+            flex: 1; padding: 8px 0; text-align: center; font-size: 13px;
+            font-weight: 600; color: var(--text-body); cursor: pointer; transition: 0.3s;
+        }
+        .tab-item.active {
+            background: #fff; color: var(--text-title); border-radius: 11px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        /* 任务卡片 */
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .section-header h3 { font-size: 17px; color: var(--text-title); font-weight: 700; }
+        .progress-text { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+        .task-card {
+            background: #fff; padding: 18px; border-radius: 24px;
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 14px; transition: 0.3s;
+            border: 1px solid transparent;
+        }
+        .task-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .task-card.active {
+            border-color: var(--accent-soft);
+            background: linear-gradient(to right, #ffffff, #f5f3ff);
+            box-shadow: 0 15px 30px -10px rgba(99, 102, 241, 0.1);
+        }
+
+        .icon-box {
+            width: 48px; height: 48px; border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .c-1 { background: #eff6ff; color: #3b82f6; }
+        .c-2 { background: #fef2f2; color: #ef4444; }
+        .c-3 { background: #f0fdf4; color: #22c55e; }
+
+        .task-info { flex: 1; }
+        .task-info h4 { font-size: 15px; color: var(--text-title); margin-bottom: 2px; }
+        .task-info p { font-size: 12px; color: var(--text-body); }
+
+        .check-btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid #e2e8f0; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: #cbd5e1;
+        }
+        .task-card.done .check-btn {
+            background: var(--accent); border-color: var(--accent); color: #fff;
+        }
+
+        /* 底部操作 */
+        .footer-action {
+            position: absolute; bottom: 30px; left: 24px; right: 24px;
+            height: 56px; background: var(--text-title);
+            border-radius: 20px; display: flex; align-items: center; justify-content: center;
+            gap: 10px; color: #fff; font-weight: 600; font-size: 15px;
+            box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.3);
+            cursor: pointer; transition: 0.3s;
+        }
+        .footer-action:active { transform: scale(0.96); }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="video-wrapper">
+            <div class="nav-bar">
+                <div class="nav-btn"><i class="fa-solid fa-chevron-left"></i></div>
+                <div class="nav-btn"><i class="fa-solid fa-share-nodes"></i></div>
+            </div>
+            <div class="video-placeholder">
+                <div class="play-btn">
+                    <i class="fa-solid fa-play"></i>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="tag-row">
+                <span class="badge">精品课程</span>
+                <span class="badge">致良知 · 69期</span>
+            </div>
+            
+            <h1 class="title">内心力量的哲学：<br>王阳明心学导引</h1>
+            
+            <div class="meta-line">
+                <span><i class="fa-solid fa-circle-play"></i> 24 课时</span>
+                <span><i class="fa-solid fa-fire"></i> 5.2w 活跃</span>
+            </div>
+
+            <div class="tabs">
+                <div class="tab-item active">今日任务</div>
+                <div class="tab-item">课程目录</div>
+                <div class="tab-item">学友讨论</div>
+            </div>
+
+            <div class="section-header">
+                <h3>学习进度</h3>
+                <span class="progress-text">已完成 1/3</span>
+            </div>
+
+            <div class="task-card done">
+                <div class="icon-box c-1"><i class="fa-solid fa-book-open"></i></div>
+                <div class="task-info">
+                    <h4>原文诵读</h4>
+                    <p>《大学问》核心篇章</p>
+                </div>
+                <div class="check-btn"><i class="fa-solid fa-check"></i></div>
+            </div>
+
+            <div class="task-card active">
+                <div class="icon-box c-2"><i class="fa-solid fa-video"></i></div>
+                <div class="task-info">
+                    <h4>名师导读</h4>
+                    <p>第16讲：知行合一的真谛</p>
+                </div>
+                <div class="check-btn"><i class="fa-solid fa-play"></i></div>
+            </div>
+
+            <div class="task-card">
+                <div class="icon-box c-3"><i class="fa-solid fa-pen-fancy"></i></div>
+                <div class="task-info">
+                    <h4>心得记录</h4>
+                    <p>提交今日感悟领取积分</p>
+                </div>
+                <div class="check-btn"><i class="fa-solid fa-lock"></i></div>
+            </div>
+        </main>
+
+        <div class="footer-action">
+            <i class="fa-solid fa-comment-dots"></i>
+            加入小组深度讨论
+        </div>
+
+    </div>
+
+</body>
+</html>
