@@ -5,11 +5,9 @@
             <home-view v-show="currentTab === 0"></home-view>
             
             <course-view v-show="currentTab === 1"></course-view>
+			
+			<mine-view v-show="currentTab === 2"></mine-view>
             
-            <view v-show="currentTab === 2" class="placeholder-page">
-                <uni-icons type="person-filled" size="80" color="#e0e0e0"></uni-icons>
-                <text class="tip-text">个人中心 开发中...</text>
-            </view>
             
             <view v-show="currentTab === 3" class="placeholder-page">
                 <uni-icons type="gift-filled" size="80" color="#e0e0e0"></uni-icons>
@@ -49,11 +47,13 @@
     // 引入组件
     import HomeView from '@/components/home-view/home-view.vue';
     import CourseView from '@/components/course-view/course-view.vue';
+	import MineView from '@/components/mine-view/mine-view.vue';
 
     export default {
         components: {
             HomeView,
-            CourseView
+            CourseView,
+            MineView
         },
         data() {
             return {
