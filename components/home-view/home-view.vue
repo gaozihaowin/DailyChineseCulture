@@ -39,12 +39,8 @@
           v-for="(item, index) in navList" 
           :key="index"
         >
-          <view class="icon-box">
-            <uni-icons 
-              :type="item.icon" 
-              size="28" 
-              color="#9e2a2b"
-            ></uni-icons>
+          <view class="icon-box" :style="{ backgroundColor: item.bgColor }">
+            <image :src="item.iconUrl" class="nav-icon-img" mode="aspectFit"></image>
           </view>
           <text class="nav-label">{{ item.name }}</text>
         </view>
@@ -121,10 +117,26 @@ export default {
     return {
       // 导航配置：四大核心班级
       navList: [
-        { name: '明理班', icon: 'book' },           // 对应图标：书籍
-        { name: '笃行班', icon: 'flag' },           // 对应图标：旗帜
-        { name: '印证班', icon: 'checkmarkempty' }, // 对应图标：对勾
-        { name: '良知班', icon: 'heart' }           // 对应图标：心
+        { 
+          name: '明理班', 
+          iconUrl: 'https://img.icons8.com/fluency/96/books.png', 
+          bgColor: '#FFF0F0' // 淡红背景，象征学习明理
+        },
+        { 
+          name: '笃行班', 
+          iconUrl: 'https://img.icons8.com/color/96/walking.png', 
+          bgColor: '#F0F8FF' // 淡蓝背景，象征实践行动
+        },
+        { 
+          name: '印证班', 
+          iconUrl: 'https://img.icons8.com/fluency/96/star.png', 
+          bgColor: '#FFFAF0' // 淡黄背景，象征成就印证
+        },
+        { 
+          name: '良知班', 
+          iconUrl: 'https://img.icons8.com/color/96/brain.png', 
+          bgColor: '#F0FFF4' // 淡绿背景，象征智慧良知
+        }
       ],
       
       // 课程数据列表
@@ -291,23 +303,50 @@ export default {
   gap: 16rpx; 
 }
 
-.icon-box { 
-  width: 100rpx; 
-  height: 100rpx; 
-  border-radius: 36rpx; 
-  background: #fff; 
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
+.icon-box {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 36rpx;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   /* 柔和的投影，增加立体感 */
-  box-shadow: 0 10rpx 30rpx rgba(158, 42, 43, 0.08); 
-  border: 1px solid rgba(158, 42, 43, 0.05); 
+  box-shadow: 0 10rpx 30rpx rgba(158, 42, 43, 0.08);
+  border: 1px solid rgba(158, 42, 43, 0.05);
+  /* 增加传统中国风元素 */
+  position: relative;
+  overflow: hidden;
+}
+
+/* 为图标添加传统中国风装饰 */
+.icon-box::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(158, 42, 43, 0.05) 0%, transparent 70%);
+  transform: rotate(45deg);
+}
+
+/* 图标容器悬停效果 */
+.icon-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15rpx 40rpx rgba(158, 42, 43, 0.12);
+  transition: all 0.3s ease;
 }
 
 .nav-label { 
   font-size: 26rpx; 
   color: #2d2424; 
   font-weight: 500; 
+}
+
+.nav-icon-img { 
+  width: 48rpx; 
+  height: 48rpx; 
 }
 
 /* =========================================================================

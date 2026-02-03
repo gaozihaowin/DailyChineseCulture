@@ -80,15 +80,15 @@
 </template>
 
 <script>
+// 引入API配置
+import { API_CONFIG } from '../../api/config';
+
 export default {
 	data() {
 		return {
 			username: '',
 			password: '',
-			showPassword: false,
-			// 【重要】这里填入 Apifox 提供的云端 Mock 地址 (稍后在 Apifox 教程中获取)
-			// 格式通常是: https://mock.apifox.com/m1/xxxxxx-0-default
-			baseUrl: 'http://127.0.0.1:4523/m1/7779396-7525646-default' 
+			showPassword: false
 		};
 	},
 	methods: {
@@ -110,7 +110,7 @@ export default {
 			try {
 				// 3. 发起网络请求
 				const res = await uni.request({
-					url: this.baseUrl + '/login', // 接口路径，需与 Apifox 一致
+					url: API_CONFIG.baseUrl + API_CONFIG.paths.login, // 接口路径，需与 Apifox 一致
 					method: 'POST',
 					header: {
 						'content-type': 'application/json' 
