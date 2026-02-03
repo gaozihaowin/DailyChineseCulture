@@ -109,7 +109,7 @@
         <view class="popup-header">
           <text class="popup-title">{{ currentPopupTitle }}</text>
           <view class="popup-close" @click="closePopup">
-            <uni-icons type="close" size="20" color="#666"></uni-icons>
+            <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSJub25lIj48cGF0aCBkPSJNMTUgNUw1IDE1IiBzdHJva2U9IiM2NjY2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTUgNUwxNSAxNSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" mode="aspectFit" style="width: 20rpx; height: 20rpx;"></image>
           </view>
         </view>
         
