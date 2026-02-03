@@ -109,7 +109,7 @@
         <view class="popup-header">
           <text class="popup-title">{{ currentPopupTitle }}</text>
           <view class="popup-close" @click="closePopup">
-            <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSJub25lIj48cGF0aCBkPSJNMTUgNUw1IDE1IiBzdHJva2U9IiM2NjY2NjYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTUgNUwxNSAxNSIgc3Ryb2tlPSIjNjY2NjY2IiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" mode="aspectFit" style="width: 20rpx; height: 20rpx;"></image>
+            <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDIwIDIwIiBmaWxsPSJub25lIj48cGF0aCBkPSJNMTUgNUw1IDE1IiBzdHJva2U9IiM5ZTJhMmIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHBhdGggZD0iTTUgNUwxNSAxNSIgc3Ryb2tlPSIjOWUyYTJiIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==" mode="aspectFit" style="width: 20rpx; height: 20rpx;"></image>
           </view>
         </view>
         
@@ -687,16 +687,18 @@ export default {
   width: 48rpx;
   height: 48rpx;
   border-radius: 50%;
-  background: #f5f5f5;
+  background: rgba(158, 42, 43, 0.08); /* 与首页quote-box背景一致 */
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  box-shadow: 0 2rpx 8rpx rgba(158, 42, 43, 0.1); /* 柔和的阴影 */
 }
 
 .popup-close:active {
   transform: scale(0.9);
-  background: #e0e0e0;
+  background: rgba(158, 42, 43, 0.15); /* 点击时加深背景色 */
+  box-shadow: 0 1rpx 4rpx rgba(158, 42, 43, 0.15);
 }
 
 .popup-body {
