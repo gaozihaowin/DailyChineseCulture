@@ -1,19 +1,29 @@
 <template>
   <view class="container">
     
-    <view class="video-header">
-      <view class="nav-overlay" :style="{ paddingTop: safeAreaTop + 'px' }">
-        <uni-icons type="arrowleft" size="24" color="#fff" @click="goBack"></uni-icons>
-        <uni-icons type="more-filled" size="24" color="#fff"></uni-icons>
+    <!-- 独立悬浮导航栏 -->
+    <view class="fixed-navbar" :style="{ paddingTop: navbarPaddingTop + 'px', height: navbarHeight + 'px' }">
+      <view 
+        class="nav-capsule" 
+        hover-class="nav-capsule-hover" 
+        hover-stay-time="100" 
+        @click="handleNavigation" 
+      >
+        <image 
+          :src="isSinglePage ? iconAssets.home : iconAssets.back" 
+          class="nav-icon" 
+          mode="aspectFit" 
+        ></image>
       </view>
-      
+    </view>
+    
+    <view class="video-header">
       <view class="play-overlay" @click="playVideo">
         <uni-icons type="plusempty" size="50" color="rgba(255,255,255,0.9)" v-if="false"></uni-icons>
         <view class="play-icon-circle">
           <uni-icons type="paperplane-filled" size="24" color="#fff" style="margin-left: 6rpx;"></uni-icons>
         </view>
       </view>
-      
       </view>
 
     <scroll-view scroll-y class="content-scroll">
@@ -75,7 +85,19 @@ import CourseData from './components/course-data.vue';
 
 const currentTab = ref(0);
 const tabs = ['营期介绍', '课程安排', '今日课程', '课程数据'];
-const safeAreaTop = ref(44);
+const navbarPaddingTop = ref(0);
+const navbarHeight = ref(44);
+const sourcePage = ref('');
+const sourcePageType = ref('');
+const isSinglePage = ref(false);
+
+// --- 极简风 SVG 图标 (Base64编码，无需网络，永不失效) ---
+const iconAssets = {
+  // 极简左箭头
+  back: 'data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M15%2019L8%2012L15%205%22%20stroke%3D%22%23333333%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E',
+  // 极简首页房子
+  home: 'data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M3%209L12%202L21%209V20C21%2020.5304%2020.7893%2021.0391%2020.4142%2021.4142C20.0391%2021.7893%2019.5304%2022%2019%2022H5C4.46957%2022%203.96086%2021.7893%203.58579%2021.4142C3.21071%2021.0391%203%2020.5304%203%2020V9Z%22%20stroke%3D%22%23333333%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%229%2022%209%2012%2015%2012%2015%2022%22%20stroke%3D%22%23333333%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E'
+};
 
 const courseInfo = ref({
   tag: '',
@@ -207,23 +229,71 @@ const fetchCourseData = (id) => {
 
 onLoad((options) => {
   const courseId = options.id || '101';
+  sourcePage.value = options.source || '';
+  sourcePageType.value = options.sourceType || '';
+  
+  // 1. 智能检测页面栈
+  const pages = getCurrentPages();
+  // 如果栈里只有一页，说明是直接打开的；否则说明有上一页
+  isSinglePage.value = pages.length === 1;
+  
+  console.log('页面栈深度:', pages.length);
+  console.log('是否单页模式:', isSinglePage.value);
+  
+  // 适配安全区域
+  try {
+    // #ifdef MP-WEIXIN
+    const menuButtonInfo = uni.getMenuButtonBoundingClientRect();
+    console.log('胶囊按钮信息:', menuButtonInfo);
+    if (menuButtonInfo) {
+      navbarPaddingTop.value = menuButtonInfo.top;
+      navbarHeight.value = menuButtonInfo.height + 16;
+      console.log('导航栏内边距:', navbarPaddingTop.value, '导航栏高度:', navbarHeight.value);
+    }
+    // #endif
+  } catch (error) {
+    console.error('获取胶囊按钮信息失败:', error);
+    navbarPaddingTop.value = 44;
+    navbarHeight.value = 44;
+  }
+  
   fetchCourseData(courseId);
 });
 
-const goBack = () => {
-  uni.navigateBack({
-    delta: 1,
-    success: () => {
-      console.log('返回成功');
-    },
-    fail: (error) => {
-      console.error('返回失败:', error);
-      // 如果返回失败，尝试返回首页
-      uni.switchTab({
-        url: '/pages/Main/index'
-      });
-    }
-  });
+// --- 智能返回逻辑 ---
+const handleNavigation = () => {
+  const pages = getCurrentPages();
+  
+  if (pages.length > 1) {
+    // 核心：返回上一页，不销毁上一页，保留状态
+    uni.navigateBack({ 
+      delta: 1,
+      animationType: 'pop-out',
+      animationDuration: 300,
+      success: () => {
+        console.log('返回上一页成功，保留上一页状态');
+      },
+      fail: (err) => {
+        console.error('返回上一页失败:', err);
+        // 兜底：万一出错，回首页
+        uni.switchTab({ 
+          url: '/pages/Main/index',
+          success: () => {
+            console.log('兜底跳转到首页成功');
+          }
+        });
+      }
+    });
+  } else {
+    // 单页模式：回首页
+    console.log('单页模式，跳转到首页');
+    uni.switchTab({ 
+      url: '/pages/Main/index',
+      success: () => {
+        console.log('跳转到首页成功');
+      }
+    });
+  }
 };
 
 const playVideo = () => {
@@ -249,18 +319,46 @@ const playVideo = () => {
   flex-shrink: 0;
 }
 
-.nav-overlay {
-  position: absolute; 
-  top: 0; 
-  left: 0; 
-  width: 100%;
-  padding: 0 30rpx 20rpx;
-  box-sizing: border-box;
-  display: flex; 
-  justify-content: space-between;
+.fixed-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
   align-items: center;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
-  z-index: 20;
+  padding-left: 30rpx;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.nav-capsule {
+  margin-left: 30rpx;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.nav-capsule-hover {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.05);
+}
+
+.nav-icon {
+  width: 40rpx;
+  height: 40rpx;
+  opacity: 0.8;
 }
 
 .play-overlay {

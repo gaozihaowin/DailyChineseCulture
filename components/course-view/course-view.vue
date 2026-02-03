@@ -246,7 +246,7 @@ export default {
        */
       navigateToCourseDetail(courseId) {
         uni.navigateTo({
-          url: `/pages/CourseDetail/index?id=${courseId}`,
+          url: `/pages/CourseDetail/index?id=${courseId}&source=/pages/Main/index&sourceType=tab`,
           success: () => {
             console.log('跳转至课程详情页成功');
           },

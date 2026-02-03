@@ -13,7 +13,11 @@
 		},
 		{
 			"path": "pages/CourseDetail/index",
-			"style": { "navigationStyle": "custom" }
+			"style": {
+				"navigationStyle": "custom",
+				"animationType": "slide-out-right",
+				"animationDuration": 300
+			}
 		}
 
 	],
