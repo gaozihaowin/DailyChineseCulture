@@ -38,6 +38,7 @@
           class="nav-item" 
           v-for="(item, index) in navList" 
           :key="index"
+          @click="handleNavClick(item, index)"
         >
           <view class="icon-box" :style="{ backgroundColor: item.bgColor }">
             <image :src="item.iconUrl" class="nav-icon-img" mode="aspectFit"></image>
@@ -101,6 +102,63 @@
       <view class="safe-area-spacer"></view>
 
     </scroll-view>
+
+    <!-- 弹出窗口遮罩层 -->
+    <view class="popup-overlay" v-if="showPopup" @click="closePopup">
+      <view class="popup-content" @click.stop>
+        <view class="popup-header">
+          <text class="popup-title">{{ currentPopupTitle }}</text>
+          <view class="popup-close" @click="closePopup">
+            <uni-icons type="close" size="20" color="#666"></uni-icons>
+          </view>
+        </view>
+        
+        <view class="popup-body">
+          <!-- 树状图占位内容 -->
+          <view class="tree-structure">
+            <view class="tree-node root">
+              <view class="node-content">明理班</view>
+              <view class="tree-children">
+                <view class="tree-node">
+                  <view class="node-content">经典诵读</view>
+                  <view class="tree-children">
+                    <view class="tree-node">
+                      <view class="node-content">《大学》</view>
+                    </view>
+                    <view class="tree-node">
+                      <view class="node-content">《论语》</view>
+                    </view>
+                  </view>
+                </view>
+                <view class="tree-node">
+                  <view class="node-content">名师导读</view>
+                  <view class="tree-children">
+                    <view class="tree-node">
+                      <view class="node-content">王阳明心学</view>
+                    </view>
+                    <view class="tree-node">
+                      <view class="node-content">儒家修身</view>
+                    </view>
+                  </view>
+                </view>
+                <view class="tree-node">
+                  <view class="node-content">心得打卡</view>
+                  <view class="tree-children">
+                    <view class="tree-node">
+                      <view class="node-content">每日感悟</view>
+                    </view>
+                    <view class="tree-node">
+                      <view class="node-content">积分奖励</view>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
   </view>
 </template>
 
@@ -142,7 +200,11 @@ export default {
       ],
       
       // 课程数据列表（从API获取）
-      courseList: []
+      courseList: [],
+      
+      // 弹出窗口状态
+      showPopup: false,
+      currentPopupTitle: ''
     }
   },
   
@@ -151,6 +213,21 @@ export default {
   },
   
   methods: {
+    handleNavClick(item, index) {
+      // 只为"明理班"显示弹出窗口
+      if (item.name === '明理班') {
+        this.currentPopupTitle = item.name;
+        this.showPopup = true;
+      } else {
+        // 其他班级可以添加其他逻辑
+        console.log('点击了:', item.name);
+      }
+    },
+    
+    closePopup() {
+      this.showPopup = false;
+    },
+    
     async fetchHotCourses() {
       try {
         const res = await uni.request({
@@ -567,4 +644,164 @@ export default {
   font-size: 20rpx;
   color: #dcdcdc;
 }
+
+/* =========================================================================
+   Popup Styles (弹出窗口样式)
+   ========================================================================= */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.popup-content {
+  width: 600rpx;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 24rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50rpx);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #2d2424;
+}
+
+.popup-close {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.popup-close:active {
+  transform: scale(0.9);
+  background: #e0e0e0;
+}
+
+.popup-body {
+  padding: 32rpx;
+  overflow-y: auto;
+  max-height: calc(80vh - 120rpx);
+}
+
+/* 树状图样式 */
+.tree-structure {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.tree-node {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding-left: 24rpx;
+  position: relative;
+}
+
+.tree-node.root {
+  padding-left: 0;
+}
+
+.tree-node.root::before {
+  display: none;
+}
+
+.tree-node::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2rpx;
+  background: #e0e0e0;
+}
+
+.tree-children {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding-left: 24rpx;
+  position: relative;
+}
+
+.tree-children::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2rpx;
+  background: #e0e0e0;
+}
+
+.node-content {
+  display: inline-block;
+  padding: 12rpx 24rpx;
+  background: #f9f7f2;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #2d2424;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.node-content:active {
+  transform: scale(0.95);
+  background: #f0e8dc;
+}
+
+.tree-node.root > .node-content {
+  background: #9e2a2b;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+  padding: 16rpx 32rpx;
+}
+
 </style>
