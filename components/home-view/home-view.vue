@@ -114,45 +114,22 @@
         </view>
         
         <view class="popup-body">
-          <!-- 树状图占位内容 -->
+          <!-- 树状图占位内容 - 从底部向上爬 -->
           <view class="tree-structure">
-            <view class="tree-node root">
-              <view class="node-content">明理班</view>
-              <view class="tree-children">
-                <view class="tree-node">
-                  <view class="node-content">经典诵读</view>
-                  <view class="tree-children">
-                    <view class="tree-node">
-                      <view class="node-content">《大学》</view>
-                    </view>
-                    <view class="tree-node">
-                      <view class="node-content">《论语》</view>
-                    </view>
-                  </view>
-                </view>
-                <view class="tree-node">
-                  <view class="node-content">名师导读</view>
-                  <view class="tree-children">
-                    <view class="tree-node">
-                      <view class="node-content">王阳明心学</view>
-                    </view>
-                    <view class="tree-node">
-                      <view class="node-content">儒家修身</view>
-                    </view>
-                  </view>
-                </view>
-                <view class="tree-node">
-                  <view class="node-content">心得打卡</view>
-                  <view class="tree-children">
-                    <view class="tree-node">
-                      <view class="node-content">每日感悟</view>
-                    </view>
-                    <view class="tree-node">
-                      <view class="node-content">积分奖励</view>
-                    </view>
-                  </view>
-                </view>
-              </view>
+            <view class="tree-node level-4">
+              <view class="node-content">致知班</view>
+            </view>
+            <view class="tree-connector"></view>
+            <view class="tree-node level-3">
+              <view class="node-content">格物班</view>
+            </view>
+            <view class="tree-connector"></view>
+            <view class="tree-node level-2">
+              <view class="node-content">正心班</view>
+            </view>
+            <view class="tree-connector"></view>
+            <view class="tree-node level-1">
+              <view class="node-content">诚意班</view>
             </view>
           </view>
         </view>
@@ -728,80 +705,96 @@ export default {
   max-height: calc(80vh - 120rpx);
 }
 
-/* 树状图样式 */
+/* 树状图样式 - 从底部向上爬 */
 .tree-structure {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 24rpx;
+  padding: 40rpx 0;
 }
 
 .tree-node {
   display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding-left: 24rpx;
+  justify-content: center;
+  align-items: center;
   position: relative;
 }
 
-.tree-node.root {
-  padding-left: 0;
+.tree-node.level-1 {
+  padding-bottom: 0;
 }
 
-.tree-node.root::before {
-  display: none;
+.tree-node.level-1 .node-content {
+  background: #9e2a2b;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: bold;
+  padding: 20rpx 40rpx;
+  box-shadow: 0 8rpx 24rpx rgba(158, 42, 43, 0.3);
 }
 
-.tree-node::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2rpx;
-  background: #e0e0e0;
+.tree-node.level-2 .node-content {
+  background: #ff7e5f;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+  padding: 18rpx 36rpx;
+  box-shadow: 0 6rpx 20rpx rgba(255, 126, 95, 0.25);
 }
 
-.tree-children {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding-left: 24rpx;
+.tree-node.level-3 .node-content {
+  background: #feb47b;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: bold;
+  padding: 16rpx 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(254, 180, 123, 0.2);
+}
+
+.tree-node.level-4 .node-content {
+  background: #ffd93d;
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: bold;
+  padding: 14rpx 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(255, 217, 61, 0.15);
+}
+
+.tree-connector {
+  height: 40rpx;
+  width: 4rpx;
+  background: linear-gradient(to top, #e0e0e0, #9e2a2b);
+  margin: 0 auto;
   position: relative;
 }
 
-.tree-children::before {
+.tree-connector::after {
   content: '';
   position: absolute;
-  left: 0;
   top: 0;
-  bottom: 0;
-  width: 2rpx;
-  background: #e0e0e0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12rpx;
+  height: 12rpx;
+  background: #9e2a2b;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4rpx rgba(158, 42, 43, 0.2);
 }
 
 .node-content {
   display: inline-block;
-  padding: 12rpx 24rpx;
-  background: #f9f7f2;
-  border-radius: 12rpx;
-  font-size: 26rpx;
+  border-radius: 16rpx;
   color: #2d2424;
   font-weight: 500;
   position: relative;
   transition: all 0.3s ease;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .node-content:active {
   transform: scale(0.95);
-  background: #f0e8dc;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
 }
 
-.tree-node.root > .node-content {
-  background: #9e2a2b;
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: bold;
-  padding: 16rpx 32rpx;
-}
 
 </style>
