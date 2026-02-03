@@ -106,6 +106,9 @@
 </template>
 
 <script>
+// 引入API配置
+import { API_CONFIG } from '../../api/config';
+
 /**
  * HomeView - 首页视图组件
  * 包含 Banner、导航宫格、名言展示、课程列表及底部文化留白
@@ -139,34 +142,38 @@ export default {
         }
       ],
       
-      // 课程数据列表
-      courseList: [
-        {
-          tag: '热招',
-          type: '诚意班', 
-          term: '第69期',
-          title: '【致良知线上课堂】诚意班全年订阅计划',
-          count: '575,563',
-          // 使用 CSS 线性渐变模拟封面背景
-          bgGradient: 'linear-gradient(135deg, #8a2021, #b53b3c)' 
-        },
-        {
-          tag: '大学生',
-          type: '诚意班', 
-          term: '第13期',
-          title: '【致良知大学生】青年领袖成长计划',
-          count: '10,987',
-          bgGradient: 'linear-gradient(135deg, #a65d5e, #c77d7e)'
-        },
-        {
-          tag: '青少年',
-          type: '诚意班', 
-          term: '第13期',
-          title: '【致良知好少年】中华文化启蒙班',
-          count: '12,103',
-          bgGradient: 'linear-gradient(135deg, #c58e65, #e0b48d)'
+      // 课程数据列表（从API获取）
+      courseList: []
+    }
+  },
+  
+  mounted() {
+    this.fetchHotCourses();
+  },
+  
+  methods: {
+    async fetchHotCourses() {
+      try {
+        const res = await uni.request({
+          url: API_CONFIG.baseUrl + API_CONFIG.paths.hotCourses,
+          method: 'GET'
+        });
+        
+        if (res.statusCode === 200 && res.data.code === 200) {
+          this.courseList = res.data.data;
+        } else {
+          uni.showToast({
+            title: '获取课程列表失败',
+            icon: 'none'
+          });
         }
-      ]
+      } catch (error) {
+        console.error('获取热门课程失败:', error);
+        uni.showToast({
+          title: '网络连接异常',
+          icon: 'none'
+        });
+      }
     }
   }
 }

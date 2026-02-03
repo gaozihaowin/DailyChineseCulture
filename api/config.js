@@ -9,6 +9,12 @@ export const API_CONFIG = {
   // API路径配置
   paths: {
     login: '/login',
+    hotCourses: '/courses/hot',
+    coursesIng: '/courses/ing',
+    coursesHistory: '/courses/history',
+    coursesDone: '/courses/done',
+    userInfo: '/user/info',
+    switchIdentity: '/user/switch-identity',
     // 可以在此添加其他API路径
   }
 };

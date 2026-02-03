@@ -40,6 +40,7 @@
             
             <view class="thumb-main">{{ item.type }}</view>
             <view class="thumb-sub">{{ item.enType }}</view>
+            <view class="thumb-time">开营时间: {{ item.startDate }}</view>
           </view>
           
           <view class="card-info">
@@ -50,10 +51,15 @@
             <view class="info-group">
               <view class="info-row">
                 <uni-icons type="calendar" size="12" color="#999"></uni-icons>
-                <text>更新: {{ item.updateDate }}</text>
+                <text>报名时间: {{ item.registerDate }}</text>
               </view>
               
               <view class="info-row">
+                <uni-icons type="clock" size="12" color="#999"></uni-icons>
+                <text>开营时间: {{ item.startDate }}</text>
+              </view>
+              
+              <view class="info-row" v-if="item.progress !== undefined">
                 <uni-icons type="spinner" size="12" color="#999"></uni-icons>
                 <text v-if="item.status === 'expired'">
                   进度: 未完成 ({{ item.progress }}%)
@@ -67,16 +73,16 @@
             <view class="card-action">
               
               <button 
-                v-if="item.status === 'ing'" 
+                v-if="item.status === 'ing' || item.statusText === '已开营'" 
                 class="btn-study" 
                 hover-class="btn-hover"
               >
-                继续学习 
+                学习课程 
                 <uni-icons type="forward" size="12" color="#9e2a2b" style="margin-left: 4rpx;"></uni-icons>
               </button>
               
               <button 
-                v-else-if="item.status === 'done'" 
+                v-else-if="item.status === 'done' " 
                 class="btn-study btn-done" 
                 hover-class="btn-hover"
               >
@@ -84,7 +90,7 @@
               </button>
               
               <button 
-                v-else-if="item.status === 'expired'" 
+                v-else-if="item.status === 'expired' " 
                 class="btn-study btn-expired" 
                 hover-class="btn-hover"
               >
@@ -105,7 +111,10 @@
 </template>
 
 <script>
-  export default {
+// 引入API配置
+import { API_CONFIG } from '../../api/config';
+
+export default {
     name: 'CourseView',
     
     data() {
@@ -125,47 +134,7 @@
         ],
         
         // 当前页面实际渲染的列表数据
-        displayList: [],
-
-        // 【模拟数据库 Mock Data】
-        // 在真实项目中，这里的数据应从后端 API 获取
-        mockDatabase: [
-          {
-            id: 1, 
-            status: 'ing', statusText: '学习中',
-            type: '诚意班', enType: 'The Sincerity',
-            title: '【致良知线上课堂】诚意班第69期',
-            updateDate: '2025-11-25', progress: 45
-          },
-          {
-            id: 2, 
-            status: 'ing', statusText: '进行中',
-            type: '笃行班', enType: 'Practice',
-            title: '【致良知大学生】青年领袖成长计划',
-            updateDate: '2026-02-01', progress: 12
-          },
-          {
-            id: 3, 
-            status: 'done', statusText: '已结业',
-            type: '明理班', enType: 'Theory',
-            title: '中华文化精髓概论 (2024版)',
-            updateDate: '2024-12-31', progress: 100
-          },
-          {
-            id: 4, 
-            status: 'expired', statusText: '未完成',
-            type: '印证班', enType: 'Proof',
-            title: '【企业经营】从心出发的经营之道',
-            updateDate: '2023-05-01', progress: 30 
-          },
-          {
-            id: 5, 
-            status: 'expired', statusText: '已结束',
-            type: '亲子班', enType: 'Family',
-            title: '【家庭教育】建设最美家庭第3期',
-            updateDate: '2022-08-15', progress: 0
-          }
-        ]
+        displayList: []
       }
     },
 
@@ -193,39 +162,68 @@
       },
 
       /**
-       * 【核心逻辑】模拟后端数据筛选接口
+       * 【核心逻辑】从后端API获取课程数据
        * @param {String} filterKey - 筛选关键字
        */
-      fetchCourseData(filterKey) {
+      async fetchCourseData(filterKey) {
         // 1. 显示加载动画
         uni.showLoading({ title: '同步中...', mask: true });
         
-        // 2. 模拟网络请求延迟 (400ms)
-        setTimeout(() => {
-          let result = [];
-          const allData = this.mockDatabase; // 获取全量数据源
-
+        try {
+          let apiPath = '';
+          
+          // 根据筛选条件选择API路径
           if (filterKey === 'filter_ing') {
-            // 逻辑 A: 正在学习 -> 只筛选 status === 'ing'
-            result = allData.filter(item => item.status === 'ing');
-          
+            // 逻辑 A: 正在学习 -> /courses/ing
+            apiPath = API_CONFIG.paths.coursesIng;
           } else if (filterKey === 'filter_done') {
-            // 逻辑 B: 已结业 -> 只筛选 status === 'done'
-            result = allData.filter(item => item.status === 'done');
-          
+            // 逻辑 B: 已结业 -> /courses/done
+            apiPath = API_CONFIG.paths.coursesDone;
           } else if (filterKey === 'all_history') {
-            // 逻辑 C: 历史课程 -> 显示【全部】数据 (包含进行中、已结束、已完成)
-            // 通常按时间倒序排列 (最新的在前)
-            result = [...allData].sort((a, b) => {
-              return new Date(b.updateDate) - new Date(a.updateDate);
-            });
+            // 逻辑 C: 历史课程 -> /courses/history
+            apiPath = API_CONFIG.paths.coursesHistory;
           }
-
-          // 3. 更新视图数据 & 隐藏 Loading
-          this.displayList = result;
-          uni.hideLoading();
           
-        }, 400);
+          // 2. 发起网络请求
+          const res = await uni.request({
+            url: API_CONFIG.baseUrl + apiPath,
+            method: 'GET'
+          });
+          
+          // 3. 处理响应结果
+          if (res.statusCode === 200 && res.data.code === 200) {
+            // 处理API返回的数据，确保包含所有必要字段
+            this.displayList = res.data.data.map(item => {
+              return {
+                ...item,
+                // 确保字段存在，防止渲染错误
+                registerDate: item.registerDate || '',
+                startDate: item.startDate || '',
+                statusText: item.statusText || '',
+                type: item.type || '',
+                enType: item.enType || '',
+                title: item.title || '',
+                progress: item.progress || 0
+              };
+            });
+          } else {
+            uni.showToast({
+              title: '获取课程列表失败',
+              icon: 'none'
+            });
+            this.displayList = [];
+          }
+        } catch (error) {
+          console.error('获取课程数据失败:', error);
+          uni.showToast({
+            title: '网络连接异常',
+            icon: 'none'
+          });
+          this.displayList = [];
+        } finally {
+          // 4. 隐藏加载动画
+          uni.hideLoading();
+        }
       },
 
       /**
@@ -373,7 +371,8 @@
   }
 
   .thumb-main { font-size: 30rpx; font-weight: bold; font-family: serif; }
-  .thumb-sub  { font-size: 16rpx; opacity: 0.8; }
+.thumb-sub  { font-size: 16rpx; opacity: 0.8; }
+.thumb-time { font-size: 14rpx; opacity: 0.7; margin-top: 8rpx; text-align: center; }
 
   /* 状态徽标 */
   .status-badge { 

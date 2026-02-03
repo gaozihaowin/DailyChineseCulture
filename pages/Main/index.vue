@@ -6,8 +6,8 @@
       <course-view v-show="currentTab === 1"></course-view>
       <mine-view v-show="currentTab === 2"></mine-view>
       <view v-show="currentTab === 3" class="placeholder-page">
-        <uni-icons type="gift-filled" size="80" color="#e0e0e0"></uni-icons>
-        <text class="tip-text">致良知文创商城 敬请期待</text>
+        <uni-icons type="chat-filled" size="80" color="#e0e0e0"></uni-icons>
+        <text class="tip-text">聊天页面 正在开发</text>
       </view>
     </view>
 
@@ -86,10 +86,10 @@
             iconPath: 'https://img.icons8.com/ios/50/bfbfbf/user--v1.png', 
             selectedIconPath: 'https://img.icons8.com/ios-filled/50/9e2a2b/user.png' 
           },
-          { 
-            text: '文创', 
-            iconPath: 'https://img.icons8.com/ios/50/bfbfbf/gift--v1.png', 
-            selectedIconPath: 'https://img.icons8.com/ios-filled/50/9e2a2b/gift.png' 
+          {
+            text: '聊天', 
+            iconPath: 'https://img.icons8.com/ios/50/bfbfbf/chat--v1.png', 
+            selectedIconPath: 'https://img.icons8.com/ios-filled/50/9e2a2b/chat.png' 
           }
         ]
       }

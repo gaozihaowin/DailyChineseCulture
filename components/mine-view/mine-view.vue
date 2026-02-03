@@ -142,6 +142,8 @@
 </template>
 
 <script>
+import { API_CONFIG } from '../../api/config';
+
 export default {
   name: 'MineView',
   
@@ -162,8 +164,8 @@ export default {
       ],
       
       statsList: [
-        { label: '余额', value: '0.00' }, 
-        { label: '优惠券', value: '2' },
+        { label: '等级', value: '0.00' }, 
+        { label: '朋友', value: '2' },
         { label: '积分', value: '1.2k' }, 
         { label: '学时', value: '45h' }
       ],
@@ -247,7 +249,47 @@ export default {
     }
   },
 
+  mounted() {
+    // 组件加载时获取个人信息
+    this.fetchUserInfo();
+  },
+  
   methods: {
+    /**
+     * 从API获取个人信息
+     */
+    async fetchUserInfo() {
+      uni.showLoading({ title: '加载中...', mask: true });
+      
+      try {
+        const res = await uni.request({
+          url: API_CONFIG.baseUrl + API_CONFIG.paths.userInfo,
+          method: 'GET'
+        });
+        
+        if (res.statusCode === 200 && res.data.code === 200) {
+          const data = res.data.data;
+          // 更新用户信息
+          this.userInfo = {
+            nickname: data.nickname || this.userInfo.nickname,
+            avatar: data.avatar || this.userInfo.avatar
+          };
+          // 更新当前身份
+          this.currentIdentity = data.currentIdentity || this.currentIdentity;
+          // 更新身份选项
+          this.identityOptions = data.identityOptions || this.identityOptions;
+          // 更新统计数据
+          if (data.statsList) {
+            this.statsList = data.statsList;
+          }
+        }
+      } catch (error) {
+        console.error('获取个人信息失败:', error);
+      } finally {
+        uni.hideLoading();
+      }
+    },
+    
     toggleIdentityMenu() { 
       this.isIdentityOpen = !this.isIdentityOpen; 
     },
@@ -256,13 +298,42 @@ export default {
       if (this.isIdentityOpen) this.isIdentityOpen = false; 
     },
     
-    switchIdentity(role) {
-      this.currentIdentity = role.name;
-      this.isIdentityOpen = false;
-      uni.showToast({ 
-        title: `已切换为${role.name}`, 
-        icon: 'none' 
-      });
+    async switchIdentity(role) {
+      uni.showLoading({ title: '切换中...', mask: true });
+      
+      try {
+        const res = await uni.request({
+          url: API_CONFIG.baseUrl + API_CONFIG.paths.switchIdentity,
+          method: 'POST',
+          data: {
+            identity: role.name
+          }
+        });
+        
+        if (res.statusCode === 200 && res.data.code === 200) {
+          const data = res.data.data;
+          // 更新当前身份
+          this.currentIdentity = data.currentIdentity || role.name;
+          this.isIdentityOpen = false;
+          uni.showToast({ 
+            title: `已切换为${role.name}`, 
+            icon: 'none' 
+          });
+        } else {
+          uni.showToast({ 
+            title: '切换身份失败', 
+            icon: 'none' 
+          });
+        }
+      } catch (error) {
+        console.error('切换身份失败:', error);
+        uni.showToast({ 
+          title: '网络连接异常', 
+          icon: 'none' 
+        });
+      } finally {
+        uni.hideLoading();
+      }
     },
     
     handleMenuClick(item) {
