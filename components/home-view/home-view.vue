@@ -114,21 +114,21 @@
         </view>
         
         <view class="popup-body">
-          <!-- 树状图占位内容 - 从底部向上爬 -->
+          <!-- 树状图占位内容 - 从上往下 -->
           <view class="tree-structure">
-            <view class="tree-node level-4">
+            <view class="tree-node level-1">
               <view class="node-content">致知班</view>
             </view>
             <view class="tree-connector"></view>
-            <view class="tree-node level-3">
+            <view class="tree-node level-2">
               <view class="node-content">格物班</view>
             </view>
             <view class="tree-connector"></view>
-            <view class="tree-node level-2">
+            <view class="tree-node level-3">
               <view class="node-content">正心班</view>
             </view>
             <view class="tree-connector"></view>
-            <view class="tree-node level-1">
+            <view class="tree-node level-4">
               <view class="node-content">诚意班</view>
             </view>
           </view>
@@ -705,10 +705,10 @@ export default {
   max-height: calc(80vh - 120rpx);
 }
 
-/* 树状图样式 - 从底部向上爬 */
+/* 树状图样式 - 从顶部向下 */
 .tree-structure {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   gap: 24rpx;
   padding: 40rpx 0;
 }
