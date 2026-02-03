@@ -10,6 +10,10 @@
 		{
 		        "path": "pages/Main/index",
 		        "style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "pages/CourseDetail/index",
+			"style": { "navigationStyle": "custom" }
 		}
 
 	],

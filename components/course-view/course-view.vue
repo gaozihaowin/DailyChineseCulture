@@ -30,6 +30,7 @@
           class="course-card" 
           v-for="(item, index) in displayList" 
           :key="index"
+          @click="navigateToCourseDetail(item.id || index + 100)"
         >
           
           <view class="card-thumb" :class="{ 'thumb-gray': item.status === 'expired' }">
@@ -237,6 +238,26 @@ export default {
           'expired': 'badge-expired'
         };
         return map[status] || '';
+      },
+
+      /**
+       * 跳转到课程详情页
+       * @param {String|Number} courseId - 课程ID
+       */
+      navigateToCourseDetail(courseId) {
+        uni.navigateTo({
+          url: `/pages/CourseDetail/index?id=${courseId}`,
+          success: () => {
+            console.log('跳转至课程详情页成功');
+          },
+          fail: (error) => {
+            console.error('跳转至课程详情页失败:', error);
+            uni.showToast({
+              title: '跳转失败',
+              icon: 'none'
+            });
+          }
+        });
       }
     }
   }

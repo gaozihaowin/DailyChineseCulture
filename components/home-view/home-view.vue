@@ -58,7 +58,6 @@
       <view class="section-header">
         <text class="section-title">热门课程</text>
         <view class="section-more">
-          全部 
           <uni-icons type="right" size="12" color="#8c8686"></uni-icons>
         </view>
       </view>

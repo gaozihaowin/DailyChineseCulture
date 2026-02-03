@@ -337,10 +337,15 @@ export default {
     },
     
     handleMenuClick(item) {
-      uni.showToast({ 
-        title: item.text, 
-        icon: 'none' 
-      });
+      if (item.text === '我的课程') {
+        // 触发全局事件，切换到底栏的课程页面
+        uni.$emit('switchTab', 1);
+      } else {
+        uni.showToast({ 
+          title: item.text, 
+          icon: 'none' 
+        });
+      }
     }
   }
 }
