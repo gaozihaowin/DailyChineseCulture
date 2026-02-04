@@ -28,7 +28,7 @@
         <view class="hero-title">致良知教育研究院</view>
         <view class="hero-subtitle">让身边多一位致良知的中国人</view>
         <view class="quote-box">
-          <text class="quote-mark">“</text> 
+          <text class="quote-mark">"</text> 
           成为带给人们温暖与光明的家园
         </view>
       </view>
@@ -58,16 +58,32 @@
 
       <view class="section-header">
         <text class="section-title">热门课程</text>
-        <view class="section-more">
-          <uni-icons type="right" size="12" color="#8c8686"></uni-icons>
+        <view class="section-more" @click="refreshCourses">
+          <uni-icons type="refresh" size="12" color="#8c8686"></uni-icons>
+          <text class="refresh-text">刷新</text>
         </view>
       </view>
 
-      <view class="course-list">
+      <!-- 加载状态 -->
+      <view v-if="loading" class="loading-container">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view v-else-if="courseList.length === 0" class="empty-state">
+        <uni-icons type="folder-close" size="60" color="#e0e0e0"></uni-icons>
+        <text class="empty-text">暂无课程</text>
+        <button class="retry-btn" @click="fetchHotCourses">重新加载</button>
+      </view>
+
+      <!-- 课程列表 -->
+      <view v-else class="course-list">
         <view 
           class="course-card" 
           v-for="(course, index) in courseList" 
-          :key="index"
+          :key="course.id || index"
+          @click="handleCourseClick(course)"
         >
           <view class="card-thumb" :style="{ background: course.bgGradient }">
             <view class="thumb-tag">{{ course.tag }}</view>
@@ -143,10 +159,6 @@
 // 引入API配置
 import { API_CONFIG } from '../../api/config';
 
-/**
- * HomeView - 首页视图组件
- * 包含 Banner、导航宫格、名言展示、课程列表及底部文化留白
- */
 export default {
   name: 'HomeView',
   
@@ -157,27 +169,30 @@ export default {
         { 
           name: '明理班', 
           iconUrl: 'https://img.icons8.com/fluency/96/books.png', 
-          bgColor: '#FFF0F0' // 淡红背景，象征学习明理
+          bgColor: '#FFF0F0'
         },
         { 
           name: '笃行班', 
           iconUrl: 'https://img.icons8.com/color/96/walking.png', 
-          bgColor: '#F0F8FF' // 淡蓝背景，象征实践行动
+          bgColor: '#F0F8FF'
         },
         { 
           name: '印证班', 
           iconUrl: 'https://img.icons8.com/fluency/96/star.png', 
-          bgColor: '#FFFAF0' // 淡黄背景，象征成就印证
+          bgColor: '#FFFAF0'
         },
         { 
           name: '良知班', 
           iconUrl: 'https://img.icons8.com/color/96/brain.png', 
-          bgColor: '#F0FFF4' // 淡绿背景，象征智慧良知
+          bgColor: '#F0FFF4'
         }
       ],
       
-      // 课程数据列表（从API获取）
+      // 课程数据列表
       courseList: [],
+      
+      // 加载状态
+      loading: false,
       
       // 弹出窗口状态
       showPopup: false,
@@ -190,22 +205,32 @@ export default {
   },
   
   methods: {
+    // 处理导航点击
     handleNavClick(item, index) {
-      // 只为"明理班"显示弹出窗口
       if (item.name === '明理班') {
         this.currentPopupTitle = item.name;
         this.showPopup = true;
       } else {
-        // 其他班级可以添加其他逻辑
         console.log('点击了:', item.name);
       }
     },
     
+    // 关闭弹窗
     closePopup() {
       this.showPopup = false;
     },
     
+    // 刷新课程
+    refreshCourses() {
+      this.fetchHotCourses();
+    },
+    
+    // 获取热门课程
     async fetchHotCourses() {
+      if (this.loading) return;
+      
+      this.loading = true;
+      
       try {
         const res = await uni.request({
           url: API_CONFIG.baseUrl + API_CONFIG.paths.hotCourses,
@@ -213,12 +238,13 @@ export default {
         });
         
         if (res.statusCode === 200 && res.data.code === 200) {
-          this.courseList = res.data.data;
+          this.courseList = res.data.data || [];
         } else {
           uni.showToast({
             title: '获取课程列表失败',
             icon: 'none'
           });
+          this.courseList = [];
         }
       } catch (error) {
         console.error('获取热门课程失败:', error);
@@ -226,7 +252,17 @@ export default {
           title: '网络连接异常',
           icon: 'none'
         });
+        this.courseList = [];
+      } finally {
+        this.loading = false;
       }
+    },
+    
+    // 处理课程卡片点击
+    handleCourseClick(course) {
+      uni.navigateTo({
+        url: `/pages/CourseDetail/index?id=${course.id}`
+      });
     }
   }
 }
@@ -240,7 +276,6 @@ export default {
   height: 100%; 
   display: flex;
   flex-direction: column;
-  /* 全局背景色：暖米色，模拟纸张质感，保护视力 */
   background-color: #f9f7f2; 
 }
 
@@ -248,11 +283,10 @@ export default {
    Header Styles (顶部导航样式)
    ========================================================================= */
 .header {
-  padding: 80rpx 40rpx 30rpx; /* 适配异形屏顶部 */
+  padding: 80rpx 40rpx 30rpx;
   display: flex; 
   justify-content: space-between; 
   align-items: center;
-  /* 98%透明度背景，实现轻微的毛玻璃遮挡效果 */
   background: rgba(249, 247, 242, 0.98); 
   z-index: 10;
 }
@@ -260,7 +294,7 @@ export default {
 .logo-text { 
   font-size: 38rpx; 
   font-weight: 800; 
-  color: #9e2a2b; /* 品牌主色：深红 */
+  color: #9e2a2b;
   display: flex; 
   align-items: center; 
   gap: 16rpx; 
@@ -272,7 +306,7 @@ export default {
   font-size: 24rpx; 
   padding: 4rpx 10rpx; 
   border-radius: 8rpx; 
-  font-family: serif; /* 衬线体，增强印章感 */
+  font-family: serif;
 }
 
 /* =========================================================================
@@ -285,7 +319,7 @@ export default {
 }
 
 .safe-area-spacer { 
-  height: 160rpx; /* 预留底部 TabBar 高度 */
+  height: 160rpx;
 } 
 
 /* =========================================================================
@@ -293,7 +327,6 @@ export default {
    ========================================================================= */
 .hero-banner { 
   padding: 40rpx 40rpx 60rpx; 
-  /* 径向渐变：右上角高光，模拟自然光照 */
   background: radial-gradient(circle at top right, rgba(252, 239, 233, 0.8), transparent 70%); 
   text-align: center; 
 }
@@ -315,7 +348,6 @@ export default {
   display: inline-block; 
 }
 
-/* 伪元素绘制副标题两侧的装饰线 */
 .hero-subtitle::before, 
 .hero-subtitle::after { 
   content: ''; 
@@ -333,7 +365,7 @@ export default {
   color: #9e2a2b; 
   font-weight: bold; 
   margin-top: 20rpx; 
-  background: rgba(158, 42, 43, 0.05); /* 极淡的红色背景 */
+  background: rgba(158, 42, 43, 0.05);
   display: inline-block; 
   padding: 10rpx 30rpx; 
   border-radius: 40rpx; 
@@ -371,15 +403,12 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* 柔和的投影，增加立体感 */
   box-shadow: 0 10rpx 30rpx rgba(158, 42, 43, 0.08);
   border: 1px solid rgba(158, 42, 43, 0.05);
-  /* 增加传统中国风元素 */
   position: relative;
   overflow: hidden;
 }
 
-/* 为图标添加传统中国风装饰 */
 .icon-box::before {
   content: '';
   position: absolute;
@@ -391,7 +420,6 @@ export default {
   transform: rotate(45deg);
 }
 
-/* 图标容器悬停效果 */
 .icon-box:hover {
   transform: translateY(-2px);
   box-shadow: 0 15rpx 40rpx rgba(158, 42, 43, 0.12);
@@ -410,7 +438,7 @@ export default {
 }
 
 /* =========================================================================
-   Wisdom Section (名言警句区 - 中段)
+   Wisdom Section (名言警句区)
    ========================================================================= */
 .wisdom-section { 
   padding: 0 40rpx; 
@@ -420,7 +448,6 @@ export default {
 .wisdom-border { 
   position: relative; 
   background: rgba(158, 42, 43, 0.03); 
-  /* 虚线边框，营造手抄本的感觉 */
   border: 1px dashed rgba(158, 42, 43, 0.3); 
   border-radius: 20rpx; 
   padding: 30rpx 40rpx; 
@@ -461,7 +488,7 @@ export default {
   margin-bottom: 30rpx; 
   display: flex; 
   justify-content: space-between; 
-  align-items: flex-end; 
+  align-items: center; 
 }
 
 .section-title { 
@@ -475,6 +502,19 @@ export default {
   color: #8c8686; 
   display: flex; 
   align-items: center; 
+  gap: 8rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 30rpx;
+  transition: all 0.3s;
+}
+
+.section-more:active {
+  background: rgba(158, 42, 43, 0.1);
+  transform: scale(0.95);
+}
+
+.refresh-text {
+  margin-left: 4rpx;
 }
 
 .course-list { 
@@ -489,6 +529,12 @@ export default {
   display: flex; 
   gap: 24rpx; 
   box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04); 
+  transition: all 0.3s ease;
+}
+
+.course-card:active {
+  transform: translateY(-2rpx);
+  box-shadow: 0 12rpx 32rpx rgba(0,0,0,0.08);
 }
 
 .card-thumb { 
@@ -516,7 +562,6 @@ export default {
   color: #fff; 
   font-size: 18rpx; 
   padding: 4rpx 12rpx; 
-  /* 异形圆角：左上和右下 */
   border-top-left-radius: 20rpx; 
   border-bottom-right-radius: 16rpx; 
   font-weight: bold; 
@@ -535,7 +580,6 @@ export default {
   font-weight: bold; 
   color: #2d2424; 
   line-height: 1.5; 
-  /* 限制两行文本，超出省略 */
   display: -webkit-box; 
   -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical; 
@@ -560,7 +604,7 @@ export default {
 }
 
 /* =========================================================================
-   Footer Art (底部艺术留白区 - 核心亮点)
+   Footer Art (底部艺术留白区)
    ========================================================================= */
 .footer-art {
   display: flex;
@@ -568,10 +612,9 @@ export default {
   align-items: center;
   margin-top: 40rpx;
   margin-bottom: 20rpx;
-  opacity: 0.8; /* 整体半透明，不抢视觉重心 */
+  opacity: 0.8;
 }
 
-/* 装饰线条：两头虚中间实的渐变线 */
 .art-line {
   width: 60rpx;
   height: 2px;
@@ -586,16 +629,14 @@ export default {
 }
 
 .art-quote {
-  font-family: serif; /* 宋体/衬线体 */
+  font-family: serif;
   font-size: 28rpx;
-  color: #8c7b7b; /* 类似陈旧墨迹的灰褐色 */
+  color: #8c7b7b;
   letter-spacing: 4rpx;
   font-weight: 500;
-  /* 文字凹凸感：白色微阴影 */
   text-shadow: 0 1px 1px rgba(255,255,255,0.8);
 }
 
-/* 纯CSS绘制印章效果 */
 .art-seal {
   width: 36rpx;
   height: 36rpx;
@@ -612,7 +653,7 @@ export default {
   color: #b53b3c;
   font-weight: bold;
   line-height: 1;
-  writing-mode: vertical-lr; /* 竖排文字：增强印章感 */
+  writing-mode: vertical-lr;
   letter-spacing: 2rpx;
 }
 
@@ -640,12 +681,8 @@ export default {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .popup-content {
@@ -687,17 +724,17 @@ export default {
   width: 48rpx;
   height: 48rpx;
   border-radius: 50%;
-  background: rgba(158, 42, 43, 0.08); /* 与首页quote-box背景一致 */
+  background: rgba(158, 42, 43, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  box-shadow: 0 2rpx 8rpx rgba(158, 42, 43, 0.1); /* 柔和的阴影 */
+  box-shadow: 0 2rpx 8rpx rgba(158, 42, 43, 0.1);
 }
 
 .popup-close:active {
   transform: scale(0.9);
-  background: rgba(158, 42, 43, 0.15); /* 点击时加深背景色 */
+  background: rgba(158, 42, 43, 0.15);
   box-shadow: 0 1rpx 4rpx rgba(158, 42, 43, 0.15);
 }
 
@@ -707,7 +744,6 @@ export default {
   max-height: calc(80vh - 120rpx);
 }
 
-/* 树状图样式 - 从顶部向下 */
 .tree-structure {
   display: flex;
   flex-direction: column;
@@ -720,10 +756,6 @@ export default {
   justify-content: center;
   align-items: center;
   position: relative;
-}
-
-.tree-node.level-1 {
-  padding-bottom: 0;
 }
 
 .tree-node.level-1 .node-content {
@@ -798,5 +830,68 @@ export default {
   box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
 }
 
+/* =========================================================================
+   Loading & Empty States (加载和空状态)
+   ========================================================================= */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.loading-spinner {
+  width: 40rpx;
+  height: 40rpx;
+  border: 4rpx solid #f3f4f6;
+  border-top: 4rpx solid #9e2a2b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #8c8686;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: #bbb;
+  margin: 20rpx 0;
+}
+
+.retry-btn {
+  background: rgba(158, 42, 43, 0.1);
+  color: #9e2a2b;
+  border: none;
+  padding: 16rpx 32rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  margin-top: 20rpx;
+}
+
+.retry-btn::after {
+  border: none;
+}
+
+.retry-btn:active {
+  background: rgba(158, 42, 43, 0.2);
+  transform: scale(0.95);
+}
 
 </style>

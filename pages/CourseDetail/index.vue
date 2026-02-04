@@ -49,7 +49,7 @@
           v-for="(tab, index) in tabs" 
           :key="index"
           :class="{ active: currentTab === index }"
-          @click="currentTab = index"
+          @click="switchTab(index)"
         >
           {{ tab }}
         </view>
@@ -76,13 +76,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { ref, reactive } from 'vue';
+import { onLoad, onShow } from '@dcloudio/uni-app';
+import apiClient from '@/utils/request';
+import { debounce } from '@/utils/common';
 import CampIntro from './components/camp-intro.vue';
 import CourseSchedule from './components/course-schedule.vue';
 import TodayCourse from './components/today-course.vue';
 import CourseData from './components/course-data.vue';
 
+// 响应式数据
 const currentTab = ref(0);
 const tabs = ['营期介绍', '课程安排', '今日课程', '课程数据'];
 const navbarPaddingTop = ref(0);
@@ -90,6 +93,27 @@ const navbarHeight = ref(44);
 const sourcePage = ref('');
 const sourcePageType = ref('');
 const isSinglePage = ref(false);
+
+// 加载状态
+const loading = reactive({
+  courseData: false,
+  videoPlay: false
+});
+
+// 课程信息
+const courseInfo = ref({
+  id: '',
+  tag: '',
+  title: '',
+  studentCount: '',
+  updateFrequency: '',
+  tasks: [],
+  progress: 0,
+  totalDays: 0,
+  completedDays: 0,
+  completionRate: 0,
+  totalScore: 0
+});
 
 // --- 极简风 SVG 图标 (Base64编码，无需网络，永不失效) ---
 const iconAssets = {
@@ -99,169 +123,142 @@ const iconAssets = {
   home: 'data:image/svg+xml;charset=utf-8,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M3%209L12%202L21%209V20C21%2020.5304%2020.7893%2021.0391%2020.4142%2021.4142C20.0391%2021.7893%2019.5304%2022%2019%2022H5C4.46957%2022%203.96086%2021.7893%203.58579%2021.4142C3.21071%2021.0391%203%2020.5304%203%2020V9Z%22%20stroke%3D%22%23333333%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3Cpolyline%20points%3D%229%2022%209%2012%2015%2012%2015%2022%22%20stroke%3D%22%23333333%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E'
 };
 
-const courseInfo = ref({
-  tag: '',
-  title: '',
-  studentCount: '',
-  updateFrequency: '',
-  tasks: [],
-  progress: 60,
-  totalDays: 21,
-  completedDays: 15,
-  completionRate: 71,
-  totalScore: 320
-});
-
-const mockDatabase = {
-  '101': {
-    tag: '诚意班 · 第69期',
-    title: '致良知：让内心充满力量的生命哲学课',
-    studentCount: '52,979',
-    updateFrequency: '每日更新',
-    progress: 60,
-    totalDays: 21,
-    completedDays: 15,
-    completionRate: 71,
-    totalScore: 320,
-    tasks: [
-      {
-        id: 1,
-        title: '原文诵读',
-        desc: '《送宗伯乔白岩序》',
-        status: 'done',
-        uniIcon: 'map-filled',
-        iconClass: 'icon-read',
-        iconColor: '#0ea5e9'
-      },
-      {
-        id: 2,
-        title: '名师导读',
-        desc: '博仁老师 · 15分钟深度解析',
-        status: 'active',
-        uniIcon: 'videocam-filled',
-        iconClass: 'icon-video',
-        iconColor: '#f97316'
-      },
-      {
-        id: 3,
-        title: '心得打卡',
-        desc: '分享今日感悟，获20积分',
-        status: 'lock',
-        uniIcon: 'compose',
-        iconClass: 'icon-work',
-        iconColor: '#22c55e'
-      }
-    ]
-  },
-  '102': {
-    tag: '正心班 · 第13期',
-    title: '正心诚意：儒家修身与现代生活',
-    studentCount: '34,521',
-    updateFrequency: '每周更新',
-    progress: 45,
-    totalDays: 28,
-    completedDays: 12,
-    completionRate: 43,
-    totalScore: 240,
-    tasks: [
-      {
-        id: 1,
-        title: '经典阅读',
-        desc: '《大学》第一章',
-        status: 'done',
-        uniIcon: 'book-filled',
-        iconClass: 'icon-read',
-        iconColor: '#0ea5e9'
-      },
-      {
-        id: 2,
-        title: '导师讲解',
-        desc: '王阳明心学核心思想',
-        status: 'active',
-        uniIcon: 'mic-filled',
-        iconClass: 'icon-video',
-        iconColor: '#f97316'
-      },
-      {
-        id: 3,
-        title: '实践作业',
-        desc: '每日自省记录',
-        status: 'lock',
-        uniIcon: 'edit-filled',
-        iconClass: 'icon-work',
-        iconColor: '#22c55e'
-      },
-      {
-        id: 4,
-        title: '小组讨论',
-        desc: '与同学交流学习心得',
-        status: 'lock',
-        uniIcon: 'chat-filled',
-        iconClass: 'icon-work',
-        iconColor: '#8b5cf6'
-      }
-    ]
+// 获取课程数据
+const fetchCourseData = async (courseId) => {
+  if (loading.courseData) return;
+  
+  loading.courseData = true;
+  
+  try {
+    // 优先从缓存获取
+    const cachedData = uni.getStorageSync(`course_${courseId}`);
+    if (cachedData) {
+      courseInfo.value = cachedData;
+      return cachedData;
+    }
+    
+    // 从API获取
+    const result = await apiClient.get(`/courses/${courseId}`, {
+      loading: false
+    });
+    
+    if (result) {
+      courseInfo.value = {
+        id: courseId,
+        ...result,
+        tasks: result.tasks || []
+      };
+      
+      // 缓存数据（10分钟有效期）
+      uni.setStorageSync(`course_${courseId}`, courseInfo.value);
+      uni.setStorageSync(`course_${courseId}_timestamp`, Date.now());
+    }
+    
+    return result;
+    
+  } catch (error) {
+    console.error('获取课程数据失败:', error);
+    // 使用默认数据
+    courseInfo.value = {
+      id: courseId,
+      tag: '课程',
+      title: '课程详情',
+      studentCount: '0',
+      updateFrequency: '定期更新',
+      tasks: [],
+      progress: 0,
+      totalDays: 0,
+      completedDays: 0,
+      completionRate: 0,
+      totalScore: 0
+    };
+  } finally {
+    loading.courseData = false;
   }
 };
 
-const defaultCourseData = {
-  tag: '课程',
-  title: '课程详情',
-  studentCount: '0',
-  updateFrequency: '定期更新',
-  tasks: [],
-  progress: 0,
-  totalDays: 0,
-  completedDays: 0,
-  completionRate: 0,
-  totalScore: 0
+// 清理过期缓存
+const cleanExpiredCache = () => {
+  try {
+    const keys = uni.getStorageInfoSync().keys;
+    const now = Date.now();
+    const expireTime = 10 * 60 * 1000; // 10分钟
+    
+    keys.forEach(key => {
+      if (key.startsWith('course_') && key.endsWith('_timestamp')) {
+        const timestamp = uni.getStorageSync(key);
+        if (now - timestamp > expireTime) {
+          const courseId = key.replace('_timestamp', '');
+          uni.removeStorageSync(courseId);
+          uni.removeStorageSync(key);
+        }
+      }
+    });
+  } catch (error) {
+    console.error('清理缓存失败:', error);
+  }
 };
 
-const fetchCourseData = (id) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const courseData = mockDatabase[id] || defaultCourseData;
-      courseInfo.value = courseData;
-      resolve(courseData);
-    }, 500);
-  });
-};
-
+// 页面加载
 onLoad((options) => {
   const courseId = options.id || '101';
   sourcePage.value = options.source || '';
   sourcePageType.value = options.sourceType || '';
   
+  // 初始化页面
+  initializePage(courseId);
+});
+
+// 页面显示
+onShow(() => {
+  // 刷新当前课程数据
+  if (courseInfo.value.id) {
+    fetchCourseData(courseInfo.value.id);
+  }
+});
+
+// 初始化页面
+const initializePage = async (courseId) => {
   // 1. 智能检测页面栈
   const pages = getCurrentPages();
-  // 如果栈里只有一页，说明是直接打开的；否则说明有上一页
   isSinglePage.value = pages.length === 1;
   
-  console.log('页面栈深度:', pages.length);
-  console.log('是否单页模式:', isSinglePage.value);
+  // 2. 适配安全区域
+  adaptSafeArea();
   
-  // 适配安全区域
+  // 3. 清理过期缓存
+  cleanExpiredCache();
+  
+  // 4. 获取课程数据
+  await fetchCourseData(courseId);
+  
+  console.log('页面初始化完成');
+};
+
+// 适配安全区域
+const adaptSafeArea = () => {
   try {
     // #ifdef MP-WEIXIN
     const menuButtonInfo = uni.getMenuButtonBoundingClientRect();
-    console.log('胶囊按钮信息:', menuButtonInfo);
     if (menuButtonInfo) {
       navbarPaddingTop.value = menuButtonInfo.top;
       navbarHeight.value = menuButtonInfo.height + 16;
-      console.log('导航栏内边距:', navbarPaddingTop.value, '导航栏高度:', navbarHeight.value);
     }
     // #endif
+    
+    // #ifndef MP-WEIXIN
+    navbarPaddingTop.value = 44;
+    navbarHeight.value = 44;
+    // #endif
   } catch (error) {
-    console.error('获取胶囊按钮信息失败:', error);
+    console.error('适配安全区域失败:', error);
     navbarPaddingTop.value = 44;
     navbarHeight.value = 44;
   }
-  
-  fetchCourseData(courseId);
-});
+};
 
 // --- 智能返回逻辑 ---
-const handleNavigation = () => {
+const handleNavigation = debounce(() => {
   const pages = getCurrentPages();
   
   if (pages.length > 1) {
@@ -271,33 +268,84 @@ const handleNavigation = () => {
       animationType: 'pop-out',
       animationDuration: 300,
       success: () => {
-        console.log('返回上一页成功，保留上一页状态');
+        console.log('返回上一页成功，保留上页状态');
       },
       fail: (err) => {
         console.error('返回上一页失败:', err);
         // 兜底：万一出错，回首页
-        uni.switchTab({ 
-          url: '/pages/Main/index',
-          success: () => {
-            console.log('兜底跳转到首页成功');
-          }
-        });
+        fallbackToHome();
       }
     });
   } else {
     // 单页模式：回首页
-    console.log('单页模式，跳转到首页');
-    uni.switchTab({ 
-      url: '/pages/Main/index',
-      success: () => {
-        console.log('跳转到首页成功');
-      }
+    fallbackToHome();
+  }
+}, 300);
+
+// 兜底跳转首页
+const fallbackToHome = () => {
+  uni.switchTab({ 
+    url: '/pages/Main/index',
+    success: () => {
+      console.log('跳转到首页成功');
+    },
+    fail: (err) => {
+      console.error('跳转首页失败:', err);
+      uni.showToast({
+        title: '页面跳转异常',
+        icon: 'none'
+      });
+    }
+  });
+};
+
+// 播放视频
+const playVideo = async () => {
+  if (loading.videoPlay) return;
+  
+  loading.videoPlay = true;
+  
+  try {
+    // 检查用户权限
+    const userInfo = uni.getStorageSync('userInfo');
+    if (!userInfo) {
+      uni.showToast({
+        title: '请先登录',
+        icon: 'none'
+      });
+      setTimeout(() => {
+        uni.navigateTo({
+          url: '/pages/Login/index'
+        });
+      }, 1500);
+      return;
+    }
+    
+    // 模拟视频播放
+    uni.showToast({ 
+      title: '开始播放', 
+      icon: 'success' 
     });
+    
+    // 这里可以集成实际的视频播放器
+    // 例如使用 uni.createVideoContext
+    
+  } catch (error) {
+    console.error('视频播放失败:', error);
+    uni.showToast({
+      title: '播放失败，请重试',
+      icon: 'none'
+    });
+  } finally {
+    loading.videoPlay = false;
   }
 };
 
-const playVideo = () => {
-  uni.showToast({ title: '开始播放', icon: 'none' });
+// 切换Tab
+const switchTab = (index) => {
+  currentTab.value = index;
+  // 可以添加Tab切换的统计埋点
+  console.log(`切换到Tab: ${tabs[index]}`);
 };
 </script>
 

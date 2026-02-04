@@ -1,0 +1,120 @@
+/**
+ * SCSS 变量定义
+ * 统一管理项目中的颜色、尺寸、间距等样式变量
+ */
+
+// 颜色变量
+$colors: (
+  // 品牌色
+  primary: #9e2a2b,
+  primary-light: #c53e3f,
+  primary-dark: #851212,
+  
+  // 辅助色
+  secondary: #ff7e5f,
+  secondary-light: #feb47b,
+  secondary-dark: #ff6b35,
+  
+  // 状态色
+  success: #10b981,
+  warning: #f59e0b,
+  error: #ef4444,
+  info: #3b82f6,
+  
+  // 中性色
+  white: #ffffff,
+  black: #000000,
+  gray-50: #f9f7f2,
+  gray-100: #f3f4f6,
+  gray-200: #e5e7eb,
+  gray-300: #d1d5db,
+  gray-400: #9ca3af,
+  gray-500: #6b7280,
+  gray-600: #4b5563,
+  gray-700: #374151,
+  gray-800: #1f2937,
+  gray-900: #111827,
+  
+  // 文本色
+  text-primary: #2d2424,
+  text-secondary: #5d5555,
+  text-tertiary: #8c8686,
+  text-disabled: #c0c0c0,
+  
+  // 背景色
+  bg-primary: #f9f7f2,
+  bg-secondary: #f3f4f6,
+  bg-card: #ffffff
+);
+
+// 尺寸变量
+$sizes: (
+  // 字体大小
+  font-xs: 20rpx,
+  font-sm: 24rpx,
+  font-base: 28rpx,
+  font-lg: 32rpx,
+  font-xl: 36rpx,
+  font-2xl: 40rpx,
+  font-3xl: 48rpx,
+  font-4xl: 56rpx,
+  
+  // 间距
+  spacing-xs: 16rpx,
+  spacing-sm: 24rpx,
+  spacing-md: 32rpx,
+  spacing-lg: 40rpx,
+  spacing-xl: 48rpx,
+  spacing-2xl: 56rpx,
+  spacing-3xl: 64rpx,
+  
+  // 圆角
+  radius-xs: 8rpx,
+  radius-sm: 16rpx,
+  radius-md: 24rpx,
+  radius-lg: 32rpx,
+  radius-xl: 40rpx,
+  radius-full: 50%,
+  
+  // 边框
+  border-thin: 1rpx,
+  border-base: 2rpx,
+  border-thick: 4rpx,
+  
+  // 阴影
+  shadow-sm: 0 2rpx 4rpx rgba(0,0,0,0.05),
+  shadow: 0 4rpx 12rpx rgba(0,0,0,0.08),
+  shadow-lg: 0 12rpx 32rpx rgba(0,0,0,0.12),
+  shadow-xl: 0 20rpx 40rpx rgba(0,0,0,0.15)
+);
+
+// 获取颜色值的函数
+@function color($key) {
+  @return map-get($colors, $key);
+}
+
+// 获取尺寸值的函数
+@function size($key) {
+  @return map-get($sizes, $key);
+}
+
+// 导出变量到全局作用域
+:export {
+  primary: #{color(primary)};
+  secondary: #{color(secondary)};
+  success: #{color(success)};
+  warning: #{color(warning)};
+  error: #{color(error)};
+  white: #{color(white)};
+  black: #{color(black)};
+  gray50: #{color(gray-50)};
+  gray100: #{color(gray-100)};
+  gray200: #{color(gray-200)};
+  gray300: #{color(gray-300)};
+  gray400: #{color(gray-400)};
+  gray500: #{color(gray-500)};
+  gray600: #{color(gray-600)};
+  gray700: #{color(gray-700)};
+  gray800: #{color(gray-800)};
+  gray900: #{color(gray-900)};
+}

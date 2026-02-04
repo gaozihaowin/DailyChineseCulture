@@ -1,0 +1,332 @@
+/**
+ * SCSS Mixins
+ * 常用的样式混合器，提高开发效率
+ */
+
+@import './variables.scss';
+
+// Flexbox 相关 mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-around {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// 定位相关 mixins
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin fixed-center {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin absolute-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+@mixin fixed-fill {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+// 文本相关 mixins
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-ellipsis-multi($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin text-center {
+  text-align: center;
+}
+
+@mixin text-bold {
+  font-weight: bold;
+}
+
+// 卡片样式 mixins
+@mixin card-style {
+  background: color(bg-card);
+  border-radius: size(radius-md);
+  box-shadow: size(shadow);
+  overflow: hidden;
+}
+
+@mixin card-hover {
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-2rpx);
+    box-shadow: size(shadow-lg);
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 按钮样式 mixins
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  user-select: none;
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: color(primary);
+  color: color(white);
+  border-radius: size(radius-md);
+  font-weight: 500;
+  &:hover {
+    background: color(primary-light);
+  }
+  &:active {
+    background: color(primary-dark);
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background: color(secondary);
+  color: color(white);
+  border-radius: size(radius-md);
+  font-weight: 500;
+  &:hover {
+    background: lighten(color(secondary), 5%);
+  }
+  &:active {
+    background: darken(color(secondary), 5%);
+  }
+}
+
+@mixin button-outline {
+  @include button-base;
+  background: transparent;
+  color: color(primary);
+  border: size(border-thin) solid color(primary);
+  border-radius: size(radius-md);
+  &:hover {
+    background: rgba(color(primary), 0.1);
+  }
+  &:active {
+    background: rgba(color(primary), 0.2);
+  }
+}
+
+// 输入框样式 mixins
+@mixin input-base {
+  width: 100%;
+  padding: size(spacing-sm) size(spacing-md);
+  border: size(border-thin) solid color(gray-300);
+  border-radius: size(radius-sm);
+  font-size: size(font-base);
+  color: color(text-primary);
+  background: color(white);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  
+  &::placeholder {
+    color: color(gray-400);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: color(primary);
+    box-shadow: 0 0 0 size(spacing-xs) rgba(color(primary), 0.1);
+  }
+  
+  &:disabled {
+    background: color(gray-100);
+    color: color(gray-500);
+    cursor: not-allowed;
+  }
+}
+
+// 加载动画 mixins
+@mixin loading-spinner {
+  display: inline-block;
+  width: size(spacing-lg);
+  height: size(spacing-lg);
+  border: size(border-thin) solid color(gray-300);
+  border-top: size(border-thin) solid color(primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// 渐变背景 mixins
+@mixin gradient-primary {
+  background: linear-gradient(135deg, color(primary), color(primary-light));
+}
+
+@mixin gradient-secondary {
+  background: linear-gradient(135deg, color(secondary), color(secondary-light));
+}
+
+@mixin gradient-warm {
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+}
+
+// 毛玻璃效果 mixins
+@mixin glass-effect {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: size(border-thin) solid rgba(255, 255, 255, 0.3);
+}
+
+// 响应式 mixins
+@mixin mobile {
+  @media (max-width: 750rpx) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: 751rpx) and (max-width: 1200rpx) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 1201rpx) {
+    @content;
+  }
+}
+
+// 状态相关 mixins
+@mixin disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+@mixin hidden {
+  display: none !important;
+}
+
+@mixin visible {
+  display: block !important;
+}
+
+// 边框相关 mixins
+@mixin border-all {
+  border: size(border-thin) solid color(gray-200);
+}
+
+@mixin border-bottom {
+  border-bottom: size(border-thin) solid color(gray-200);
+}
+
+@mixin border-top {
+  border-top: size(border-thin) solid color(gray-200);
+}
+
+// 阴影相关 mixins
+@mixin shadow-sm {
+  box-shadow: size(shadow-sm);
+}
+
+@mixin shadow-md {
+  box-shadow: size(shadow);
+}
+
+@mixin shadow-lg {
+  box-shadow: size(shadow-lg);
+}
+
+@mixin shadow-xl {
+  box-shadow: size(shadow-xl);
+}
+
+// 动画相关 mixins
+@mixin transition-fast {
+  transition: all 0.15s ease;
+}
+
+@mixin transition-normal {
+  transition: all 0.3s ease;
+}
+
+@mixin transition-slow {
+  transition: all 0.5s ease;
+}
+
+// 滚动条样式 mixins
+@mixin scrollbar-custom {
+  &::-webkit-scrollbar {
+    width: 6rpx;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: color(gray-100);
+    border-radius: size(radius-full);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: color(gray-400);
+    border-radius: size(radius-full);
+    
+    &:hover {
+      background: color(gray-500);
+    }
+  }
+}
