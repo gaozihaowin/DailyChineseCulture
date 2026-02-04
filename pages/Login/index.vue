@@ -25,8 +25,9 @@
 						class="form-input" 
 						type="text" 
 						v-model="username"
-						placeholder="请输入手机号/账号"
+						:placeholder="usernamePlaceholder"
 						placeholder-class="custom-placeholder"
+						@input="onUsernameInput"
 					/>
 				</view>
 
@@ -43,13 +44,22 @@
 						v-model="password"
 						placeholder="请输入密码"
 						placeholder-class="custom-placeholder"
+						@input="onPasswordInput"
 					/>
 					<view class="toggle-password" @tap="togglePassword">
 						<view :class="['eye-icon', showPassword ? 'eye-open' : '']"></view>
 					</view>
 				</view>
 
-				<button class="btn-login ripple" @tap="handleLogin" hover-class="btn-hover-active">登录/注册</button>
+				<button 
+					class="btn-login ripple" 
+					@tap="handleLogin" 
+					hover-class="btn-hover-active"
+					:disabled="!isFormValid || isLoading"
+				>
+					<text v-if="isLoading">登录中...</text>
+					<text v-else>登录/注册</text>
+				</button>
 
 				<view class="links-row">
 					<text class="link-text" @tap="forgetPassword">忘记密码?</text>
@@ -88,94 +98,164 @@ export default {
 		return {
 			username: '',
 			password: '',
-			showPassword: false
+			showPassword: false,
+			isLoading: false
 		};
 	},
+	
+	computed: {
+		// 计算属性：判断表单是否有效
+		isFormValid() {
+			return this.username.trim() !== '' && this.password.trim() !== '';
+		},
+		
+		// 计算属性：用户名输入提示
+		usernamePlaceholder() {
+			return this.username.trim() === '' ? '请输入手机号/账号' : '';
+		}
+	},
+	
 	methods: {
 		togglePassword() {
 			this.showPassword = !this.showPassword;
 		},
 		
-		// --- 改造后的登录方法 ---
-		async handleLogin() {
-			// 1. 本地校验
-			if (!this.username || !this.password) {
-				uni.showToast({ title: '请输入账号和密码', icon: 'none' });
-				return;
-			}
-
-			// 2. 显示加载动画
+		// 登录方法
+		handleLogin() {
+			// 1. 表单验证
+			if (!this.validateForm()) return;
+			
+			// 2. 设置加载状态
+			this.isLoading = true;
+			
+			// 3. 显示加载动画
 			uni.showLoading({ title: '登录中...', mask: true });
 
 			try {
-				// 3. 发起网络请求
-				const res = await uni.request({
+				// 4. 发起网络请求
+				uni.request({
 					url: API_CONFIG.baseUrl + API_CONFIG.paths.login, // 接口路径，需与 Apifox 一致
 					method: 'POST',
 					header: {
 						'content-type': 'application/json' 
 					},
 					data: {
-						username: this.username,
-						password: this.password
+						username: this.username.trim(),
+						password: this.password.trim()
+					},
+					success: (res) => {
+						// 隐藏加载动画
+						uni.hideLoading();
+						this.isLoading = false;
+
+						// uni.request 返回的 res 结构：{ data: { code: 200, ... }, statusCode: 200, ... }
+						// 这里假设后端返回格式为: { code: 200, msg: "success", data: { token: "..." } }
+						const apiData = res.data;
+
+						// 5. 处理响应结果
+						if (res.statusCode === 200 && apiData.code === 200) {
+							
+							// 登录成功：保存 Token
+							uni.setStorageSync('token', apiData.data.token);
+							uni.setStorageSync('userInfo', apiData.data.userInfo);
+
+							uni.showToast({ title: '登录成功', icon: 'success' });
+
+							// 延迟跳转
+							setTimeout(() => {
+								uni.reLaunch({
+									url: '/pages/Main/index'
+								});
+							}, 1000);
+
+						} else {
+							// 登录失败 (如密码错误)
+							uni.showToast({ 
+								title: apiData.msg || '登录失败，请检查账号密码', 
+								icon: 'none',
+								duration: 2000
+							});
+						}
+					},
+					fail: (error) => {
+						uni.hideLoading();
+						this.isLoading = false;
+						console.error('API Error:', error);
+						uni.showToast({ title: '网络连接异常', icon: 'none' });
 					}
 				});
-				
-				// 隐藏加载动画
-				uni.hideLoading();
-
-				// uni.request 返回的 res 结构：{ data: { code: 200, ... }, statusCode: 200, ... }
-				// 这里假设后端返回格式为: { code: 200, msg: "success", data: { token: "..." } }
-				const apiData = res.data;
-
-				// 4. 处理响应结果
-				if (res.statusCode === 200 && apiData.code === 200) {
-					
-					// 登录成功：保存 Token
-					uni.setStorageSync('token', apiData.data.token);
-					uni.setStorageSync('userInfo', apiData.data.userInfo);
-
-					uni.showToast({ title: '登录成功', icon: 'success' });
-
-					// 延迟跳转到首页 (假设首页路径为 /pages/home/index)
-					setTimeout(() => {
-						// uni.switchTab({ url: '/pages/home/index' }); // 如果是 TabBar 页面
-						// uni.navigateTo({ url: '/pages/home/index' }); // 如果是普通页面
-						
-						uni.reLaunch({
-						            url: '/pages/Main/index' 
-						        });
-						
-						console.log("跳转首页...", apiData.data.token);
-					}, 1500);
-
-				} else {
-					// 登录失败 (如密码错误)
-					uni.showToast({ 
-						title: apiData.msg || '登录失败，请检查账号密码', 
-						icon: 'none',
-						duration: 2000
-					});
-				}
-
 			} catch (error) {
 				uni.hideLoading();
-				console.error('API Error:', error);
+				this.isLoading = false;
+				console.error('登录失败:', error);
 				uni.showToast({ title: '网络连接异常', icon: 'none' });
 			}
 		},
-
+		
+		// 表单验证
+		validateForm() {
+			const username = this.username.trim();
+			const password = this.password.trim();
+			
+			if (!username) {
+				uni.showToast({ title: '请输入账号', icon: 'none' });
+				return false;
+			}
+			
+			if (!password) {
+				uni.showToast({ title: '请输入密码', icon: 'none' });
+				return false;
+			}
+			
+			// 手机号格式验证（简单验证）
+			if (/^1[3-9]\d{9}$/.test(username)) {
+				if (password.length < 6) {
+					uni.showToast({ title: '密码长度不能少于6位', icon: 'none' });
+					return false;
+				}
+			}
+			
+			return true;
+		},
+		
+		// 用户名输入处理
+		onUsernameInput(e) {
+			this.username = e.detail.value;
+			// 可以添加实时验证逻辑
+		},
+		
+		// 密码输入处理
+		onPasswordInput(e) {
+			this.password = e.detail.value;
+			// 可以添加密码强度提示
+		},
+		
+		// 微信登录
 		wechatLogin() {
 			uni.showToast({ title: '功能开发中...', icon: 'none' });
 		},
+		
+		// 忘记密码
 		forgetPassword() {
 			uni.showToast({ title: '请联系管理员重置', icon: 'none' });
 		},
+		
+		// 注册
 		register() {
 			uni.showToast({ title: '暂未开放注册', icon: 'none' });
 		},
-		showAgreement() {},
-		showPrivacy() {}
+		
+		// 显示用户协议
+		showAgreement() {
+			// 这里可以添加跳转到协议页面的逻辑
+			uni.showToast({ title: '用户协议', icon: 'none' });
+		},
+		
+		// 显示隐私政策
+		showPrivacy() {
+			// 这里可以添加跳转到隐私政策页面的逻辑
+			uni.showToast({ title: '隐私政策', icon: 'none' });
+		},
 	}
 };
 </script>
@@ -279,6 +359,12 @@ export default {
 	border-color: rgba(158, 42, 43, 0.15);
 	background-color: #fff;
 }
+
+/* 输入框禁用状态 */
+.form-input[disabled] {
+	background-color: #f5f5f5;
+	color: #999;
+}
 .custom-placeholder { color: #c4c4c4; font-size: 28rpx; }
 
 /* --- CSS 极简图标绘制 (无需图片) --- */
@@ -377,9 +463,18 @@ export default {
 	box-shadow: 0 16rpx 36rpx rgba(158, 42, 43, 0.2);
 	margin-top: 40rpx;
 	letter-spacing: 12rpx;
+	transition: all 0.3s ease;
 }
 .btn-login::after { border: none; }
 .btn-hover-active { transform: scale(0.98); opacity: 0.95; }
+
+/* 按钮禁用状态 */
+.btn-login[disabled] {
+	background: linear-gradient(135deg, #cccccc, #999999);
+	box-shadow: 0 8rpx 16rpx rgba(0, 0, 0, 0.1);
+	opacity: 0.7;
+	pointer-events: none;
+}
 
 /* 链接区域 */
 .links-row {
