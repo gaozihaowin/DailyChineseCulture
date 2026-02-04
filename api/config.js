@@ -3,8 +3,11 @@
 
 // 导出API配置
 export const API_CONFIG = {
-  // Apifox 提供的云端 Mock 地址
-  baseUrl: 'http://127.0.0.1:4523/m1/7779396-7525646-default',
+  // 本地开发环境地址
+  baseUrl: 'http://127.0.0.1:8080',
+  
+  // Apifox 提供的云端 Mock 地址（备用）
+  // baseUrl: 'http://127.0.0.1:4523/m1/7779396-7525646-default',
   
   // API路径配置
   paths: {
