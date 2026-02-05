@@ -55,7 +55,7 @@
 					class="btn-login ripple" 
 					@tap="handleLogin" 
 					hover-class="btn-hover-active"
-					:disabled="!isFormValid || isLoading"
+					:disabled="!isFormValid || isLoading || !isAgree"
 				>
 					<text v-if="isLoading">登录中...</text>
 					<text v-else>登录/注册</text>
@@ -80,17 +80,57 @@
 					<text class="wechat-text">微信一键登录</text>
 				</button>
 				
-				<view class="agreement-text">
-					登录即代表同意 <text class="highlight-text" @tap="showAgreement">《用户协议》</text> 与 <text class="highlight-text" @tap="showPrivacy">《隐私政策》</text>
+				<view class="agreement-group" @tap="toggleAgree">
+					<view class="agree-checkbox" :class="isAgree ? 'agree-checked' : ''">
+						<view class="check-icon" v-if="isAgree">✓</view>
+					</view>
+					<view class="agreement-text">
+						登录即代表同意 
+						<text class="highlight-text" @tap="showAgreement">《用户协议》</text> 
+						与 
+						<text class="highlight-text" @tap="showPrivacy">《隐私政策》</text>
+					</view>
 				</view>
 			</view>
 
+		</view>
+
+		<view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
+			<view class="wx-auth-content" @tap.stop>
+				<view class="wx-auth-title">完善登录资料</view>
+				<view class="wx-auth-desc">选择你的微信头像和昵称，完成登录</view>
+				
+				<button 
+					class="avatar-select-btn" 
+					open-type="chooseAvatar" 
+					@chooseavatar="onChooseAvatar"
+				>
+					<image :src="wxUserInfo.avatar" class="avatar-preview" mode="aspectFill" />
+					<text class="avatar-tip" v-if="!wxUserInfo.avatar">点击选择微信头像</text>
+				</button>
+				
+				<input 
+					class="nickname-input" 
+					type="nickname" 
+					v-model="wxUserInfo.nickname"
+					placeholder="点击选择/输入微信昵称"
+					placeholder-class="nickname-placeholder"
+				/>
+				
+				<button 
+					class="wx-auth-confirm-btn" 
+					@tap="submitWxLogin"
+					:class="{ disabled: !wxUserInfo.avatar || !wxUserInfo.nickname }"
+				>
+					确认登录
+				</button>
+				<button class="wx-auth-cancel" @tap="hideWxAuthModal">取消</button>
+			</view>
 		</view>
 	</view>
 </template>
 
 <script>
-// 引入API配置
 import { API_CONFIG } from '../../api/config';
 
 export default {
@@ -99,17 +139,23 @@ export default {
 			username: '',
 			password: '',
 			showPassword: false,
-			isLoading: false
+			isLoading: false,
+			isAgree: false,
+			showWxAuthModal: false, 
+			wxCode: '', 
+			isWxSubmitting: false, 
+			wxUserInfo: { 
+				avatar: '',
+				nickname: ''
+			}
 		};
 	},
 	
 	computed: {
-		// 计算属性：判断表单是否有效
 		isFormValid() {
 			return this.username.trim() !== '' && this.password.trim() !== '';
 		},
 		
-		// 计算属性：用户名输入提示
 		usernamePlaceholder() {
 			return this.username.trim() === '' ? '请输入手机号/账号' : '';
 		}
@@ -120,56 +166,62 @@ export default {
 			this.showPassword = !this.showPassword;
 		},
 		
-		// 登录方法
+		toggleAgree() {
+			this.isAgree = !this.isAgree;
+		},
+		
+		// 账号密码登录 - 修复跳转逻辑
 		handleLogin() {
-			// 1. 表单验证
+			if (!this.isAgree) {
+				uni.showToast({ title: '请先同意协议', icon: 'none' });
+				return;
+			}
 			if (!this.validateForm()) return;
-			
-			// 2. 设置加载状态
+
 			this.isLoading = true;
-			
-			// 3. 显示加载动画
 			uni.showLoading({ title: '登录中...', mask: true });
 
 			try {
-				// 4. 发起网络请求
 				uni.request({
-					url: API_CONFIG.baseUrl + API_CONFIG.paths.login, // 接口路径，需与 Apifox 一致
+					url: API_CONFIG.baseUrl + API_CONFIG.paths.login,
 					method: 'POST',
-					header: {
-						'content-type': 'application/json' 
-					},
+					header: { 'content-type': 'application/json' },
 					data: {
 						username: this.username.trim(),
 						password: this.password.trim()
 					},
 					success: (res) => {
-						// 隐藏加载动画
 						uni.hideLoading();
 						this.isLoading = false;
-
-						// uni.request 返回的 res 结构：{ data: { code: 200, ... }, statusCode: 200, ... }
-						// 这里假设后端返回格式为: { code: 200, msg: "success", data: { token: "..." } }
 						const apiData = res.data;
 
-						// 5. 处理响应结果
-						if (res.statusCode === 200 && apiData.code === 200) {
-							
-							// 登录成功：保存 Token
+						if (res.statusCode === 200 && apiData.code === 0) {
+							// 修复1：确保缓存成功后再跳转
 							uni.setStorageSync('token', apiData.data.token);
 							uni.setStorageSync('userInfo', apiData.data.userInfo);
-
 							uni.showToast({ title: '登录成功', icon: 'success' });
-
-							// 延迟跳转
+							
+							// 修复2：使用try-catch捕获跳转错误，添加延时确保Toast显示
 							setTimeout(() => {
-								uni.reLaunch({
-									url: '/pages/Main/index'
-								});
+								try {
+									// 重点：确认路径正确！如果首页路径是/pages/index/index，需修改为对应路径
+									uni.reLaunch({ 
+										url: '/pages/Main/index',
+										success: () => {
+											console.log('跳转成功：已进入首页');
+										},
+										fail: (err) => {
+											// 修复3：打印跳转失败原因，方便排查路径问题
+											console.error('跳转失败：', err);
+											uni.showToast({ title: `跳转失败：${err.errMsg}`, icon: 'none' });
+										}
+									});
+								} catch (error) {
+									console.error('跳转异常：', error);
+									uni.showToast({ title: '页面跳转异常', icon: 'none' });
+								}
 							}, 1000);
-
 						} else {
-							// 登录失败 (如密码错误)
 							uni.showToast({ 
 								title: apiData.msg || '登录失败，请检查账号密码', 
 								icon: 'none',
@@ -192,7 +244,6 @@ export default {
 			}
 		},
 		
-		// 表单验证
 		validateForm() {
 			const username = this.username.trim();
 			const password = this.password.trim();
@@ -201,59 +252,146 @@ export default {
 				uni.showToast({ title: '请输入账号', icon: 'none' });
 				return false;
 			}
-			
 			if (!password) {
 				uni.showToast({ title: '请输入密码', icon: 'none' });
 				return false;
 			}
-			
-			// 手机号格式验证（简单验证）
-			if (/^1[3-9]\d{9}$/.test(username)) {
-				if (password.length < 6) {
-					uni.showToast({ title: '密码长度不能少于6位', icon: 'none' });
-					return false;
-				}
+			if (/^1[3-9]\d{9}$/.test(username) && password.length < 6) {
+				uni.showToast({ title: '密码长度不能少于6位', icon: 'none' });
+				return false;
 			}
-			
 			return true;
 		},
 		
-		// 用户名输入处理
 		onUsernameInput(e) {
 			this.username = e.detail.value;
-			// 可以添加实时验证逻辑
 		},
 		
-		// 密码输入处理
 		onPasswordInput(e) {
 			this.password = e.detail.value;
-			// 可以添加密码强度提示
 		},
 		
-		// 微信登录
-		wechatLogin() {
-			uni.showToast({ title: '功能开发中...', icon: 'none' });
+		async wechatLogin() {
+			if (!this.isAgree) {
+				uni.showToast({ title: '请先同意协议', icon: 'none' });
+				return;
+			}
+			
+			try {
+				const wxLoginRes = await new Promise((resolve, reject) => {
+					uni.login({
+						provider: 'weixin',
+						success: resolve,
+						fail: (err) => reject(new Error(`微信授权失败：${err.errMsg}`))
+					});
+				});
+
+				if (!wxLoginRes.code) {
+					uni.showToast({ title: '微信授权失败', icon: 'none' });
+					return;
+				}
+				
+				this.wxCode = wxLoginRes.code;
+				this.showWxAuthModal = true;
+			} catch (error) {
+				uni.showToast({ title: error.message, icon: 'none', duration: 2000 });
+			}
+		},
+
+		onChooseAvatar(e) {
+			this.wxUserInfo.avatar = e.detail.avatarUrl;
 		},
 		
-		// 忘记密码
+		// 微信登录 - 修复跳转逻辑
+		async submitWxLogin() {
+			if (!this.wxUserInfo.avatar) {
+				uni.showToast({ title: '请先选择微信头像', icon: 'none' });
+				return;
+			}
+			if (!this.wxUserInfo.nickname) {
+				uni.showToast({ title: '请选择/输入微信昵称', icon: 'none' });
+				return;
+			}
+			if (this.isWxSubmitting) return;
+			this.isWxSubmitting = true;
+
+			try {
+				uni.showLoading({ title: '微信登录中...', mask: true });
+				
+				const response = await uni.request({
+					url: API_CONFIG.baseUrl + API_CONFIG.paths.wechatLogin,
+					method: 'POST',
+					header: { 'content-type': 'application/json' },
+					data: {
+						code: this.wxCode,
+						nickname: this.wxUserInfo.nickname,
+						avatar: this.wxUserInfo.avatar
+					}
+				});
+				uni.hideLoading();
+				
+				const apiData = response.data || {};
+				if (response.statusCode === 200 && apiData.code === 0) {
+					uni.setStorageSync('token', apiData.data.token);
+					uni.setStorageSync('userInfo', {
+						nickname: this.wxUserInfo.nickname,
+						avatar: this.wxUserInfo.avatar,
+						...apiData.data.userInfo
+					});
+					uni.showToast({ title: '微信登录成功', icon: 'success' });
+					
+					// 同样修复微信登录的跳转逻辑
+					setTimeout(() => {
+						try {
+							uni.reLaunch({
+								url: '/pages/Main/index',
+								success: () => {
+									console.log('微信登录跳转成功');
+								},
+								fail: (err) => {
+									console.error('微信登录跳转失败：', err);
+									uni.showToast({ title: `跳转失败：${err.errMsg}`, icon: 'none' });
+								}
+							});
+						} catch (error) {
+							console.error('微信登录跳转异常：', error);
+							uni.showToast({ title: '页面跳转异常', icon: 'none' });
+						}
+					}, 500);
+				} else {
+					uni.showToast({
+						title: apiData.msg || '微信登录失败，请稍后重试',
+						icon: 'none',
+						duration: 2000
+					});
+				}
+			} catch (error) {
+				uni.hideLoading();
+				uni.showToast({ title: error.message || '微信登录异常', icon: 'none', duration: 2000 });
+			} finally {
+				this.isWxSubmitting = false;
+				this.hideWxAuthModal();
+			}
+		},
+
+		hideWxAuthModal() {
+			this.showWxAuthModal = false;
+			this.wxUserInfo = { avatar: '', nickname: '' };
+		},
+		
 		forgetPassword() {
 			uni.showToast({ title: '请联系管理员重置', icon: 'none' });
 		},
 		
-		// 注册
 		register() {
 			uni.showToast({ title: '暂未开放注册', icon: 'none' });
 		},
 		
-		// 显示用户协议
 		showAgreement() {
-			// 这里可以添加跳转到协议页面的逻辑
 			uni.showToast({ title: '用户协议', icon: 'none' });
 		},
 		
-		// 显示隐私政策
 		showPrivacy() {
-			// 这里可以添加跳转到隐私政策页面的逻辑
 			uni.showToast({ title: '隐私政策', icon: 'none' });
 		},
 	}
@@ -261,7 +399,7 @@ export default {
 </script>
 
 <style scoped>
-/* --- 基础容器 --- */
+/* 原样式不变，此处省略重复样式 */
 .page-container {
 	display: flex;
 	justify-content: center;
@@ -281,7 +419,6 @@ export default {
 	flex-direction: column;
 }
 
-/* --- 背景装饰 --- */
 .bg-decoration {
 	position: absolute;
 	top: 0;
@@ -302,7 +439,6 @@ export default {
 }
 .animate-pulse { animation: pulse 4s infinite ease-in-out; }
 
-/* --- Logo 区域 --- */
 .header-section {
 	padding-top: 140rpx;
 	padding-bottom: 60rpx;
@@ -333,7 +469,6 @@ export default {
 	margin-top: 12rpx;
 }
 
-/* --- 表单区域 --- */
 .form-section {
 	padding: 0 70rpx;
 	z-index: 1;
@@ -345,7 +480,7 @@ export default {
 .form-input {
 	width: 100%;
 	height: 110rpx;
-	padding: 0 100rpx; /* 左侧留出图标空间 */
+	padding: 0 100rpx;
 	background-color: #ffffff;
 	border-radius: 20rpx;
 	font-size: 30rpx;
@@ -359,27 +494,22 @@ export default {
 	border-color: rgba(158, 42, 43, 0.15);
 	background-color: #fff;
 }
-
-/* 输入框禁用状态 */
 .form-input[disabled] {
 	background-color: #f5f5f5;
 	color: #999;
 }
 .custom-placeholder { color: #c4c4c4; font-size: 28rpx; }
 
-/* --- CSS 极简图标绘制 (无需图片) --- */
 .input-icon-box {
 	position: absolute;
 	left: 36rpx;
 	top: 0;
-	height: 110rpx; /* 高度撑满，方便垂直居中 */
+	height: 110rpx;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	z-index: 10;
 }
-
-/* 用户图标：一个圆头 + 半圆身子 */
 .css-icon-user {
 	display: flex;
 	flex-direction: column;
@@ -399,8 +529,6 @@ export default {
 	border-radius: 16rpx 16rpx 0 0;
 	border-bottom: none;
 }
-
-/* 锁图标：一个倒U锁梁 + 方形锁体 */
 .css-icon-lock {
 	display: flex;
 	flex-direction: column;
@@ -420,7 +548,6 @@ export default {
 	border-radius: 4rpx;
 }
 
-/* --- 密码可见图标 --- */
 .toggle-password {
 	position: absolute;
 	right: 40rpx;
@@ -450,7 +577,6 @@ export default {
 	border-radius: 50%;
 }
 
-/* --- 登录按钮 --- */
 .btn-login {
 	width: 100%;
 	height: 110rpx;
@@ -467,8 +593,6 @@ export default {
 }
 .btn-login::after { border: none; }
 .btn-hover-active { transform: scale(0.98); opacity: 0.95; }
-
-/* 按钮禁用状态 */
 .btn-login[disabled] {
 	background: linear-gradient(135deg, #cccccc, #999999);
 	box-shadow: 0 8rpx 16rpx rgba(0, 0, 0, 0.1);
@@ -476,7 +600,6 @@ export default {
 	pointer-events: none;
 }
 
-/* 链接区域 */
 .links-row {
 	display: flex;
 	justify-content: center;
@@ -493,24 +616,23 @@ export default {
 .link-text { color: #888; }
 .link-text.highlight { color: #9e2a2b; font-weight: bold; }
 
-/* --- 底部微信登录 (绿色版) --- */
 .footer-section {
-	margin-top: auto;
-	padding: 0 70rpx 80rpx;
+  margin-top: 120rpx;
+  padding: 0 70rpx 80rpx;
+  z-index: 1;
 }
 .divider {
 	display: flex;
 	align-items: center;
-	margin-bottom: 40rpx;
+	margin-bottom: 50rpx;
 }
 .divider-line { flex: 1; height: 1rpx; background: linear-gradient(to right, transparent, #eee, transparent); }
 .divider-text { color: #bbb; font-size: 22rpx; margin: 0 24rpx; }
 
-/* 微信按钮样式 */
 .btn-wechat {
 	width: 100%;
 	height: 100rpx;
-	background-color: #07c160; /* 微信标准绿 */
+  background-color: #07c160 !important;
 	border-radius: 50rpx;
 	display: flex;
 	align-items: center;
@@ -519,10 +641,10 @@ export default {
 	border: none;
 	position: relative;
 	overflow: hidden;
+  margin-bottom: 30rpx;
 }
-.btn-wechat::after { border: none; }
-.wechat-hover { opacity: 0.9; transform: scale(0.99); }
-
+.btn-wechat::after { border: none !important; }
+.wechat-hover { opacity: 0.95; transform: scale(0.99); }
 .wechat-icon {
 	width: 44rpx;
 	height: 44rpx;
@@ -534,15 +656,135 @@ export default {
 	font-weight: 500;
 }
 
+.agreement-group {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.agree-checkbox {
+	width: 28rpx;
+	height: 28rpx;
+	border: 2rpx solid #ccc;
+	border-radius: 6rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: 12rpx;
+}
+.agree-checked {
+	background-color: #9e2a2b;
+	border-color: #9e2a2b;
+}
+.check-icon {
+	color: #fff;
+	font-size: 20rpx;
+}
 .agreement-text {
 	font-size: 22rpx;
 	color: #aaa;
 	text-align: center;
-	margin-top: 40rpx;
 }
 .highlight-text { color: #9e2a2b; }
 
-/* --- 动画 --- */
+.wx-auth-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.wx-auth-content {
+  width: 85%;
+  max-width: 650rpx;
+  background-color: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx 30rpx 30rpx;
+  text-align: center;
+}
+.wx-auth-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+.wx-auth-desc {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 40rpx;
+  padding: 0 20rpx;
+}
+.avatar-select-btn {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 40rpx;
+  padding: 0;
+  border: 2rpx dashed #ddd;
+}
+.avatar-select-btn::after { border: none; }
+.avatar-preview {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.avatar-tip {
+  font-size: 24rpx;
+  color: #999;
+}
+.nickname-input {
+  width: 100%;
+  height: 90rpx;
+  padding: 0 30rpx;
+  background-color: #f9f9f9;
+  border-radius: 45rpx;
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 36rpx;
+  box-sizing: border-box;
+}
+.nickname-placeholder {
+  color: #bbb;
+  font-size: 26rpx;
+}
+.wx-auth-confirm-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background-color: #07c160;
+  color: #fff;
+  font-size: 32rpx;
+  border-radius: 48rpx;
+  margin-bottom: 20rpx;
+}
+.wx-auth-confirm-btn::after { border: none; }
+.wx-auth-confirm-btn.disabled {
+  background-color: #ccc;
+  color: #fff;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.wx-auth-cancel {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background-color: #f5f5f5;
+  color: #666;
+  font-size: 32rpx;
+  border-radius: 48rpx;
+}
+.wx-auth-cancel::after { border: none; }
+
 .fade-in-up { animation: fadeInUp 0.8s ease-out both; }
 .fade-in-up-delay-1 { animation: fadeInUp 0.8s ease-out 0.2s both; }
 .fade-in-up-delay-2 { animation: fadeInUp 0.8s ease-out 0.4s both; }
