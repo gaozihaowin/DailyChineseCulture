@@ -33,7 +33,6 @@ export const API_CONFIG = {
     getClassList: '/class/list',           // 获取所有班级列表
     getBigGroupList: '/bigGroup/list',     // 获取所有大组列表
     getSmallGroupList: '/smallGroup/list', // 获取所有小组列表
-	
   }
 };
 
