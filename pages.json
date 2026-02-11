@@ -18,6 +18,42 @@
 				"animationType": "slide-out-right",
 				"animationDuration": 300
 			}
+		},
+		{
+		        "path": "pages/volunteer/homework/stats",
+		        "style": { "navigationStyle": "custom" }
+		},
+		{
+		        "path": "pages/volunteer/index",
+		        "style": { "navigationStyle": "custom" }
+		},
+		{
+		        "path": "pages/volunteer/homework/detail",
+		        "style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "pages/volunteer/homework/excellent",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/volunteer/homework/details",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/volunteer/manage",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/volunteer/my",
+			"style": {
+				"navigationBarTitleText": ""
+			}
 		}
 
 	],
