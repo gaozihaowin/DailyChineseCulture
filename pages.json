@@ -1,10 +1,16 @@
 {
 	"pages": [
 		{
-			// 1. 启动页：对应 pages/Login/index.vue
+			
 			"path": "pages/Login/index",
 			"style": {
-				"navigationStyle": "custom" // 隐藏系统导航栏，因为你的页面里自己写了 Header
+				"navigationStyle": "custom" 
+			}
+		},
+		{
+			"path": "pages/Login/complete-info",
+			"style": {
+				"navigationStyle": "custom"
 			}
 		},
 		{

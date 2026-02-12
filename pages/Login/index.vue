@@ -216,32 +216,51 @@ export default {
 							setTimeout(() => {
 								console.log('开始执行页面跳转...');
 								try {
-									// 尝试多种跳转方式
-									console.log('尝试使用 uni.reLaunch 跳转');
-									uni.reLaunch({ 
-										url: '/pages/Main/index',
-										success: (res) => {
-											console.log('reLaunch 跳转成功：已进入首页', res);
-										},
-										fail: (err) => {
-											console.error('reLaunch 跳转失败：', err);
-											// 如果reLaunch失败，尝试redirectTo
-											console.log('尝试使用 uni.redirectTo 跳转');
-											uni.redirectTo({
-												url: '/pages/Main/index',
-												success: (res2) => {
-													console.log('redirectTo 跳转成功：', res2);
-												},
-												fail: (err2) => {
-													console.error('redirectTo 也失败：', err2);
-													uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
-												}
-											});
-										},
-										complete: (res) => {
-											console.log('reLaunch 跳转完成：', res);
-										}
-									});
+									// 检查用户信息是否完整，如果不完整则跳转到信息补全页面
+									const userInfo = apiData.data.userInfo;
+									const needCompleteInfo = !userInfo.phone || !userInfo.avatar || !userInfo.birthday || !userInfo.gender;
+									
+									if (needCompleteInfo) {
+										console.log('用户信息不完整，跳转到信息补全页面');
+										uni.reLaunch({ 
+											url: '/pages/Main/index',
+											success: (res) => {
+												console.log('跳转到信息补全页面成功', res);
+											},
+											fail: (err) => {
+												console.error('跳转到信息补全页面失败：', err);
+												uni.showToast({ title: '跳转失败', icon: 'none' });
+											}
+										});
+									} else {
+										console.log('用户信息完整，跳转到首页');
+										// 尝试多种跳转方式
+										console.log('尝试使用 uni.reLaunch 跳转');
+										uni.reLaunch({ 
+											url: '/pages/Main/index',
+											success: (res) => {
+												console.log('reLaunch 跳转成功：已进入首页', res);
+											},
+											fail: (err) => {
+												console.error('reLaunch 跳转失败：', err);
+												// 如果reLaunch失败，尝试redirectTo
+												console.log('尝试使用 uni.redirectTo 跳转');
+												uni.redirectTo({
+													url: '/pages/Main/index',
+													success: (res2) => {
+														console.log('redirectTo 跳转成功：', res2);
+													},
+													fail: (err2) => {
+														console.error('redirectTo 也失败：', err2);
+														uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
+													}
+												});
+											},
+											complete: (res) => {
+												console.log('reLaunch 跳转完成：', res);
+											}
+										});
+									}
 								} catch (error) {
 									console.error('跳转异常：', error);
 									uni.showToast({ title: '页面跳转异常', icon: 'none' });
