@@ -195,25 +195,51 @@ export default {
 						this.isLoading = false;
 						const apiData = res.data;
 
-						if (res.statusCode === 200 && apiData.code === 0) {
+						if (res.statusCode === 200 && (apiData.code === 200 || apiData.code === 0 || apiData.code === 201)) {
+							console.log('=== 登录成功，开始处理跳转 ===');
+							console.log('返回数据：', apiData);
+							
 							// 修复1：确保缓存成功后再跳转
-							uni.setStorageSync('token', apiData.data.token);
-							uni.setStorageSync('userInfo', apiData.data.userInfo);
+							try {
+								uni.setStorageSync('token', apiData.data.token);
+								uni.setStorageSync('userInfo', apiData.data.userInfo);
+								console.log('token和用户信息已缓存');
+							} catch (storageError) {
+								console.error('缓存失败：', storageError);
+								uni.showToast({ title: '数据缓存失败', icon: 'none' });
+								return;
+							}
+							
 							uni.showToast({ title: '登录成功', icon: 'success' });
 							
 							// 修复2：使用try-catch捕获跳转错误，添加延时确保Toast显示
 							setTimeout(() => {
+								console.log('开始执行页面跳转...');
 								try {
-									// 重点：确认路径正确！如果首页路径是/pages/index/index，需修改为对应路径
+									// 尝试多种跳转方式
+									console.log('尝试使用 uni.reLaunch 跳转');
 									uni.reLaunch({ 
 										url: '/pages/Main/index',
-										success: () => {
-											console.log('跳转成功：已进入首页');
+										success: (res) => {
+											console.log('reLaunch 跳转成功：已进入首页', res);
 										},
 										fail: (err) => {
-											// 修复3：打印跳转失败原因，方便排查路径问题
-											console.error('跳转失败：', err);
-											uni.showToast({ title: `跳转失败：${err.errMsg}`, icon: 'none' });
+											console.error('reLaunch 跳转失败：', err);
+											// 如果reLaunch失败，尝试redirectTo
+											console.log('尝试使用 uni.redirectTo 跳转');
+											uni.redirectTo({
+												url: '/pages/Main/index',
+												success: (res2) => {
+													console.log('redirectTo 跳转成功：', res2);
+												},
+												fail: (err2) => {
+													console.error('redirectTo 也失败：', err2);
+													uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
+												}
+											});
+										},
+										complete: (res) => {
+											console.log('reLaunch 跳转完成：', res);
 										}
 									});
 								} catch (error) {
@@ -331,26 +357,53 @@ export default {
 				uni.hideLoading();
 				
 				const apiData = response.data || {};
-				if (response.statusCode === 200 && apiData.code === 0) {
-					uni.setStorageSync('token', apiData.data.token);
-					uni.setStorageSync('userInfo', {
-						nickname: this.wxUserInfo.nickname,
-						avatar: this.wxUserInfo.avatar,
-						...apiData.data.userInfo
-					});
+				if (response.statusCode === 200 && (apiData.code === 200 || apiData.code === 0 || apiData.code === 201)) {
+					console.log('=== 微信登录成功，开始处理跳转 ===');
+					console.log('微信返回数据：', apiData);
+					
+					try {
+						uni.setStorageSync('token', apiData.data.token);
+						uni.setStorageSync('userInfo', {
+							nickname: this.wxUserInfo.nickname,
+							avatar: this.wxUserInfo.avatar,
+							...apiData.data.userInfo
+						});
+						console.log('微信token和用户信息已缓存');
+					} catch (storageError) {
+						console.error('微信缓存失败：', storageError);
+						uni.showToast({ title: '数据缓存失败', icon: 'none' });
+						return;
+					}
+					
 					uni.showToast({ title: '微信登录成功', icon: 'success' });
 					
 					// 同样修复微信登录的跳转逻辑
 					setTimeout(() => {
+						console.log('开始执行微信页面跳转...');
 						try {
+							console.log('尝试使用 uni.reLaunch 跳转微信登录');
 							uni.reLaunch({
 								url: '/pages/Main/index',
-								success: () => {
-									console.log('微信登录跳转成功');
+								success: (res) => {
+									console.log('微信 reLaunch 跳转成功', res);
 								},
 								fail: (err) => {
-									console.error('微信登录跳转失败：', err);
-									uni.showToast({ title: `跳转失败：${err.errMsg}`, icon: 'none' });
+									console.error('微信 reLaunch 跳转失败：', err);
+									// 如果reLaunch失败，尝试redirectTo
+									console.log('尝试使用 uni.redirectTo 跳转微信登录');
+									uni.redirectTo({
+										url: '/pages/Main/index',
+										success: (res2) => {
+											console.log('微信 redirectTo 跳转成功', res2);
+										},
+										fail: (err2) => {
+											console.error('微信 redirectTo 也失败：', err2);
+											uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
+										}
+									});
+								},
+								complete: (res) => {
+									console.log('微信 reLaunch 跳转完成：', res);
 								}
 							});
 						} catch (error) {
