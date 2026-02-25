@@ -18,9 +18,8 @@ export const API_CONFIG = {
     switchIdentity: '/user/switch-identity',
     updateUserInfo: '/updateUserInfo',
     hotCourses: '/courses/hot',
-    coursesIng: '/courses/ing',
-    coursesHistory: '/courses/history',
-    coursesDone: '/courses/done',
+    courses: '/courses',
+    
     dutyTable: '/user/duty-table',
     
     // 新增作业统计相关接口

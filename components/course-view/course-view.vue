@@ -30,75 +30,54 @@
           class="course-card" 
           v-for="(item, index) in displayList" 
           :key="index"
-          @click="navigateToCourseDetail(item.id || index + 100)"
+          @click="navigateToCourseDetail(item.id)"
         >
           
-          <view class="card-thumb" :class="{ 'thumb-gray': item.status === 'expired' }">
+          <view class="card-thumb" 
+                :class="{ 'thumb-gray': item.status === 'hist' }"
+                :style="{ background: item.status === 'hist' ? '#d1d1d1' : (colorMap[item.type] || colorMap['默认']) }">
             
             <view class="status-badge" :class="getStatusClass(item.status)">
               {{ item.statusText }}
             </view>
             
             <view class="thumb-main">{{ item.type }}</view>
-            <view class="thumb-sub">{{ item.enType }}</view>
-            <view class="thumb-time">开营时间: {{ item.startDate }}</view>
+            <view class="thumb-sub">{{ item.term }}</view>
           </view>
           
           <view class="card-info">
-            <view class="card-title" :class="{ 'text-gray': item.status === 'expired' }">
+            <view class="card-title" :class="{ 'text-gray': item.status === 'hist' }">
               {{ item.title }}
             </view>
             
             <view class="info-group">
               <view class="info-row">
                 <uni-icons type="calendar" size="12" color="#999"></uni-icons>
-                <text>报名时间: {{ item.registerDate }}</text>
+                <text>报名时间: {{ item.updateDate }}</text>
               </view>
               
-              <view class="info-row">
-                <uni-icons type="clock" size="12" color="#999"></uni-icons>
-                <text>开营时间: {{ item.startDate }}</text>
-              </view>
-              
-              <view class="info-row" v-if="item.progress !== undefined">
-                <uni-icons type="spinner" size="12" color="#999"></uni-icons>
-                <text v-if="item.status === 'expired'">
-                  进度: 未完成 ({{ item.progress }}%)
-                </text>
-                <text v-else>
-                  进度: {{ item.progress }}%
-                </text>
+              <view class="progress-section">
+                <view class="progress-text">学习进度: {{ item.progress }}%</view>
+                <view class="progress-track">
+                  <view class="progress-fill" 
+                        :style="{ width: item.progress + '%', background: item.status === 'done' ? '#16a34a' : '#9e2a2b' }">
+                  </view>
+                </view>
               </view>
             </view>
 
             <view class="card-action">
-              
               <button 
-                v-if="item.status === 'ing' || item.statusText === '已开营'" 
-                class="btn-study" 
+                class="btn-action" 
+                :class="'btn-' + item.status"
                 hover-class="btn-hover"
               >
-                学习课程 
-                <uni-icons type="forward" size="12" color="#9e2a2b" style="margin-left: 4rpx;"></uni-icons>
+                {{ getActionText(item.status) }}
               </button>
-              
-              <button 
-                v-else-if="item.status === 'done' " 
-                class="btn-study btn-done" 
-                hover-class="btn-hover"
-              >
-                查看证书
-              </button>
-              
-              <button 
-                v-else-if="item.status === 'expired' " 
-                class="btn-study btn-expired" 
-                hover-class="btn-hover"
-              >
-                查看存档
-              </button>
-              
-            </view> </view> </view> </view>
+            </view>
+          </view>
+        </view>
+      </view>
 
       <view v-else class="empty-state">
         <uni-icons type="folder-close" size="60" color="#e0e0e0"></uni-icons>
@@ -112,7 +91,6 @@
 </template>
 
 <script>
-// 引入API配置
 import { API_CONFIG } from '../../api/config';
 
 export default {
@@ -120,143 +98,92 @@ export default {
     
     data() {
       return {
-        // 当前选中的 Tab 索引
         currentTopTab: 0,
-
-        // 顶部 Tab 配置
-        // key 用于筛选逻辑: 
-        // 'filter_ing' = 只看进行中
-        // 'all_history' = 看全部 (全集)
-        // 'filter_done' = 只看已完成
+        // 映射关系: 1=正在学习, 2=历史课程, 3=已结业
         topTabs: [
-          { name: '正在学习', key: 'filter_ing' },       
-          { name: '历史课程', key: 'all_history' },      
-          { name: '已结业',   key: 'filter_done' }         
+          { name: '正在学习', type: 1 },       
+          { name: '历史课程', type: 2 },      
+          { name: '已结业',   type: 3 }         
         ],
-        
-        // 当前页面实际渲染的列表数据
+        // 班级颜色映射逻辑
+        colorMap: {
+          '诚意班': 'linear-gradient(135deg, #8a2021, #b53b3c)',
+          '明理班': 'linear-gradient(135deg, #1e3c72, #2a5298)',
+          '笃行班': 'linear-gradient(135deg, #d35400, #e67e22)',
+          '印证班': 'linear-gradient(135deg, #205e4a, #3ea07a)',
+          '良知班': 'linear-gradient(135deg, #5c433b, #8b6b61)',
+          '默认': 'linear-gradient(135deg, #9e2a2b, #b53b3c)'
+        },
         displayList: []
       }
     },
 
-    /**
-     * 生命周期: 组件挂载后触发
-     * 默认加载第一个 Tab 的数据
-     */
     mounted() {
-      this.fetchCourseData(this.topTabs[0].key);
+      // 默认加载第一个 Tab (type: 1)
+      this.fetchCourseData(this.topTabs[0].type);
     },
 
     methods: {
-      /**
-       * 切换顶部 Tab 事件
-       * @param {Number} index - 点击的 Tab 索引
-       */
       switchTopTab(index) {
         if (this.currentTopTab === index) return;
-        
         this.currentTopTab = index;
-        const filterKey = this.topTabs[index].key;
-        
-        // 根据 key 重新筛选数据
-        this.fetchCourseData(filterKey);
+        this.fetchCourseData(this.topTabs[index].type);
       },
 
       /**
-       * 【核心逻辑】从后端API获取课程数据
-       * @param {String} filterKey - 筛选关键字
+       * 统一获取数据方法
+       * @param {Number} tabType - 后端需要的过滤参数
        */
-      async fetchCourseData(filterKey) {
-        // 1. 显示加载动画
+      async fetchCourseData(tabType) {
+        // 读取token
+        const token = uni.getStorageSync('token');
+        if (!token) {
+          uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
+          setTimeout(() => {
+            uni.reLaunch({ url: '/pages/Login/index' });
+          }, 1000);
+          return;
+        }
+        
         uni.showLoading({ title: '同步中...', mask: true });
         
         try {
-          let apiPath = '';
-          
-          // 根据筛选条件选择API路径
-          if (filterKey === 'filter_ing') {
-            // 逻辑 A: 正在学习 -> /courses/ing
-            apiPath = API_CONFIG.paths.coursesIng;
-          } else if (filterKey === 'filter_done') {
-            // 逻辑 B: 已结业 -> /courses/done
-            apiPath = API_CONFIG.paths.coursesDone;
-          } else if (filterKey === 'all_history') {
-            // 逻辑 C: 历史课程 -> /courses/history
-            apiPath = API_CONFIG.paths.coursesHistory;
-          }
-          
-          // 2. 发起网络请求
+          // 【优化】: 统一调用单一路径，通过 query 传参
           const res = await uni.request({
-            url: API_CONFIG.baseUrl + apiPath,
-            method: 'GET'
+            url: API_CONFIG.baseUrl + '/courses', 
+            method: 'GET',
+            header: {
+              'Authorization': token
+            },
+            data: { tabType: tabType }
           });
           
-          // 3. 处理响应结果
           if (res.statusCode === 200 && res.data.code === 200) {
-            // 处理API返回的数据，确保包含所有必要字段
-            this.displayList = res.data.data.map(item => {
-              return {
-                ...item,
-                // 确保字段存在，防止渲染错误
-                registerDate: item.registerDate || '',
-                startDate: item.startDate || '',
-                statusText: item.statusText || '',
-                type: item.type || '',
-                enType: item.enType || '',
-                title: item.title || '',
-                progress: item.progress || 0
-              };
-            });
+            this.displayList = res.data.data;
           } else {
-            uni.showToast({
-              title: '获取课程列表失败',
-              icon: 'none'
-            });
             this.displayList = [];
           }
         } catch (error) {
-          console.error('获取课程数据失败:', error);
-          uni.showToast({
-            title: '网络连接异常',
-            icon: 'none'
-          });
+          uni.showToast({ title: '网络连接异常', icon: 'none' });
           this.displayList = [];
         } finally {
-          // 4. 隐藏加载动画
           uni.hideLoading();
         }
       },
 
-      /**
-       * 工具方法: 根据状态返回对应的 CSS 类名
-       * @param {String} status - 课程状态
-       */
       getStatusClass(status) {
-        const map = {
-          'ing': 'badge-ing',
-          'done': 'badge-done',
-          'expired': 'badge-expired'
-        };
+        const map = { 'ing': 'badge-ing', 'done': 'badge-done', 'hist': 'badge-expired' };
         return map[status] || '';
       },
 
-      /**
-       * 跳转到课程详情页
-       * @param {String|Number} courseId - 课程ID
-       */
+      getActionText(status) {
+        const map = { 'ing': '继续学习', 'done': '查看证书', 'hist': '查看存档' };
+        return map[status] || '进入课程';
+      },
+
       navigateToCourseDetail(courseId) {
         uni.navigateTo({
-          url: `/pages/CourseDetail/index?id=${courseId}&source=/pages/Main/index&sourceType=tab`,
-          success: () => {
-            console.log('跳转至课程详情页成功');
-          },
-          fail: (error) => {
-            console.error('跳转至课程详情页失败:', error);
-            uni.showToast({
-              title: '跳转失败',
-              icon: 'none'
-            });
-          }
+          url: `/pages/CourseDetail/index?id=${courseId}`
         });
       }
     }
@@ -264,230 +191,74 @@ export default {
 </script>
 
 <style scoped>
-  /* ================================= */
-  /* 1. 基础布局 Layout                 */
-  /* ================================= */
+  /* 基础容器 */
   .view-container { 
     height: 100%; 
     display: flex; 
     flex-direction: column; 
-    background-color: #f3f4f6; /* 浅灰背景 */
+    background-color: #f8f9fa; 
   }
 
-  /* ================================= */
-  /* 2. 头部导航 Header                 */
-  /* ================================= */
+  /* 头部吸顶 */
   .header { 
     padding: 80rpx 40rpx 30rpx; 
     background: #fff; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    position: sticky; /* 吸顶效果 */
+    position: sticky;
     top: 0; 
     z-index: 10; 
   }
+  .header-title { display: flex; align-items: center; font-size: 34rpx; font-weight: bold; color: #2d2424; gap: 12rpx; }
+  .logo-seal { background: #9e2a2b; color: #fff; font-size: 24rpx; width: 44rpx; height: 44rpx; line-height: 44rpx; text-align: center; border-radius: 8rpx; font-family: serif; }
 
-  .header-title { 
-    display: flex; 
-    align-items: center; 
-    font-size: 34rpx; 
-    font-weight: bold; 
-    color: #2d2424; 
-    gap: 12rpx; 
-  }
+  /* Tab 样式优化 */
+  .tabs-container { background: #fff; padding: 0 40rpx 24rpx; border-radius: 0 0 40rpx 40rpx; margin-bottom: 24rpx; box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.03); }
+  .tabs-wrapper { display: flex; background: #f1f3f5; padding: 8rpx; border-radius: 20rpx; }
+  .tab-item { flex: 1; text-align: center; padding: 16rpx 0; font-size: 26rpx; color: #8c8686; border-radius: 16rpx; transition: all 0.2s; }
+  .tab-item.active { background: #fff; color: #9e2a2b; font-weight: bold; box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.05); }
 
-  .logo-seal { 
-    background: #9e2a2b; /* 品牌红 */
-    color: #fff; 
-    font-size: 24rpx; 
-    width: 40rpx; height: 40rpx; 
-    line-height: 40rpx; 
-    text-align: center; 
-    border-radius: 8rpx; 
-    font-family: serif; /* 衬线体 */
-  }
+  /* 列表与卡片 */
+  .scroll-content { flex: 1; height: 0; width: 100%; }
+  .course-list { padding: 0 32rpx; }
+  .course-card { background: #fff; border-radius: 32rpx; padding: 28rpx; margin-bottom: 28rpx; display: flex; gap: 28rpx; box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.02); }
 
-  /* ================================= */
-  /* 3. 选项卡 Tabs                     */
-  /* ================================= */
-  .tabs-container { 
-    background: #fff; 
-    padding: 0 40rpx 20rpx; 
-    border-radius: 0 0 32rpx 32rpx; /* 下方圆角 */
-    margin-bottom: 20rpx; 
-    box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.02); 
-  }
-
-  .tabs-wrapper { 
-    display: flex; 
-    background: #f3f4f6; 
-    padding: 8rpx; 
-    border-radius: 16rpx; 
-  }
-
-  .tab-item { 
-    flex: 1; 
-    text-align: center; 
-    padding: 14rpx 0; 
-    font-size: 26rpx; 
-    color: #8c8686; 
-    border-radius: 12rpx; 
-    transition: all 0.3s; 
-  }
-
-  .tab-item.active { 
-    background: #fff; 
-    color: #9e2a2b; /* 选中变红 */
-    font-weight: bold; 
-    box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05); 
-  }
-
-  /* ================================= */
-  /* 4. 滚动列表区 Course List          */
-  /* ================================= */
-  .scroll-content { 
-    flex: 1; 
-    height: 0; 
-    width: 100%; 
-  }
-  
-  .safe-area-spacer { 
-    height: 160rpx; /* 底部垫高，防止被 TabBar 遮挡 */
-  }
-
-  .course-list { 
-    padding: 0 30rpx; 
-  }
-
-  .course-card { 
-    background: #fff; 
-    border-radius: 24rpx; 
-    padding: 24rpx; 
-    margin-bottom: 24rpx; 
-    display: flex; 
-    gap: 24rpx; 
-    box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.02); 
-  }
-
-  /* --- 左侧封面 --- */
-  .card-thumb { 
-    width: 160rpx; height: 160rpx; 
-    background: linear-gradient(135deg, #8a2021, #b53b3c); 
-    border-radius: 16rpx; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    color: #fff; 
-    position: relative; 
-    flex-shrink: 0; 
-    transition: all 0.3s;
-  }
-  
-  /* 已过期状态：封面置灰 */
-  .thumb-gray { 
-    filter: grayscale(100%); 
-    opacity: 0.7; 
-  }
-
-  .thumb-main { font-size: 30rpx; font-weight: bold; font-family: serif; }
-.thumb-sub  { font-size: 16rpx; opacity: 0.8; }
-.thumb-time { font-size: 14rpx; opacity: 0.7; margin-top: 8rpx; text-align: center; }
+  /* 封面图 */
+  .card-thumb { width: 180rpx; height: 180rpx; border-radius: 20rpx; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; position: relative; flex-shrink: 0; }
+  .thumb-gray { filter: grayscale(100%); opacity: 0.6; }
+  .thumb-main { font-size: 32rpx; font-weight: bold; font-family: serif; }
+  .thumb-sub  { font-size: 18rpx; opacity: 0.8; margin-top: 4rpx; }
 
   /* 状态徽标 */
-  .status-badge { 
-    position: absolute; top: 8rpx; left: 8rpx; 
-    font-size: 18rpx; 
-    padding: 2rpx 8rpx; 
-    border-radius: 6rpx; 
-    color: #fff; 
-    backdrop-filter: blur(4px); 
-  }
-  .badge-ing     { background: rgba(0,0,0,0.3); }      /* 进行中 */
-  .badge-done    { background: rgba(34, 197, 94, 0.9); } /* 已完成 (绿) */
-  .badge-expired { background: rgba(50,50,50, 0.6); }    /* 已过期 (灰) */
+  .status-badge { position: absolute; top: 12rpx; left: 12rpx; font-size: 18rpx; padding: 4rpx 12rpx; border-radius: 8rpx; color: #fff; }
+  .badge-ing     { background: rgba(0,0,0,0.25); }
+  .badge-done    { background: #16a34a; }
+  .badge-expired { background: #6b7280; }
 
-  /* --- 右侧信息 --- */
-  .card-info { 
-    flex: 1; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-between; 
-  }
-
-  .card-title { 
-    font-size: 28rpx; 
-    font-weight: bold; 
-    color: #333; 
-    line-height: 1.4; 
-    margin-bottom: 8rpx; 
-  }
+  /* 信息排版 */
+  .card-info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .card-title { font-size: 28rpx; font-weight: bold; color: #333; line-height: 1.5; }
   .text-gray { color: #999; }
+  .info-group { display: flex; flex-direction: column; gap: 12rpx; margin-top: 10rpx; }
+  .info-row { font-size: 22rpx; color: #999; display: flex; align-items: center; gap: 8rpx; }
 
-  .info-group { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 6rpx; 
-  }
-  
-  .info-row { 
-    font-size: 22rpx; 
-    color: #999; 
-    display: flex; 
-    align-items: center; 
-    gap: 8rpx; 
-  }
+  /* 进度条样式 */
+  .progress-section { margin-top: 4rpx; }
+  .progress-text { font-size: 20rpx; color: #999; margin-bottom: 8rpx; }
+  .progress-track { height: 6rpx; background: #eee; border-radius: 10rpx; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 10rpx; transition: width 0.8s ease-out; }
 
-  .card-action { 
-    display: flex; 
-    justify-content: flex-end; 
-    margin-top: 10rpx; 
-  }
+  /* 按钮 */
+  .card-action { display: flex; justify-content: flex-end; margin-top: 12rpx; }
+  .btn-action { margin: 0; font-size: 24rpx; padding: 0 28rpx; height: 56rpx; line-height: 56rpx; border-radius: 40rpx; font-weight: bold; border: none; }
+  .btn-action::after { border: none; }
+  .btn-ing { background: rgba(158, 42, 43, 0.08); color: #9e2a2b; }
+  .btn-done { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
+  .btn-hist { background: #f3f4f6; color: #6b7280; }
+  .btn-hover { opacity: 0.7; transform: scale(0.96); }
 
-  /* --- 按钮样式 --- */
-  .btn-study { 
-    margin: 0; 
-    font-size: 24rpx; 
-    padding: 0 24rpx; 
-    height: 50rpx; 
-    line-height: 50rpx; 
-    border-radius: 30rpx; 
-    font-weight: 600; 
-    display: flex; 
-    align-items: center; 
-  }
-  .btn-study::after { border: none; } /* 去除小程序原生边框 */
-  
-  /* 状态 1: 学习中 */
-  .btn-study { 
-    background: rgba(158, 42, 43, 0.08); 
-    color: #9e2a2b; 
-  }
-  /* 状态 2: 已完成 */
-  .btn-done { 
-    background: rgba(34, 197, 94, 0.1); 
-    color: #16a34a; 
-  }
-  /* 状态 3: 已过期 */
-  .btn-expired { 
-    background: #f3f4f6; 
-    color: #6b7280; 
-  }
-
-  /* ================================= */
-  /* 5. 空状态 Empty State              */
-  /* ================================= */
-  .empty-state { 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: center; 
-    padding-top: 100rpx; 
-  }
-  .empty-text { 
-    font-size: 26rpx; 
-    color: #bbb; 
-    margin-top: 20rpx; 
-  }
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 160rpx; }
+  .empty-text { font-size: 26rpx; color: #ccc; margin-top: 24rpx; }
+  .safe-area-spacer { height: 160rpx; }
 </style>
