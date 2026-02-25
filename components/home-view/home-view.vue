@@ -57,8 +57,9 @@
 
       <view class="course-list">
         <view class="course-card" v-for="(course, index) in courseList" :key="index">
-          <view class="card-thumb" :style="{ background: course.bgGradient }">
-            <view class="thumb-tag">{{ course.tag }}</view>
+          
+          <view class="card-thumb" :style="{ background: colorMap[course.type] || colorMap['默认'] }">
+            <view class="thumb-tag" v-if="course.tag">{{ course.tag }}</view>
             <view class="thumb-title">{{ course.type }}</view>
             <view class="thumb-sub">{{ course.term }}</view>
           </view>
@@ -66,7 +67,7 @@
           <view class="card-info">
             <view class="info-title">{{ course.title }}</view>
             <view class="info-meta">
-              <text class="meta-count">{{ course.count }} 人已加入</text>
+              <text class="meta-count">👥 {{ course.count }} 人已加入</text>
               <view class="meta-btn">去学习</view>
             </view>
           </view>
@@ -145,6 +146,16 @@ export default {
         { name: '印证班', iconUrl: 'https://img.icons8.com/fluency/96/star.png',   bgColor: '#FFFAF0' },
         { name: '良知班', iconUrl: 'https://img.icons8.com/color/96/brain.png',    bgColor: '#F0FFF4' }
       ],
+      
+      // 【新增】前端本地维护的班级颜色映射表
+      colorMap: {
+        '诚意班': 'linear-gradient(135deg, #8a2021, #b53b3c)',
+        '明理班': 'linear-gradient(135deg, #1e3c72, #2a5298)',
+        '笃行班': 'linear-gradient(135deg, #d35400, #e67e22)',
+        '印证班': 'linear-gradient(135deg, #205e4a, #3ea07a)',
+        '良知班': 'linear-gradient(135deg, #5c433b, #8b6b61)',
+        '默认': 'linear-gradient(135deg, #9e2a2b, #b53b3c)' // 兜底颜色
+      },
       
       // 课程数据列表（从API获取）
       courseList: [],
@@ -393,7 +404,7 @@ export default {
 }
 
 /* =========================================================================
-   [6] 课程列表区 (Course List)
+   [6] 课程列表区 (Course List - 优化视觉比例)
    ========================================================================= */
 .section-header { 
   padding: 0 40rpx; 
@@ -418,17 +429,21 @@ export default {
 }
 .course-card { 
   background: #fff; 
-  border-radius: 36rpx; 
-  padding: 24rpx; 
+  border-radius: 30rpx; 
+  padding: 20rpx; 
   margin-bottom: 32rpx; 
   display: flex; 
   gap: 24rpx; 
-  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04); 
+  box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03); 
+  transition: all 0.3s ease;
+}
+.course-card:active {
+  transform: scale(0.98);
 }
 .card-thumb { 
   width: 200rpx; 
-  height: 150rpx; 
-  border-radius: 20rpx; 
+  height: 200rpx; /* 将高度适当拉长，容纳下标题和角标 */
+  border-radius: 24rpx; 
   display: flex; 
   flex-direction: column; 
   justify-content: center; 
@@ -437,18 +452,18 @@ export default {
   text-align: center; 
   position: relative; 
   flex-shrink: 0; 
+  overflow: hidden; /* 防止左上角角标溢出圆角 */
 }
-.thumb-title { font-size: 38rpx; font-weight: 900; }
-.thumb-sub { font-size: 20rpx; opacity: 0.9; margin-top: 4rpx; }
+.thumb-title { font-size: 36rpx; font-weight: 900; letter-spacing: 2rpx; }
+.thumb-sub { font-size: 22rpx; opacity: 0.9; margin-top: 8rpx; }
 .thumb-tag { 
   position: absolute; 
   top: 0; 
   left: 0; 
-  background: #c5a065; 
+  background: linear-gradient(90deg, #d4af37, #c5a065); /* 给角标增加高级渐变 */
   color: #fff; 
   font-size: 18rpx; 
-  padding: 4rpx 12rpx; 
-  border-top-left-radius: 20rpx; 
+  padding: 6rpx 16rpx; 
   border-bottom-right-radius: 16rpx; 
   font-weight: bold; 
 }
@@ -457,7 +472,7 @@ export default {
   display: flex; 
   flex-direction: column; 
   justify-content: space-between; 
-  padding: 6rpx 0; 
+  padding: 10rpx 0; 
 }
 .info-title { 
   font-size: 30rpx; 
@@ -465,7 +480,7 @@ export default {
   color: #2d2424; 
   line-height: 1.5; 
   display: -webkit-box; 
-  -webkit-line-clamp: 2; 
+  -webkit-line-clamp: 2; /* 标题最多显示两行 */
   -webkit-box-orient: vertical; 
   overflow: hidden; 
 }
@@ -474,13 +489,13 @@ export default {
   justify-content: space-between; 
   align-items: center; 
 }
-.meta-count { font-size: 22rpx; color: #999; }
+.meta-count { font-size: 22rpx; color: #a09a9a; font-weight: 500;}
 .meta-btn { 
   background: rgba(158, 42, 43, 0.08); 
   color: #9e2a2b; 
   font-size: 24rpx; 
-  padding: 10rpx 24rpx; 
-  border-radius: 30rpx; 
+  padding: 10rpx 30rpx; 
+  border-radius: 40rpx; 
   font-weight: 700; 
 }
 
