@@ -190,47 +190,54 @@ export default {
 			
 			// 设置加载状态
 			this.isLoading = true;
+			uni.showLoading({ title: '提交中...', mask: true });
 			
 			try {
+				// 读取token
+				const token = uni.getStorageSync('token');
+				if (!token) {
+					uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
+					setTimeout(() => {
+						uni.reLaunch({ url: '/pages/Login/index' });
+					}, 1000);
+					return;
+				}
+				
 				// 调用后端接口更新用户信息
 				const res = await uni.request({
 					url: API_CONFIG.baseUrl + '/user/update',
 					method: 'POST',
 					header: {
 						'content-type': 'application/json',
-						'Authorization': 'Bearer ' + uni.getStorageSync('token')
+						'Authorization': 'Bearer ' + token
 					},
-					data: this.formData,
-					success: (res) => {
-						this.isLoading = false;
-						
-						if (res.statusCode === 200 && res.data.code === 200) {
-							uni.showToast({ title: '信息提交成功', icon: 'success' });
-							
-							// 更新本地用户信息
-							const userInfo = uni.getStorageSync('userInfo') || {};
-							uni.setStorageSync('userInfo', { ...userInfo, ...this.formData });
-							
-							// 延迟跳转到首页
-							setTimeout(() => {
-								uni.reLaunch({
-									url: '/pages/Main/index'
-								});
-							}, 1500);
-						} else {
-							uni.showToast({ 
-								title: res.data.msg || '提交失败', 
-								icon: 'none' 
-							});
-						}
-					},
-					fail: (error) => {
-						this.isLoading = false;
-						console.error('提交失败:', error);
-						uni.showToast({ title: '网络连接异常', icon: 'none' });
-					}
+					data: this.formData
 				});
+				
+				uni.hideLoading();
+				this.isLoading = false;
+				
+				if (res.statusCode === 200 && res.data.code === 200) {
+					uni.showToast({ title: '信息提交成功', icon: 'success' });
+					
+					// 更新本地用户信息
+					const userInfo = uni.getStorageSync('userInfo') || {};
+					uni.setStorageSync('userInfo', { ...userInfo, ...this.formData });
+					
+					// 延迟跳转到首页
+					setTimeout(() => {
+						uni.reLaunch({
+							url: '/pages/Main/index'
+						});
+					}, 800); // 800ms延迟，确保用户能看清提示
+				} else {
+					uni.showToast({ 
+						title: res.data.msg || '提交失败', 
+						icon: 'none' 
+					});
+				}
 			} catch (error) {
+				uni.hideLoading();
 				this.isLoading = false;
 				console.error('提交异常:', error);
 				uni.showToast({ title: '网络连接异常', icon: 'none' });

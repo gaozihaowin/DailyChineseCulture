@@ -75,10 +75,10 @@
 					<view class="divider-line"></view>
 				</view>
 				
-				<button class="btn-wechat" @tap="wechatLogin" hover-class="wechat-hover">
-					<image class="wechat-icon" src="https://img.icons8.com/ios-filled/50/ffffff/wechat.png" mode="aspectFit"></image>
-					<text class="wechat-text">微信一键登录</text>
-				</button>
+				<button class="btn-wechat" @tap="wechatLoginDisabled" hover-class="wechat-hover" disabled>
+						<image class="wechat-icon" src="https://img.icons8.com/ios-filled/50/ffffff/wechat.png" mode="aspectFit"></image>
+						<text class="wechat-text">微信一键登录</text>
+					</button>
 				
 				<view class="agreement-group" @tap="toggleAgree">
 					<view class="agree-checkbox" :class="isAgree ? 'agree-checked' : ''">
@@ -95,7 +95,8 @@
 
 		</view>
 
-		<view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
+		<!-- 微信授权模态框 - 暂时屏蔽 -->
+		<!-- <view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
 			<view class="wx-auth-content" @tap.stop>
 				<view class="wx-auth-title">完善登录资料</view>
 				<view class="wx-auth-desc">选择你的微信头像和昵称，完成登录</view>
@@ -126,7 +127,7 @@
 				</button>
 				<button class="wx-auth-cancel" @tap="hideWxAuthModal">取消</button>
 			</view>
-		</view>
+		</view> -->
 	</view>
 </template>
 
@@ -141,6 +142,7 @@ export default {
 			showPassword: false,
 			isLoading: false,
 			isAgree: false,
+			// 微信登录相关字段暂时保留但不使用
 			showWxAuthModal: false, 
 			wxCode: '', 
 			isWxSubmitting: false, 
@@ -170,7 +172,7 @@ export default {
 			this.isAgree = !this.isAgree;
 		},
 		
-		// 账号密码登录 - 修复跳转逻辑
+		// 账号密码登录 - 对接后端新规范
 		handleLogin() {
 			if (!this.isAgree) {
 				uni.showToast({ title: '请先同意协议', icon: 'none' });
@@ -195,11 +197,11 @@ export default {
 						this.isLoading = false;
 						const apiData = res.data;
 
-						if (res.statusCode === 200 && (apiData.code === 200 || apiData.code === 0 || apiData.code === 201)) {
+						if (res.statusCode === 200 && apiData.code === 200) {
 							console.log('=== 登录成功，开始处理跳转 ===');
 							console.log('返回数据：', apiData);
 							
-							// 修复1：确保缓存成功后再跳转
+							// 确保缓存成功后再跳转
 							try {
 								uni.setStorageSync('token', apiData.data.token);
 								uni.setStorageSync('userInfo', apiData.data.userInfo);
@@ -212,18 +214,17 @@ export default {
 							
 							uni.showToast({ title: '登录成功', icon: 'success' });
 							
-							// 修复2：使用try-catch捕获跳转错误，添加延时确保Toast显示
+							// 使用try-catch捕获跳转错误，添加延时确保Toast显示
 							setTimeout(() => {
 								console.log('开始执行页面跳转...');
 								try {
-									// 检查用户信息是否完整，如果不完整则跳转到信息补全页面
-									const userInfo = apiData.data.userInfo;
-									const needCompleteInfo = !userInfo.phone || !userInfo.avatar || !userInfo.birthday || !userInfo.gender;
+									// 根据后端返回的isComplete字段判断跳转
+									const isComplete = apiData.data.isComplete;
 									
-									if (needCompleteInfo) {
+									if (isComplete === false) {
 										console.log('用户信息不完整，跳转到信息补全页面');
 										uni.reLaunch({ 
-											url: '/pages/Main/index',
+											url: '/pages/Login/complete-info',
 											success: (res) => {
 												console.log('跳转到信息补全页面成功', res);
 											},
@@ -234,8 +235,6 @@ export default {
 										});
 									} else {
 										console.log('用户信息完整，跳转到首页');
-										// 尝试多种跳转方式
-										console.log('尝试使用 uni.reLaunch 跳转');
 										uni.reLaunch({ 
 											url: '/pages/Main/index',
 											success: (res) => {
@@ -243,21 +242,7 @@ export default {
 											},
 											fail: (err) => {
 												console.error('reLaunch 跳转失败：', err);
-												// 如果reLaunch失败，尝试redirectTo
-												console.log('尝试使用 uni.redirectTo 跳转');
-												uni.redirectTo({
-													url: '/pages/Main/index',
-													success: (res2) => {
-														console.log('redirectTo 跳转成功：', res2);
-													},
-													fail: (err2) => {
-														console.error('redirectTo 也失败：', err2);
-														uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
-													}
-												});
-											},
-											complete: (res) => {
-												console.log('reLaunch 跳转完成：', res);
+												uni.showToast({ title: `跳转失败：${err.errMsg}`, icon: 'none' });
 											}
 										});
 									}
@@ -265,7 +250,7 @@ export default {
 									console.error('跳转异常：', error);
 									uni.showToast({ title: '页面跳转异常', icon: 'none' });
 								}
-							}, 1000);
+							}, 800); // 800ms延迟，确保用户能看清提示
 						} else {
 							uni.showToast({ 
 								title: apiData.msg || '登录失败，请检查账号密码', 
@@ -287,6 +272,11 @@ export default {
 				console.error('登录失败:', error);
 				uni.showToast({ title: '网络连接异常', icon: 'none' });
 			}
+		},
+		
+		// 微信登录禁用提示
+		wechatLoginDisabled() {
+			uni.showToast({ title: '微信登录功能暂时关闭', icon: 'none' });
 		},
 		
 		validateForm() {
