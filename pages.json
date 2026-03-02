@@ -26,10 +26,6 @@
 			}
 		},
 		{
-		        "path": "pages/volunteer/homework/stats",
-		        "style": { "navigationStyle": "custom" }
-		},
-		{
 		        "path": "pages/volunteer/index",
 		        "style": { "navigationStyle": "custom" }
 		},
@@ -38,30 +34,19 @@
 		        "style": { "navigationStyle": "custom" }
 		},
 		{
-			"path": "pages/volunteer/homework/excellent",
+			"path": "pages/volunteer/homework/statslist",
 			"style": {
 				"navigationBarTitleText": ""
 			}
 		},
 		{
-			"path": "pages/volunteer/homework/details",
-			"style": {
-				"navigationBarTitleText": ""
-			}
+			"path": "pages/volunteer-history/volunteer-history",
+			"style": { "navigationStyle": "custom" }
 		},
 		{
-			"path": "pages/volunteer/manage",
-			"style": {
-				"navigationBarTitleText": ""
-			}
-		},
-		{
-			"path": "pages/volunteer/my",
-			"style": {
-				"navigationBarTitleText": ""
-			}
+			"path": "pages/volunteer-manage/volunteer-manage",
+			"style": { "navigationStyle": "custom" }
 		}
-
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
