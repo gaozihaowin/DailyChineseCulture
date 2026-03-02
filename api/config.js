@@ -19,19 +19,26 @@ export const API_CONFIG = {
     updateUserInfo: '/updateUserInfo',
     hotCourses: '/courses/hot',
     courses: '/courses',
-    
-    dutyTable: '/user/duty-table',
-    
-    // 新增作业统计相关接口
-    getVolunteerScope: '/volunteer/scope', // 获取志愿者管理范围
-    getHomeworkStats: '/homework/stats',   // 获取作业统计数据
-    getHomeworkList: '/homework/list',     // 获取作业名单
+	logout:'/user/logout',  //退出登陆
+	getVolunteerHistory:'/user/volunteer-history', //担当历史
+	quitVolunteer:'/user/volunteer-quit',//  退出担当
+    getVolunteerStats:'/user/volunteer-stats',  //获取营期/班级/大组/小组
+    getVolunteerScope: '/volunteer/scopes',  //获得志愿者管理的范围
+    getVolunteerMembers: '/volunteer/manage/members', // 获取管理成员列表
+    getDutyAssignment: '/volunteer/manage/duty-assignment', // 某个志愿者可以分配哪些岗位
+    searchUser: '/user/search', // 搜索用户
+    assignDuty: '/volunteer/manage/assign-duty', // 分配岗位
+    removeDuty: '/volunteer/manage/remove-duty', // 移除岗位
+	getClassList: '/class/list',           // 获取所有班级列表
+    getBigGroupList: '/bigGroup/list',     // 获取所有大组列表
+    getSmallGroupList: '/smallGroup/list', // 获取所有小组列表
+	getHomeworkList: '/homework/list',     // 获取作业名单
     markExcellentHomework: '/camp/homework/mark', // 标记优秀作业
     getExcellentHomeworkList: '/homework/excellent/list', // 优秀作业列表
     getHomeworkDetail: '/homework/detail', // 作业详情
-    getClassList: '/class/list',           // 获取所有班级列表
-    getBigGroupList: '/bigGroup/list',     // 获取所有大组列表
-    getSmallGroupList: '/smallGroup/list', // 获取所有小组列表
+	
+    getHomeworkStats: '/homework/stats',   // 获取作业统计数据
+	getHomeworkStatus:'/homework/status/list',//统计未交/已交/迟交名单
   }
 };
 
