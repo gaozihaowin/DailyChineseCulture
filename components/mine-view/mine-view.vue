@@ -14,7 +14,6 @@
         <view class="card-glass-bg"></view>
         
         <view class="user-content-top">
-          <!-- 头像区域：添加点击事件 -->
           <view class="avatar-box" @tap="chooseAvatar">
              <image 
                class="avatar" 
@@ -28,7 +27,6 @@
             <view class="nickname-row" @tap="chooseNickname">
               <text class="nickname">{{ userInfo.nickname }}</text>
               <uni-icons type="vip-filled" size="18" color="#FFD700" style="margin-left: 8rpx;"></uni-icons>
-              <!-- 新增：编辑小图标，与原有样式统一 -->
               <uni-icons type="compose" size="14" color="rgba(255,255,255,0.7)" style="margin-left: 6rpx;"></uni-icons>
             </view>
             
@@ -154,15 +152,16 @@ export default {
     return {
       userInfo: { 
         nickname: 'Mystery', 
-        avatar: 'https://img.icons8.com/color/96/person-male.png' 
+        avatar: 'https://img.icons8.com/color/96/person-male.png',
+        user_id: '',
+        openid: ''
       },
-      token: '', // 新增：存储登录token
+      token: '', 
       isIdentityOpen: false,
       currentIdentity: '学员端',
       identityOptions: [
         { name: '学员端' }, 
-        { name: '讲师端' }, 
-        { name: '访客端' }
+        { name: '志愿者端' }
       ],
       statsList: [
         { label: '等级', value: '0.00' }, 
@@ -238,19 +237,29 @@ export default {
   
   methods: {
     /**
-     * 新增：从本地缓存获取token和用户信息（登录态持久化）
+     * 从本地缓存获取token和用户信息
      */
     getLocalUserInfo() {
       const token = uni.getStorageSync('token');
       const localUser = uni.getStorageSync('userInfo');
+      const localIdentity = uni.getStorageSync('currentIdentity');
+      
       if (token) {
         this.token = token;
       }
       if (localUser && JSON.stringify(localUser) !== '{}') {
         this.userInfo = {
+          user_id: localUser.user_id || '',
+          openid: localUser.openid || '',
           nickname: localUser.nickname || this.userInfo.nickname,
           avatar: localUser.avatar || this.userInfo.avatar
         };
+      }
+      if (localIdentity) {
+        this.currentIdentity = localIdentity;
+      } else {
+        this.currentIdentity = '学员端';
+        uni.setStorageSync('currentIdentity', '学员端');
       }
     },
 
@@ -258,59 +267,72 @@ export default {
      * 从API获取个人信息
      */
     async fetchUserInfo() {
-      // 无token时不请求接口
-      if (!this.token) return;
+      // 无token时跳转到登录页
+      if (!this.token) {
+        this.toLogin();
+        return;
+      }
       
       uni.showLoading({ title: '加载中...', mask: true });
       
       try {
         const res = await uni.request({
-          url: API_CONFIG.baseUrl + API_CONFIG.paths.userInfo,
+          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.userInfo}`,
           method: 'GET',
           header: {
-            'Authorization': `Bearer ${this.token}` // 新增：携带token请求
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
           }
         });
         
-        if (res.statusCode === 200 && res.data.code === 0) {
+        if (res.statusCode === 200 && res.data.code === 200) {
           const data = res.data.data;
           this.userInfo = {
+            user_id: data.userId || '',
+            openid: data.openid || '',
             nickname: data.nickname || this.userInfo.nickname,
             avatar: data.avatar || this.userInfo.avatar
           };
-          this.currentIdentity = data.currentIdentity || this.currentIdentity;
-          this.identityOptions = data.identityOptions || this.identityOptions;
+          this.currentIdentity = data.currentIdentity || '学员端';
           if (data.statsList) {
             this.statsList = data.statsList;
           }
-          // 更新本地缓存
           uni.setStorageSync('userInfo', this.userInfo);
+          uni.setStorageSync('currentIdentity', this.currentIdentity);
+        } else {
+          console.error('获取个人信息失败:', res.data.msg);
+          this.currentIdentity = '学员端';
+          uni.setStorageSync('currentIdentity', '学员端');
         }
       } catch (error) {
         console.error('获取个人信息失败:', error);
+        this.currentIdentity = '学员端';
+        uni.setStorageSync('currentIdentity', '学员端');
       } finally {
         uni.hideLoading();
       }
     },
     
     /**
-     * 新增：选择头像
+     * 选择头像
      */
     async chooseAvatar() {
+      if (!this.token) {
+        this.toLogin();
+        return;
+      }
+      
       try {
-        // 调用微信原生头像选择器（优先），兼容UniApp选择图片
         const { avatarUrl } = await uni.chooseAvatar({});
         if (avatarUrl) {
           this.userInfo.avatar = avatarUrl;
-          // 立即更新本地缓存+提交接口
           await this.updateUserInfo();
           return;
         }
       } catch (e) {
-        // 微信选择器调用失败时，用通用图片选择器
         uni.chooseImage({
           count: 1,
-          sizeType: ['compressed'], // 仅压缩图，节省流量
+          sizeType: ['compressed'],
           sourceType: ['album', 'camera'],
           success: async (res) => {
             this.userInfo.avatar = res.tempFilePaths[0];
@@ -321,11 +343,15 @@ export default {
     },
 
     /**
-     * 新增：选择/编辑昵称（支持微信原生昵称选择器）
+     * 选择/编辑昵称
      */
     async chooseNickname() {
+      if (!this.token) {
+        this.toLogin();
+        return;
+      }
+      
       try {
-        // 调用微信原生昵称选择器
         const { nickName } = await uni.getNickname({});
         if (nickName && nickName.trim()) {
           this.userInfo.nickname = nickName.trim();
@@ -333,7 +359,6 @@ export default {
           return;
         }
       } catch (e) {
-        // 微信选择器调用失败时，用输入框弹窗
         uni.showModal({
           title: '编辑昵称',
           placeholderText: '请输入你的昵称',
@@ -350,39 +375,35 @@ export default {
     },
 
     /**
-     * 新增：更新用户信息（本地缓存+后端接口提交）
+     * 更新用户信息
      */
     async updateUserInfo() {
-      // 无token时提示登录
       if (!this.token) {
-        uni.showToast({ title: '请先登录', icon: 'none' });
-        setTimeout(() => {
-          uni.reLaunch({ url: '/pages/Login/index' });
-        }, 1000);
+        this.toLogin();
         return;
       }
       
       uni.showLoading({ title: '保存中...', mask: true });
       
       try {
-        // 1. 先更新本地缓存
-        uni.setStorageSync('userInfo', this.userInfo);
-        
-        // 2. 提交后端接口更新
         const res = await uni.request({
-          url: API_CONFIG.baseUrl + API_CONFIG.paths.updateUserInfo,
+          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.updateUserInfo}`,
           method: 'POST',
           header: {
             'Authorization': `Bearer ${this.token}`,
             'content-type': 'application/json'
           },
           data: {
+            user_id: this.userInfo.user_id,
             nickname: this.userInfo.nickname,
-            avatar: this.userInfo.avatar
+            avatar: this.userInfo.avatar,
+            openid: this.userInfo.openid,
+            identity: this.currentIdentity
           }
         });
         
-        if (res.statusCode === 200 && res.data.code === 0) {
+        if (res.statusCode === 200 && res.data.code === 200) {
+          uni.setStorageSync('userInfo', this.userInfo);
           uni.showToast({ title: '修改成功', icon: 'success', duration: 1500 });
         } else {
           uni.showToast({ title: res.data.msg || '修改失败', icon: 'none' });
@@ -395,17 +416,31 @@ export default {
       }
     },
     
+    /**
+     * 展开/收起身份切换菜单
+     */
     toggleIdentityMenu() { 
       this.isIdentityOpen = !this.isIdentityOpen; 
     },
     
+    /**
+     * 点击空白处关闭身份切换菜单
+     */
     closeIdentityMenu() { 
       if (this.isIdentityOpen) this.isIdentityOpen = false; 
     },
     
+    /**
+     * 切换身份：学员端志愿者端
+     */
     async switchIdentity(role) {
+      if (this.currentIdentity === role.name) {
+        this.isIdentityOpen = false;
+        return;
+      }
+      
       if (!this.token) {
-        uni.showToast({ title: '请先登录', icon: 'none' });
+        this.toLogin();
         return;
       }
       
@@ -413,69 +448,84 @@ export default {
       
       try {
         const res = await uni.request({
-          url: API_CONFIG.baseUrl + API_CONFIG.paths.switchIdentity,
+          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.switchIdentity}`,
           method: 'POST',
           header: {
-            'Authorization': `Bearer ${this.token}`
+            'Authorization': `Bearer ${this.token}`,
+            'content-type': 'application/json'
           },
           data: {
+            user_id: this.userInfo.user_id,
             identity: role.name
           }
         });
         
-        if (res.statusCode === 200 && res.data.code === 0) {
+        if (res.statusCode === 200 && res.data.code === 200) {
           const data = res.data.data;
           this.currentIdentity = data.currentIdentity || role.name;
+          uni.setStorageSync('currentIdentity', this.currentIdentity);
           this.isIdentityOpen = false;
-          uni.showToast({ 
-            title: `已切换为${role.name}`, 
-            icon: 'none' 
-          });
+          uni.hideLoading();
+          uni.showToast({ title: `已切换为${role.name}`, icon: 'none' });
+
+          const targetUrl = role.name === '志愿者端' 
+            ? '/pages/volunteer/index' 
+            : '/pages/Main/index';
+          uni.reLaunch({ url: targetUrl });
         } else {
-          uni.showToast({ 
-            title: res.data.msg || '切换身份失败', 
-            icon: 'none' 
-          });
+          uni.hideLoading();
+          uni.showToast({ title: res.data.msg || '切换身份失败', icon: 'none' });
         }
       } catch (error) {
-        console.error('切换身份失败:', error);
-        uni.showToast({ 
-          title: '网络连接异常', 
-          icon: 'none' 
-        });
-      } finally {
         uni.hideLoading();
+        console.error('切换身份失败:', error);
+        uni.showToast({ title: '网络连接异常', icon: 'none' });
       }
     },
     
+    /**
+     * 通用菜单点击事件
+     */
     handleMenuClick(item) {
+      if (!this.token) {
+        this.toLogin();
+        return;
+      }
+      
       if (item.text === '我的课程') {
         uni.$emit('switchTab', 1);
+      } else if (item.path) {
+        uni.navigateTo({ url: item.path });
       } else {
-        uni.showToast({ 
-          title: item.text, 
-          icon: 'none' 
-        });
+        uni.showToast({ title: item.text, icon: 'none' });
       }
+    },
+    
+    /**
+     * 未登录时跳转到登录页
+     */
+    toLogin() {
+      uni.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        uni.reLaunch({ url: '/pages/Login/index' });
+      }, 1000);
     }
   }
 }
 </script>
 
 <style scoped>
-/* 原有样式不变，新增编辑图标样式适配 */
 .nickname-row {
   display: flex;
   align-items: center;
   margin-bottom: 12rpx;
-  cursor: pointer; /* 新增：鼠标悬浮指针，提示可点击 */
+  cursor: pointer;
 }
 .avatar-box {
   position: relative;
   margin-right: 28rpx;
-  cursor: pointer; /* 新增：鼠标悬浮指针，提示可点击 */
+  cursor: pointer;
 }
-/* 原有样式全部保留 */
 .view-container { 
   height: 100%; 
   display: flex; 
