@@ -1,70 +1,61 @@
 <template>
-  <view class="homework-detail">
-    <!-- 手动添加返回按钮 -->
-    <view class="custom-back-btn" @click="goBack">
-      <uni-icons type="back" size="28" color="#9e2a2b"></uni-icons>
-      <text class="back-text">返回</text>
-    </view>
-
-    <!-- 页面参数（班级/大组/小组信息） -->
-    <view class="page-params" v-if="type && id">
-      <text class="params-label">{{ typeMap[type] }}：</text>
-      <text class="params-value">{{ currentName }}</text>
-    </view>
-
-    <!-- 状态切换标签（优化样式） -->
-    <view class="status-tabs">
-      <view 
-        class="tab-item" 
-        :class="{ active: currentStatus === 'unsubmitted' }"
-        @click="switchStatus('unsubmitted')"
-      >
-        <text class="tab-text">未提交</text>
-        <text class="tab-count">({{ stats.unsubmitted }})</text>
-      </view>
-      <view 
-        class="tab-item" 
-        :class="{ active: currentStatus === 'submitted' }"
-        @click="switchStatus('submitted')"
-      >
-        <text class="tab-text">已提交</text>
-        <text class="tab-count">({{ stats.submitted }})</text>
-      </view>
-      <view 
-        class="tab-item" 
-        :class="{ active: currentStatus === 'late' }"
-        @click="switchStatus('late')"
-      >
-        <text class="tab-text">迟交</text>
-        <text class="tab-count">({{ stats.late }})</text>
+  <view class="view-container">
+    <view class="art-header">
+      <view class="nav-bar">
+        <view class="back-btn" @tap="goBack">
+          <view class="back-arrow"></view>
+        </view>
+        <view class="nav-brand">
+          <text class="brand-en">ZHI LIANG ZHI</text>
+          <text class="brand-cn">作业详情</text>
+        </view>
+        <view style="width: 48rpx;"></view>
       </view>
     </view>
 
-    <!-- 列表容器（固定高度，内部滚动） -->
-    <view class="list-container">
-      <!-- 加载状态 -->
-      <view class="loading-wrapper" v-if="loading">
-        <uni-load-more type="loading" text="正在加载名单..."></uni-load-more>
-      </view>
-
-      <!-- 空数据状态 -->
-      <view class="empty-wrapper" v-if="!loading && list.length === 0">
-        <uni-icons type="empty" size="80" color="#9e2a2b"></uni-icons>
-        <text class="empty-text">暂无{{ statusMap[currentStatus] }}学员</text>
-      </view>
-
-      <!-- 学员名单（美化样式） -->
-      <view class="student-list" v-if="!loading && list.length > 0">
-        <view class="student-item" v-for="(item, index) in list" :key="index">
-          <view class="student-info">
-            <text class="student-name">{{ item.name }}</text>
-            <!-- 显示学员手机号（可选） -->
-            <text class="student-phone" v-if="item.phone">手机号：{{ item.phone }}</text>
+    <!-- 滚动内容区域 -->
+    <scroll-view scroll-y class="scroll-content">
+      <view class="homework-detail" v-if="homeworkDetail">
+        <view class="section-box">
+          <view class="detail-item">
+            <text class="detail-label">学员姓名：</text>
+            <text class="detail-value">{{ homeworkDetail.studentName || '--' }}</text>
           </view>
-          <text class="submit-time" v-if="item.submitTime">提交时间：{{ item.submitTime }}</text>
+          <view class="detail-item">
+            <text class="detail-label">所属组织：</text>
+            <text class="detail-value">{{ homeworkDetail.organization || '--' }}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">提交时间：</text>
+            <text class="detail-value">{{ homeworkDetail.submitTime || '--' }}</text>
+          </view>
+          <view class="detail-item">
+            <text class="detail-label">作业状态：</text>
+            <text class="detail-value" :class="{ excellent: homeworkDetail.isExcellent }">
+              {{ homeworkDetail.isExcellent ? '优秀作业' : '普通作业' }}
+            </text>
+          </view>
+          <view class="detail-section">
+            <text class="section-title">作业内容</text>
+            <view class="content-box">
+              <text class="content-text">{{ homeworkDetail.content || '暂无作业内容' }}</text>
+            </view>
+          </view>
+          <view class="action-area">
+            <button class="action-button" :class="{ excellent: homeworkDetail.isExcellent }" @tap="toggleExcellent">
+              {{ homeworkDetail.isExcellent ? '取消优秀' : '标记优秀' }}
+            </button>
+          </view>
         </view>
       </view>
-    </view>
+
+      <view class="section-box empty-tip" v-if="isLoading">
+        <text>加载中...</text>
+      </view>
+      <view class="section-box empty-tip" v-if="!isLoading && !homeworkDetail">
+        <text>暂无作业详情</text>
+      </view>
+    </scroll-view>
   </view>
 </template>
 
@@ -74,307 +65,308 @@ import { API_CONFIG } from '../../../api/config';
 export default {
   data() {
     return {
-      // 页面参数
-      type: '',
-      id: '',
-      currentName: '',
-      // 加载状态
-      loading: false,
-      // 当前选中状态
-      currentStatus: 'unsubmitted',
-      // 统计数据
-      stats: {
-        submitted: 0,
-        unsubmitted: 0,
-        late: 0
-      },
-      // 学员名单
-      list: [],
-      // 类型映射
-      typeMap: {
-        class: '班级',
-        bigGroup: '大组',
-        smallGroup: '小组'
-      },
-      // 状态映射
-      statusMap: {
-        unsubmitted: '未提交',
-        submitted: '已提交',
-        late: '迟交'
-      },
-      // Token
-      token: uni.getStorageSync('token') || ''
+      homeworkId: '',
+      homeworkDetail: null,
+      token: '',
+      isLoading: false,
     };
   },
   onLoad(options) {
-    this.type = options.type;
-    this.id = options.id;
-    
-    if (!this.type || !this.id) {
+    // 校验参数
+    if (!options?.homeworkId) {
       uni.showToast({ title: '参数错误', icon: 'none' });
       setTimeout(() => this.goBack(), 1500);
       return;
     }
     
-    // 初始化数据
-    this.initData();
-  },
-  onPullDownRefresh() {
-    // 下拉刷新
-    this.initData(true);
+    this.homeworkId = options.homeworkId;
+    this.token = uni.getStorageSync('token');
+    
+    // 校验token
+    if (!this.token) {
+      uni.showToast({ title: '请先登录', icon: 'none' });
+      setTimeout(() => {
+        uni.redirectTo({ url: '/pages/login/login' });
+      }, 1500);
+      return;
+    }
+    
+    // 获取作业详情
+    this.getHomeworkDetail();
   },
   methods: {
-    /**
-     * 返回上一页
-     */
     goBack() {
-      uni.navigateBack();
-    },
-
-    /**
-     * 通用请求方法
-     */
-    request(url, data = {}, method = 'GET') {
-      const fullUrl = `${API_CONFIG.baseUrl}${url}`;
-      
-      return new Promise((resolve, reject) => {
-        uni.request({
-          url: fullUrl,
-          method,
-          data,
-          header: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.token}`
-          },
-          success: (res) => {
-            if (res.data.code === 0) {
-              resolve(res.data);
-            } else {
-              if (res.data.code === -1 && res.data.msg.includes('Token')) {
-                uni.removeStorageSync('token');
-                uni.redirectTo({ url: '/pages/login/login' });
-              }
-              uni.showToast({ title: res.data.msg, icon: 'none', duration: 2000 });
-              reject(res.data);
-            }
-          },
-          fail: (err) => {
-            uni.showToast({ title: '网络请求失败', icon: 'none', duration: 2000 });
-            reject(err);
-          }
-        });
+      uni.navigateBack({
+        delta: 1,
+        fail: () => {
+          uni.redirectTo({ url: '/components/volunteer/volunteer-task' });
+        }
       });
     },
 
-    /**
-     * 初始化数据
-     */
-    async initData(refresh = false) {
-      if (!refresh) this.loading = true;
+    // 获取作业详情
+    getHomeworkDetail() {
+      this.isLoading = true;
+      uni.request({
+        url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.getHomeworkDetail}/${this.homeworkId}`,
+        method: 'GET',
+        header: {
+          'Authorization': 'Bearer ' + this.token,
+          'Content-Type': 'application/json'
+        },
+        success: (res) => {
+          this.isLoading = false;
+          if (res.data?.code === 200) {
+            this.homeworkDetail = res.data.data || {};
+          } else {
+            this.homeworkDetail = null;
+            uni.showToast({
+              title: res.data?.msg || '获取作业详情失败',
+              icon: 'none',
+              duration: 2000
+            });
+          }
+        },
+        fail: (err) => {
+          this.isLoading = false;
+          this.homeworkDetail = null;
+          console.error('获取作业详情失败:', err);
+          uni.showToast({
+            title: '网络请求失败，请检查网络',
+            icon: 'none',
+            duration: 2000
+          });
+        }
+      });
+    },
+
+    // 切换优秀作业状态
+    toggleExcellent() {
+      if (!this.homeworkId || !this.token) return;
       
-      try {
-        // 1. 获取统计数据（用于显示数量）
-        const statsRes = await this.request(`${API_CONFIG.paths.getHomeworkStats}/${this.type}/${this.id}`);
-        this.stats = {
-          submitted: statsRes.data.submitted,
-          unsubmitted: statsRes.data.unsubmitted,
-          late: statsRes.data.late
-        };
-        this.currentName = statsRes.data.name || `${this.typeMap[this.type]}${this.id}`;
-        
-        // 2. 获取当前状态的名单
-        await this.getStudentList();
-      } catch (err) {
-        console.error('初始化详情数据失败：', err);
-      } finally {
-        this.loading = false;
-        if (refresh) uni.stopPullDownRefresh();
-      }
-    },
-
-    /**
-     * 获取学员名单
-     */
-    async getStudentList() {
-      try {
-        const listRes = await this.request(`${API_CONFIG.paths.getHomeworkList}/${this.type}/${this.id}/${this.currentStatus}`);
-        this.list = listRes.data || [];
-      } catch (err) {
-        console.error('获取学员名单失败：', err);
-      }
-    },
-
-    /**
-     * 切换状态
-     */
-    async switchStatus(status) {
-      this.currentStatus = status;
-      this.loading = true;
-      try {
-        await this.getStudentList();
-      } catch (err) {
-        console.error('切换状态失败：', err);
-      } finally {
-        this.loading = false;
-      }
+      const isExcellent = this.homeworkDetail.isExcellent || false;
+      uni.showModal({
+        title: '确认操作',
+        content: isExcellent ? '确定取消该作业的优秀标记吗？' : '确定将该作业标记为优秀吗？',
+        success: (res) => {
+          if (res.confirm) {
+            this.isLoading = true;
+            uni.request({
+              url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.markExcellentHomework}/${this.homeworkId}/${isExcellent ? 0 : 1}`,
+              method: 'POST',
+              header: {
+                'Authorization': 'Bearer ' + this.token,
+                'Content-Type': 'application/json'
+              },
+              success: (res) => {
+                this.isLoading = false;
+                if (res.data?.code === 200) {
+                  uni.showToast({
+                    title: res.data.message || (isExcellent ? '取消成功' : '标记成功'),
+                    icon: 'success',
+                    duration: 2000
+                  });
+                  this.getHomeworkDetail();
+                } else {
+                  uni.showToast({
+                    title: res.data?.msg || '操作失败',
+                    icon: 'none',
+                    duration: 2000
+                  });
+                }
+              },
+              fail: (err) => {
+                this.isLoading = false;
+                console.error('标记优秀作业失败:', err);
+                uni.showToast({
+                  title: '网络请求失败，请检查网络',
+                  icon: 'none',
+                  duration: 2000
+                });
+              }
+            });
+          }
+        }
+      });
     }
   }
 };
 </script>
 
-<style scoped lang="scss">
-/* 页面容器（匹配项目米色背景） */
-.homework-detail {
+<style scoped>
+.view-container {
   min-height: 100vh;
-  background-color: #fdfbf7;
-  /* 关键修改：增加顶部内边距，避开小程序胶囊按钮 */
-  padding-top: calc(var(--status-bar-height) + 120rpx);
   display: flex;
   flex-direction: column;
+  background-color: #F4F4F5;
+  width: 100%;
+  overflow-x: hidden;
 }
 
-/* 手动添加的返回按钮 */
-.custom-back-btn {
-  position: absolute;
-  top: calc(var(--status-bar-height) + 60rpx);
-  left: 24rpx;
+.art-header {
+  background: linear-gradient(160deg, #A31D1D 0%, #851212 100%);
+  padding: 88rpx 30rpx 30rpx;
+  border-bottom-left-radius: 48rpx;
+  border-bottom-right-radius: 48rpx;
+  margin-bottom: 30rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.nav-bar {
   display: flex;
   align-items: center;
-  color: #9e2a2b;
-  z-index: 10;
+  justify-content: space-between;
+  padding: 0 20rpx;
+  margin-bottom: 30rpx;
 }
 
-.back-text {
-  font-size: 28rpx;
-  margin-left: 8rpx;
-  font-weight: 500;
-}
-
-/* 页面参数（班级/大组信息） */
-.page-params {
-  padding: 20rpx 24rpx;
-  background-color: #fff;
-  border-bottom: 1rpx solid #f5f5f5;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.02);
-
-  .params-label {
-    font-size: 28rpx;
-    color: #666;
-  }
-
-  .params-value {
-    font-size: 28rpx;
-    color: #9e2a2b;
-    font-weight: 600;
-  }
-}
-
-/* 状态切换标签（优化样式） */
-.status-tabs {
+.back-btn {
+  width: 48rpx;
+  height: 48rpx;
   display: flex;
-  margin: 24rpx;
-  background-color: #fff;
-  border-radius: 16rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
-
-  .tab-item {
-    flex: 1;
-    padding: 24rpx 0;
-    text-align: center;
-    font-size: 28rpx;
-    color: #666;
-    position: relative;
-
-    &.active {
-      color: #9e2a2b;
-      font-weight: 600;
-    }
-
-    &.active::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 4rpx;
-      background-color: #9e2a2b;
-    }
-
-    .tab-count {
-      font-size: 24rpx;
-      margin-left: 4rpx;
-      color: #9e2a2b;
-    }
-  }
-}
-
-/* 列表容器（关键：固定高度，内部滚动） */
-.list-container {
-  flex: 1;
-  overflow: hidden;
-  padding: 0 24rpx 24rpx;
-}
-
-/* 加载/空状态（匹配项目红色风格） */
-.loading-wrapper, .empty-wrapper {
-  padding: 120rpx 0;
-  text-align: center;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
+}
+.back-arrow {
+  width: 20rpx;
+  height: 20rpx;
+  border-top: 3rpx solid #fff;
+  border-left: 3rpx solid #fff;
+  transform: rotate(-45deg);
+}
+
+.nav-brand {
+  text-align: center;
+}
+.brand-en {
+  font-size: 18rpx;
+  color: rgba(255,255,255,0.5);
+  display: block;
+  margin-bottom: 4rpx;
+}
+.brand-cn {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.scroll-content {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 30rpx;
+}
+
+.section-box {
+  background: #fff;
+  margin-bottom: 30rpx;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.02);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.homework-detail {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+.detail-item {
+  display: flex;
   align-items: center;
-}
-
-.empty-text {
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
   font-size: 28rpx;
-  color: #9e2a2b;
-  margin-top: 20rpx;
+  line-height: 1.5;
+}
+.detail-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-/* 学员名单（美化样式） */
-.student-list {
-  height: 100%;
-  overflow-y: auto;
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 16rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.03);
+.detail-label {
+  font-weight: bold;
+  color: #333;
+  flex-shrink: 0;
+  margin-right: 8rpx;
+}
 
-  .student-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24rpx;
-    border-bottom: 1rpx solid #f5f5f5;
+.detail-value {
+  flex: 1;
+  color: #666;
+  word-break: break-all;
+}
 
-    &:last-child {
-      border-bottom: none;
-    }
+.detail-value.excellent {
+  color: #A31D1D;
+  font-weight: bold;
+}
 
-    .student-info {
-      display: flex;
-      flex-direction: column;
-      gap: 8rpx;
-    }
+.detail-section {
+  margin-top: 30rpx;
+}
 
-    .student-name {
-      font-size: 28rpx;
-      color: #333;
-      font-weight: 500;
-    }
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+  color: #333;
+  padding-bottom: 10rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
 
-    .student-phone {
-      font-size: 24rpx;
-      color: #666;
-    }
 
-    .submit-time {
-      font-size: 24rpx;
-      color: #999;
-      white-space: nowrap;
-    }
-  }
+.content-box {
+  min-height: 300rpx;
+  line-height: 1.8;
+  color: #666;
+  font-size: 26rpx;
+  padding: 10rpx 0;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.content-text {
+  display: block;
+  width: 100%;
+}
+
+.action-area {
+  margin-top: 30rpx;
+  padding: 0;
+}
+
+.action-button {
+  width: 100%;
+  padding: 20rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+  background-color: #f9f9f9;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-button:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+.action-button.excellent {
+  background-color: #A31D1D;
+  color: white;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 80rpx 0;
+  color: #999;
+  font-size: 28rpx;
 }
 </style>
