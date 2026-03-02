@@ -75,8 +75,7 @@
 					<view class="divider-line"></view>
 				</view>
 				
-				<button class="btn-wechat" @tap="wechatLoginDisabled" hover-class="wechat-hover" disabled>
-						<image class="wechat-icon" src="https://img.icons8.com/ios-filled/50/ffffff/wechat.png" mode="aspectFit"></image>
+				<button class="btn-wechat" @tap="wechatLogin" hover-class="wechat-hover">
 						<text class="wechat-text">微信一键登录</text>
 					</button>
 				
@@ -95,8 +94,7 @@
 
 		</view>
 
-		<!-- 微信授权模态框 - 暂时屏蔽 -->
-		<!-- <view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
+		 <view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
 			<view class="wx-auth-content" @tap.stop>
 				<view class="wx-auth-title">完善登录资料</view>
 				<view class="wx-auth-desc">选择你的微信头像和昵称，完成登录</view>
@@ -127,7 +125,7 @@
 				</button>
 				<button class="wx-auth-cancel" @tap="hideWxAuthModal">取消</button>
 			</view>
-		</view> -->
+		</view> 
 	</view>
 </template>
 
@@ -142,9 +140,8 @@ export default {
 			showPassword: false,
 			isLoading: false,
 			isAgree: false,
-			// 微信登录相关字段暂时保留但不使用
 			showWxAuthModal: false, 
-			wxCode: '', 
+			wxCode: '',
 			isWxSubmitting: false, 
 			wxUserInfo: { 
 				avatar: '',
@@ -172,7 +169,6 @@ export default {
 			this.isAgree = !this.isAgree;
 		},
 		
-		// 账号密码登录 - 对接后端新规范
 		handleLogin() {
 			if (!this.isAgree) {
 				uni.showToast({ title: '请先同意协议', icon: 'none' });
@@ -201,11 +197,10 @@ export default {
 							console.log('=== 登录成功，开始处理跳转 ===');
 							console.log('返回数据：', apiData);
 							
-							// 确保缓存成功后再跳转
 							try {
 								uni.setStorageSync('token', apiData.data.token);
 								uni.setStorageSync('userInfo', apiData.data.userInfo);
-								console.log('token和用户信息已缓存');
+								uni.setStorageSync('currentIdentity', '学员端');
 							} catch (storageError) {
 								console.error('缓存失败：', storageError);
 								uni.showToast({ title: '数据缓存失败', icon: 'none' });
@@ -213,18 +208,16 @@ export default {
 							}
 							
 							uni.showToast({ title: '登录成功', icon: 'success' });
-							
-							// 使用try-catch捕获跳转错误，添加延时确保Toast显示
+						
 							setTimeout(() => {
 								console.log('开始执行页面跳转...');
 								try {
-									// 根据后端返回的isComplete字段判断跳转
 									const isComplete = apiData.data.isComplete;
 									
 									if (isComplete === false) {
-										console.log('用户信息不完整，跳转到信息补全页面');
+										console.log('用户信息不完整，跳转到学员端信息补全页面');
 										uni.reLaunch({ 
-											url: '/pages/Login/complete-info',
+											url: '/pages/Login/complete-info', // 学员端补全页
 											success: (res) => {
 												console.log('跳转到信息补全页面成功', res);
 											},
@@ -234,11 +227,11 @@ export default {
 											}
 										});
 									} else {
-										console.log('用户信息完整，跳转到首页');
+										console.log('用户信息完整，跳转到学员端首页');
 										uni.reLaunch({ 
-											url: '/pages/Main/index',
+											url: '/pages/Main/index', 
 											success: (res) => {
-												console.log('reLaunch 跳转成功：已进入首页', res);
+												console.log('reLaunch 跳转成功：已进入学员端首页', res);
 											},
 											fail: (err) => {
 												console.error('reLaunch 跳转失败：', err);
@@ -250,7 +243,7 @@ export default {
 									console.error('跳转异常：', error);
 									uni.showToast({ title: '页面跳转异常', icon: 'none' });
 								}
-							}, 800); // 800ms延迟，确保用户能看清提示
+							}, 800);
 						} else {
 							uni.showToast({ 
 								title: apiData.msg || '登录失败，请检查账号密码', 
@@ -272,11 +265,6 @@ export default {
 				console.error('登录失败:', error);
 				uni.showToast({ title: '网络连接异常', icon: 'none' });
 			}
-		},
-		
-		// 微信登录禁用提示
-		wechatLoginDisabled() {
-			uni.showToast({ title: '微信登录功能暂时关闭', icon: 'none' });
 		},
 		
 		validateForm() {
@@ -337,7 +325,6 @@ export default {
 			this.wxUserInfo.avatar = e.detail.avatarUrl;
 		},
 		
-		// 微信登录 - 修复跳转逻辑
 		async submitWxLogin() {
 			if (!this.wxUserInfo.avatar) {
 				uni.showToast({ title: '请先选择微信头像', icon: 'none' });
@@ -356,7 +343,7 @@ export default {
 				const response = await uni.request({
 					url: API_CONFIG.baseUrl + API_CONFIG.paths.wechatLogin,
 					method: 'POST',
-					header: { 'content-type': 'application/json' },
+					header: { 'Content-type': 'application/json' },
 					data: {
 						code: this.wxCode,
 						nickname: this.wxUserInfo.nickname,
@@ -366,7 +353,7 @@ export default {
 				uni.hideLoading();
 				
 				const apiData = response.data || {};
-				if (response.statusCode === 200 && (apiData.code === 200 || apiData.code === 0 || apiData.code === 201)) {
+				if (response.statusCode === 200 &&apiData.code === 200) {
 					console.log('=== 微信登录成功，开始处理跳转 ===');
 					console.log('微信返回数据：', apiData);
 					
@@ -377,7 +364,7 @@ export default {
 							avatar: this.wxUserInfo.avatar,
 							...apiData.data.userInfo
 						});
-						console.log('微信token和用户信息已缓存');
+						uni.setStorageSync('currentIdentity', '学员端');
 					} catch (storageError) {
 						console.error('微信缓存失败：', storageError);
 						uni.showToast({ title: '数据缓存失败', icon: 'none' });
@@ -386,33 +373,26 @@ export default {
 					
 					uni.showToast({ title: '微信登录成功', icon: 'success' });
 					
-					// 同样修复微信登录的跳转逻辑
 					setTimeout(() => {
 						console.log('开始执行微信页面跳转...');
 						try {
-							console.log('尝试使用 uni.reLaunch 跳转微信登录');
 							uni.reLaunch({
 								url: '/pages/Main/index',
 								success: (res) => {
-									console.log('微信 reLaunch 跳转成功', res);
+									console.log('微信跳转学员端成功', res);
 								},
 								fail: (err) => {
-									console.error('微信 reLaunch 跳转失败：', err);
-									// 如果reLaunch失败，尝试redirectTo
-									console.log('尝试使用 uni.redirectTo 跳转微信登录');
+									console.error('微信跳转失败：', err);
 									uni.redirectTo({
 										url: '/pages/Main/index',
 										success: (res2) => {
-											console.log('微信 redirectTo 跳转成功', res2);
+											console.log('微信跳转学员端成功', res2);
 										},
 										fail: (err2) => {
-											console.error('微信 redirectTo 也失败：', err2);
+											console.error('微信也失败：', err2);
 											uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
 										}
 									});
-								},
-								complete: (res) => {
-									console.log('微信 reLaunch 跳转完成：', res);
 								}
 							});
 						} catch (error) {
@@ -432,7 +412,6 @@ export default {
 				uni.showToast({ title: error.message || '微信登录异常', icon: 'none', duration: 2000 });
 			} finally {
 				this.isWxSubmitting = false;
-				this.hideWxAuthModal();
 			}
 		},
 
@@ -461,7 +440,6 @@ export default {
 </script>
 
 <style scoped>
-/* 原样式不变，此处省略重复样式 */
 .page-container {
 	display: flex;
 	justify-content: center;
@@ -707,11 +685,6 @@ export default {
 }
 .btn-wechat::after { border: none !important; }
 .wechat-hover { opacity: 0.95; transform: scale(0.99); }
-.wechat-icon {
-	width: 44rpx;
-	height: 44rpx;
-	margin-right: 16rpx;
-}
 .wechat-text {
 	color: #ffffff;
 	font-size: 30rpx;
