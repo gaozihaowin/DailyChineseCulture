@@ -14,30 +14,32 @@
         <view class="card-glass-bg"></view>
         
         <view class="user-content-top">
-          <view class="avatar-box" @tap="chooseAvatar">
-             <image 
-               class="avatar" 
-               :src="userInfo.avatar" 
-               mode="aspectFill"
-             ></image>
-             <view class="status-dot"></view>
-          </view>
-          
-          <view class="info-box">
-            <view class="nickname-row" @tap="chooseNickname">
-              <text class="nickname">{{ userInfo.nickname || '请设置昵称' }}</text>
-              <uni-icons type="vip-filled" size="18" color="#FFD700" style="margin-left: 8rpx;"></uni-icons>
-              <uni-icons type="compose" size="14" color="rgba(255,255,255,0.7)" style="margin-left: 6rpx;"></uni-icons>
+          <view class="profile-entry" @tap="goToEditProfile" style="display: flex; align-items: center; flex: 1;">
+            <view class="avatar-box">
+               <image 
+                 class="avatar" 
+                 :src="userInfo.avatar" 
+                 mode="aspectFill"
+               ></image>
+               <view class="status-dot"></view>
             </view>
             
-            <view class="account-row" v-if="userInfo.account">
-              <text class="account-text">@{{ userInfo.account }}</text>
-            </view>
-            
-            <view class="identity-display" :style="{ marginTop: userInfo.account ? '0' : '8rpx' }">
-              <text class="id-label">当前身份</text>
-              <view class="id-separator"></view>
-              <text class="id-value">{{ currentIdentity }}</text>
+            <view class="info-box">
+              <view class="nickname-row">
+                <text class="nickname">{{ userInfo.nickname || '请设置昵称' }}</text>
+                <uni-icons type="vip-filled" size="18" color="#FFD700" style="margin-left: 8rpx;"></uni-icons>
+                <uni-icons type="right" size="16" color="rgba(255,255,255,0.8)" style="margin-left: 10rpx;"></uni-icons>
+              </view>
+              
+              <view class="account-row" v-if="userInfo.account">
+                <text class="account-text">@{{ userInfo.account }}</text>
+              </view>
+              
+              <view class="identity-display" :style="{ marginTop: userInfo.account ? '0' : '8rpx' }">
+                <text class="id-label">当前身份</text>
+                <view class="id-separator"></view>
+                <text class="id-value">{{ currentIdentity }}</text>
+              </view>
             </view>
           </view>
           
@@ -313,106 +315,20 @@ export default {
       }
     },
     
-    async chooseAvatar() {
-      if (!this.token) {
-        this.toLogin();
-        return;
-      }
-      
-      try {
-        const { avatarUrl } = await uni.chooseAvatar({});
-        if (avatarUrl) {
-          this.userInfo.avatar = avatarUrl;
-          await this.updateUserInfo();
-          return;
-        }
-      } catch (e) {
-        uni.chooseImage({
-          count: 1,
-          sizeType: ['compressed'],
-          sourceType: ['album', 'camera'],
-          success: async (res) => {
-            this.userInfo.avatar = res.tempFilePaths[0];
-            await this.updateUserInfo();
-          }
-        });
-      }
-    },
-
-    async chooseNickname() {
-      if (!this.token) {
-        this.toLogin();
-        return;
-      }
-      
-      try {
-        const { nickName } = await uni.getNickname({});
-        if (nickName && nickName.trim()) {
-          this.userInfo.nickname = nickName.trim();
-          await this.updateUserInfo();
-          return;
-        }
-      } catch (e) {
-        uni.showModal({
-          title: '编辑昵称',
-          placeholderText: '请输入你的昵称',
-          editable: true,
-          inputValue: this.userInfo.nickname,
-          success: async (res) => {
-            if (res.confirm && res.content && res.content.trim()) {
-              this.userInfo.nickname = res.content.trim();
-              await this.updateUserInfo();
-            }
-          }
-        });
-      }
-    },
-
-    async updateUserInfo() {
-      if (!this.token) {
-        this.toLogin();
-        return;
-      }
-      
-      uni.showLoading({ title: '保存中...', mask: true });
-      
-      try {
-        const res = await uni.request({
-          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.updateUserInfo}`,
-          method: 'POST',
-          header: {
-            'Authorization': `Bearer ${this.token}`,
-            'content-type': 'application/json'
-          },
-          data: {
-            user_id: this.userInfo.user_id,
-            nickname: this.userInfo.nickname,
-            avatar: this.userInfo.avatar,
-            openid: this.userInfo.openid,
-            identity: this.currentIdentity
-          }
-        });
-        
-        if (res.statusCode === 200 && res.data.code === 200) {
-          uni.setStorageSync('userInfo', this.userInfo);
-          uni.showToast({ title: '修改成功', icon: 'success', duration: 1500 });
-        } else {
-          uni.showToast({ title: res.data.msg || '修改失败', icon: 'none' });
-        }
-      } catch (error) {
-        console.error('更新用户信息失败:', error);
-        uni.showToast({ title: '网络异常，修改失败', icon: 'none' });
-      } finally {
-        uni.hideLoading();
-      }
-    },
-    
     toggleIdentityMenu() { 
       this.isIdentityOpen = !this.isIdentityOpen; 
     },
     
     closeIdentityMenu() { 
       if (this.isIdentityOpen) this.isIdentityOpen = false; 
+    },
+    
+    goToEditProfile() {
+      if (!this.token) {
+        this.toLogin();
+        return;
+      }
+      uni.navigateTo({ url: '/pages/Mine/profile-edit' });
     },
     
     async switchIdentity(role) {
