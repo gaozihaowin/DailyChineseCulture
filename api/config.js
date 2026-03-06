@@ -17,6 +17,9 @@ export const API_CONFIG = {
     userInfo: '/user/info',
     switchIdentity: '/user/switch-identity',
     updateUserInfo: '/updateUserInfo',
+    // 新增接口
+    upload: '/common/upload',
+    updateUser: '/user/update',
     hotCourses: '/courses/hot',
     courses: '/courses',
 	logout:'/user/logout',  //退出登陆

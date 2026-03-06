@@ -25,12 +25,16 @@
           
           <view class="info-box">
             <view class="nickname-row" @tap="chooseNickname">
-              <text class="nickname">{{ userInfo.nickname }}</text>
+              <text class="nickname">{{ userInfo.nickname || '请设置昵称' }}</text>
               <uni-icons type="vip-filled" size="18" color="#FFD700" style="margin-left: 8rpx;"></uni-icons>
               <uni-icons type="compose" size="14" color="rgba(255,255,255,0.7)" style="margin-left: 6rpx;"></uni-icons>
             </view>
             
-            <view class="identity-display">
+            <view class="account-row" v-if="userInfo.account">
+              <text class="account-text">@{{ userInfo.account }}</text>
+            </view>
+            
+            <view class="identity-display" :style="{ marginTop: userInfo.account ? '0' : '8rpx' }">
               <text class="id-label">当前身份</text>
               <view class="id-separator"></view>
               <text class="id-value">{{ currentIdentity }}</text>
@@ -151,10 +155,11 @@ export default {
   data() {
     return {
       userInfo: { 
-        nickname: 'Mystery', 
+        nickname: '', 
         avatar: 'https://img.icons8.com/color/96/person-male.png',
         user_id: '',
-        openid: ''
+        openid: '',
+        account: ''
       },
       token: '', 
       isIdentityOpen: false,
@@ -164,10 +169,10 @@ export default {
         { name: '志愿者端' }
       ],
       statsList: [
-        { label: '等级', value: '0.00' }, 
-        { label: '朋友', value: '2' },
-        { label: '积分', value: '1.2k' }, 
-        { label: '学时', value: '45h' }
+        { label: '地区', value: '-' }, 
+        { label: '职业', value: '-' },
+        { label: '年数', value: '0' }, 
+        { label: '学时', value: '0h' }
       ],
       coreServices: [
         { 
@@ -229,16 +234,11 @@ export default {
   },
 
   mounted() {
-    // 优先从本地缓存获取token和用户信息
     this.getLocalUserInfo();
-    // 加载远程个人信息
     this.fetchUserInfo();
   },
   
   methods: {
-    /**
-     * 从本地缓存获取token和用户信息
-     */
     getLocalUserInfo() {
       const token = uni.getStorageSync('token');
       const localUser = uni.getStorageSync('userInfo');
@@ -251,6 +251,7 @@ export default {
         this.userInfo = {
           user_id: localUser.user_id || '',
           openid: localUser.openid || '',
+          account: localUser.account || this.userInfo.account,
           nickname: localUser.nickname || this.userInfo.nickname,
           avatar: localUser.avatar || this.userInfo.avatar
         };
@@ -263,13 +264,9 @@ export default {
       }
     },
 
-    /**
-     * 从API获取个人信息
-     */
     async fetchUserInfo() {
-      // 无token时跳转到登录页
       if (!this.token) {
-        this.toLogin();
+        console.log('未找到token，跳过获取用户信息');
         return;
       }
       
@@ -290,13 +287,16 @@ export default {
           this.userInfo = {
             user_id: data.userId || '',
             openid: data.openid || '',
+            account: data.account || '',
             nickname: data.nickname || this.userInfo.nickname,
             avatar: data.avatar || this.userInfo.avatar
           };
           this.currentIdentity = data.currentIdentity || '学员端';
+          
           if (data.statsList) {
             this.statsList = data.statsList;
           }
+          
           uni.setStorageSync('userInfo', this.userInfo);
           uni.setStorageSync('currentIdentity', this.currentIdentity);
         } else {
@@ -313,9 +313,6 @@ export default {
       }
     },
     
-    /**
-     * 选择头像
-     */
     async chooseAvatar() {
       if (!this.token) {
         this.toLogin();
@@ -342,9 +339,6 @@ export default {
       }
     },
 
-    /**
-     * 选择/编辑昵称
-     */
     async chooseNickname() {
       if (!this.token) {
         this.toLogin();
@@ -374,9 +368,6 @@ export default {
       }
     },
 
-    /**
-     * 更新用户信息
-     */
     async updateUserInfo() {
       if (!this.token) {
         this.toLogin();
@@ -416,23 +407,14 @@ export default {
       }
     },
     
-    /**
-     * 展开/收起身份切换菜单
-     */
     toggleIdentityMenu() { 
       this.isIdentityOpen = !this.isIdentityOpen; 
     },
     
-    /**
-     * 点击空白处关闭身份切换菜单
-     */
     closeIdentityMenu() { 
       if (this.isIdentityOpen) this.isIdentityOpen = false; 
     },
     
-    /**
-     * 切换身份：学员端志愿者端
-     */
     async switchIdentity(role) {
       if (this.currentIdentity === role.name) {
         this.isIdentityOpen = false;
@@ -483,9 +465,6 @@ export default {
       }
     },
     
-    /**
-     * 通用菜单点击事件
-     */
     handleMenuClick(item) {
       if (!this.token) {
         this.toLogin();
@@ -501,9 +480,6 @@ export default {
       }
     },
     
-    /**
-     * 未登录时跳转到登录页
-     */
     toLogin() {
       uni.showToast({ title: '请先登录', icon: 'none' });
       setTimeout(() => {
@@ -518,8 +494,18 @@ export default {
 .nickname-row {
   display: flex;
   align-items: center;
-  margin-bottom: 12rpx;
+  margin-bottom: 6rpx;
   cursor: pointer;
+}
+.account-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.account-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1rpx;
 }
 .avatar-box {
   position: relative;

@@ -14,7 +14,6 @@
 
 			<view class="form-section fade-in-up-delay-1">
 				
-				<!-- 头像上传 -->
 				<view class="avatar-section">
 					<view class="avatar-box" @tap="chooseAvatar">
 						<image v-if="formData.avatar" :src="formData.avatar" class="avatar-image" mode="aspectFill"></image>
@@ -25,7 +24,6 @@
 					</view>
 				</view>
 
-				<!-- 手机号 -->
 				<view class="input-group">
 					<view class="input-label">手机号</view>
 					<input 
@@ -38,7 +36,6 @@
 					/>
 				</view>
 
-				<!-- 性别选择 -->
 				<view class="input-group">
 					<view class="input-label">性别</view>
 					<view class="gender-options">
@@ -53,7 +50,6 @@
 					</view>
 				</view>
 
-				<!-- 生日选择 -->
 				<view class="input-group">
 					<view class="input-label">生日</view>
 					<picker 
@@ -68,7 +64,6 @@
 					</picker>
 				</view>
 
-				<!-- 地域 -->
 				<view class="input-group">
 					<view class="input-label">地域</view>
 					<input 
@@ -80,7 +75,6 @@
 					/>
 				</view>
 
-				<!-- 职业 -->
 				<view class="input-group">
 					<view class="input-label">职业</view>
 					<input 
@@ -102,9 +96,14 @@
 					<text v-else>提交信息</text>
 				</button>
 
-				<view class="skip-link">
-					<text class="link-text" @tap="skipComplete">跳过，稍后完善</text>
-				</view>
+				<button 
+					class="btn-skip ripple" 
+					@tap="skipComplete" 
+					hover-class="btn-skip-hover"
+				>
+					跳过，稍后完善
+				</button>
+				
 			</view>
 
 		</view>
@@ -159,17 +158,65 @@ export default {
 		
 		// 上传头像
 		async uploadAvatar(filePath) {
-			uni.showLoading({ title: '上传中...' });
+			uni.showLoading({ title: '上传中...', mask: true });
 			
 			try {
-				// 这里应该调用后端上传接口
-				// 暂时使用本地路径
-				this.formData.avatar = filePath;
-				uni.hideLoading();
-				uni.showToast({ title: '头像上传成功', icon: 'success' });
+				// 读取token
+				const token = uni.getStorageSync('token');
+				if (!token) {
+					uni.hideLoading();
+					uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
+					setTimeout(() => {
+						uni.reLaunch({ url: '/pages/Login/index' });
+					}, 1000);
+					return;
+				}
+				
+				// 调用后端上传接口
+				uni.uploadFile({
+					url: API_CONFIG.baseUrl + API_CONFIG.paths.upload,
+					filePath: filePath,
+					name: 'file', // 文件字段名
+					header: {
+						'Authorization': 'Bearer ' + token
+					},
+					success: (res) => {
+						uni.hideLoading();
+						
+						try {
+							// 解析响应数据
+							const response = JSON.parse(res.data);
+							
+							if (response.code === 200) {
+								// 上传成功，保存图片URL
+								this.formData.avatar = response.data;
+								uni.showToast({ title: '上传成功', icon: 'success' });
+							} else {
+								// 上传失败
+								uni.showToast({ 
+									title: response.msg || '上传失败', 
+									icon: 'none' 
+								});
+							}
+						} catch (parseError) {
+							// 解析失败
+							uni.showToast({ title: '服务器返回数据格式错误', icon: 'none' });
+							console.error('解析响应失败:', parseError);
+						}
+					},
+					fail: (error) => {
+						uni.hideLoading();
+						console.error('上传失败:', error);
+						uni.showToast({ 
+							title: error.errMsg || '网络连接异常', 
+							icon: 'none' 
+						});
+					}
+				});
 			} catch (error) {
 				uni.hideLoading();
-				uni.showToast({ title: '头像上传失败', icon: 'none' });
+				console.error('上传异常:', error);
+				uni.showToast({ title: '上传异常', icon: 'none' });
 			}
 		},
 		
@@ -205,7 +252,7 @@ export default {
 				
 				// 调用后端接口更新用户信息
 				const res = await uni.request({
-					url: API_CONFIG.baseUrl + '/user/update',
+					url: API_CONFIG.baseUrl + API_CONFIG.paths.updateUser,
 					method: 'POST',
 					header: {
 						'content-type': 'application/json',
@@ -217,22 +264,31 @@ export default {
 				uni.hideLoading();
 				this.isLoading = false;
 				
-				if (res.statusCode === 200 && res.data.code === 200) {
-					uni.showToast({ title: '信息提交成功', icon: 'success' });
-					
-					// 更新本地用户信息
-					const userInfo = uni.getStorageSync('userInfo') || {};
-					uni.setStorageSync('userInfo', { ...userInfo, ...this.formData });
-					
-					// 延迟跳转到首页
-					setTimeout(() => {
-						uni.reLaunch({
-							url: '/pages/Main/index'
+				if (res.statusCode === 200) {
+					if (res.data.code === 200) {
+						uni.showToast({ title: '信息提交成功', icon: 'success' });
+						
+						// 更新本地用户信息
+						const userInfo = uni.getStorageSync('userInfo') || {};
+						uni.setStorageSync('userInfo', { ...userInfo, ...this.formData });
+						
+						// 延迟跳转到首页
+						setTimeout(() => {
+							uni.reLaunch({
+								url: '/pages/Main/index'
+							});
+						}, 800); // 800ms延迟，确保用户能看清提示
+					} else {
+						// 后端返回非200错误
+						uni.showToast({ 
+							title: res.data.msg || '提交失败', 
+							icon: 'none' 
 						});
-					}, 800); // 800ms延迟，确保用户能看清提示
+					}
 				} else {
+					// HTTP状态码非200
 					uni.showToast({ 
-						title: res.data.msg || '提交失败', 
+						title: '网络连接异常', 
 						icon: 'none' 
 					});
 				}
@@ -246,27 +302,33 @@ export default {
 		
 		// 表单验证
 		validateForm() {
-			// 手机号验证
-			if (this.formData.phone && !/^1[3-9]\d{9}$/.test(this.formData.phone)) {
+			// 手机号验证：必填且满足11位手机号正则
+			if (!this.formData.phone) {
+				uni.showToast({ title: '请输入手机号', icon: 'none' });
+				return false;
+			}
+			if (!/^1[3-9]\d{9}$/.test(this.formData.phone)) {
 				uni.showToast({ title: '请输入正确的手机号', icon: 'none' });
+				return false;
+			}
+			
+			// 其他必填项验证
+			if (!this.formData.gender) {
+				uni.showToast({ title: '请选择性别', icon: 'none' });
+				return false;
+			}
+			if (!this.formData.birthday) {
+				uni.showToast({ title: '请选择生日', icon: 'none' });
 				return false;
 			}
 			
 			return true;
 		},
 		
-		// 跳过完善
+		// 跳过完善，直接去首页
 		skipComplete() {
-			uni.showModal({
-				title: '提示',
-				content: '跳过后可以在个人中心完善信息',
-				success: (res) => {
-					if (res.confirm) {
-						uni.reLaunch({
-							url: '/pages/Main/index'
-						});
-					}
-				}
+			uni.reLaunch({
+				url: '/pages/Main/index'
 			});
 		}
 	}
@@ -292,6 +354,7 @@ export default {
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
+	padding-bottom: 60rpx; /* 增加底部内边距，防止按钮贴底 */
 }
 
 /* --- 背景装饰 --- */
@@ -493,14 +556,29 @@ export default {
 	pointer-events: none;
 }
 
-/* --- 跳过链接 --- */
-.skip-link {
-	text-align: center;
-	margin-top: 32rpx;
+/* --- 跳过按钮 (新) --- */
+.btn-skip {
+	width: 100%;
+	height: 100rpx;
+	line-height: 100rpx;
+	background-color: transparent; /* 透明背景 */
+	color: #9e2a2b; /* 主色调文字 */
+	font-size: 30rpx;
+	font-weight: bold;
+	border-radius: 20rpx;
+	border: 3rpx solid #9e2a2b; /* 主色调边框 */
+	box-sizing: border-box; /* 确保边框计入宽高 */
+	margin-top: 30rpx; /* 与提交按钮拉开间距 */
+	letter-spacing: 4rpx;
+	transition: all 0.3s ease;
 }
-.link-text {
-	font-size: 26rpx;
-	color: #888;
+.btn-skip::after { border: none; }
+
+/* 点击态 */
+.btn-skip-hover {
+	background-color: rgba(158, 42, 43, 0.05); /* 轻微背景色 */
+	transform: scale(0.98);
+	opacity: 0.9;
 }
 
 /* --- 动画 --- */
