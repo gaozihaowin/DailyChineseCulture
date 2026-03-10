@@ -42,6 +42,9 @@ export const API_CONFIG = {
 	
     getHomeworkStats: '/homework/stats',   // 获取作业统计数据
 	getHomeworkStatus:'/homework/status/list',//统计未交/已交/迟交名单
+    schedule: '/courses/{{campId}}/schedule', // 获取课程安排
+    todayCourse: '/courses/{{campId}}/today', // 获取今日课程
+    completeTask: '/courses/plan/{{planId}}/task/complete', // 任务打卡
   }
 };
 

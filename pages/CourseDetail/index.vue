@@ -58,8 +58,8 @@
       <!-- 四个模块内容 -->
       <view class="module-content">
         <camp-intro v-show="currentTab === 0" :course-info="courseInfo"></camp-intro>
-        <course-schedule v-show="currentTab === 1" :course-info="courseInfo"></course-schedule>
-        <today-course v-show="currentTab === 2" :course-info="courseInfo"></today-course>
+        <CourseSchedule v-show="currentTab === 1" :camp-id="courseId"></CourseSchedule>
+        <CourseToday v-show="currentTab === 2" :camp-id="courseId"></CourseToday>
         <course-data v-show="currentTab === 3" :course-info="courseInfo"></course-data>
       </view>
       
@@ -79,8 +79,8 @@
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import CampIntro from './components/camp-intro.vue';
-import CourseSchedule from './components/course-schedule.vue';
-import TodayCourse from './components/today-course.vue';
+import CourseSchedule from './components/CourseSchedule.vue';
+import CourseToday from './components/CourseToday.vue';
 import CourseData from './components/course-data.vue';
 
 const currentTab = ref(0);
@@ -90,6 +90,7 @@ const navbarHeight = ref(44);
 const sourcePage = ref('');
 const sourcePageType = ref('');
 const isSinglePage = ref(false);
+const courseId = ref('');
 
 // --- 极简风 SVG 图标 (Base64编码，无需网络，永不失效) ---
 const iconAssets = {
@@ -228,7 +229,7 @@ const fetchCourseData = (id) => {
 };
 
 onLoad((options) => {
-  const courseId = options.id || '101';
+  courseId.value = options.id || '101';
   sourcePage.value = options.source || '';
   sourcePageType.value = options.sourceType || '';
   
@@ -257,7 +258,7 @@ onLoad((options) => {
     navbarHeight.value = 44;
   }
   
-  fetchCourseData(courseId);
+  fetchCourseData(courseId.value);
 });
 
 // --- 智能返回逻辑 ---
