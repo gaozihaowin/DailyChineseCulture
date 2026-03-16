@@ -45,6 +45,7 @@ export const API_CONFIG = {
     schedule: '/courses/{{campId}}/schedule', // 获取课程安排
     todayCourse: '/courses/{{campId}}/today', // 获取今日课程
     completeTask: '/courses/plan/{{planId}}/task/complete', // 任务打卡
+    courseData: '/courses/{{campId}}/data', // 获取课程数据看板
   }
 };
 

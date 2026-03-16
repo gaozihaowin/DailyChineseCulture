@@ -103,6 +103,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { API_CONFIG } from '@/api/config.js';
+import { request } from '@/utils/request.js';
 
 // 定义 Props
 const props = defineProps({
@@ -122,15 +123,11 @@ const fetchTodayData = async () => {
     isLoading.value = true;
 
     // 替换 URL 中的 campId 占位符
-    const url = API_CONFIG.baseUrl + API_CONFIG.paths.todayCourse.replace('{{campId}}', props.campId.toString());
+    const url = API_CONFIG.paths.todayCourse.replace('{{campId}}', props.campId.toString());
 
-    const response = await new Promise((resolve, reject) => {
-      uni.request({
-        url: url,
-        method: 'GET',
-        success: resolve,
-        fail: reject
-      });
+    const response = await request({
+      url: url,
+      method: 'GET'
     });
 
     const apiData = response.data;
@@ -146,10 +143,7 @@ const fetchTodayData = async () => {
     }
   } catch (error) {
     console.error('网络请求失败:', error);
-    uni.showToast({
-      title: '网络连接异常',
-      icon: 'none'
-    });
+    // 错误已在 request 中统一处理
   } finally {
     isLoading.value = false;
   }
@@ -198,17 +192,13 @@ const handleCompleteTask = async (task) => {
     }
 
     // 替换 URL 中的 planId 占位符
-    const url = API_CONFIG.baseUrl + API_CONFIG.paths.completeTask.replace('{{planId}}', planId.toString());
+    const url = API_CONFIG.paths.completeTask.replace('{{planId}}', planId.toString());
 
-    const response = await new Promise((resolve, reject) => {
-      uni.request({
-        url: url,
-        method: 'POST',
-        header: { 'content-type': 'application/json' },
-        data: { taskType: task.taskId },
-        success: resolve,
-        fail: reject
-      });
+    const response = await request({
+      url: url,
+      method: 'POST',
+      header: { 'content-type': 'application/json' },
+      data: { taskType: task.taskId }
     });
 
     const apiData = response.data;
@@ -234,10 +224,7 @@ const handleCompleteTask = async (task) => {
   } catch (error) {
     uni.hideLoading();
     console.error('打卡请求失败:', error);
-    uni.showToast({
-      title: '网络连接异常',
-      icon: 'none'
-    });
+    // 错误已在 request 中统一处理
   }
 };
 
