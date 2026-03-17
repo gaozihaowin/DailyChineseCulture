@@ -141,6 +141,13 @@
         </view>
       </view>
 
+      <!-- 退出登录区块 -->
+      <view class="logout-section">
+        <view class="logout-btn" hover-class="logout-btn-hover" @tap="handleLogout">
+          <text class="logout-text">退出登录</text>
+        </view>
+      </view>
+      
       <view class="footer-info">致良知教育 v1.3.0</view>
       <view class="safe-area-spacer"></view>
 
@@ -401,6 +408,50 @@ export default {
       setTimeout(() => {
         uni.reLaunch({ url: '/pages/Login/index' });
       }, 1000);
+    },
+    
+    handleLogout() {
+      uni.showModal({
+        title: '退出登录',
+        content: '确定要退出当前账号吗？',
+        confirmColor: '#e53e3e',
+        success: async (res) => {
+          if (res.confirm) {
+            uni.showLoading({ title: '正在退出...', mask: true });
+            
+            try {
+              // 1. 通知后端销毁 Token
+              await uni.request({
+                url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.logout}`,
+                method: 'POST',
+                header: {
+                  'Authorization': `Bearer ${this.token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+            } catch (error) {
+              console.warn('后端注销接口异常，强制执行本地退出流程', error);
+            } finally {
+              uni.hideLoading();
+              
+              // 2. 防御性编程：无论接口成功与否，本地必须清空私密数据！
+              uni.removeStorageSync('token');
+              uni.removeStorageSync('userInfo');
+              uni.removeStorageSync('currentIdentity');
+              
+              // 3. 销毁所有页面栈，重定向至登录页
+              uni.reLaunch({
+                url: '/pages/Login/index',
+                success: () => {
+                  setTimeout(() => {
+                    uni.showToast({ title: '已安全退出', icon: 'none' });
+                  }, 100);
+                }
+              });
+            }
+          }
+        }
+      });
     }
   }
 }
@@ -649,4 +700,33 @@ export default {
 .menu-extra { font-size: 24rpx; color: #999; }
 .footer-info { text-align: center; margin-top: 30rpx; color: #ccc; font-size: 22rpx; }
 .safe-area-spacer { height: 160rpx; }
+
+/* ========== 退出登录区块 (iOS 警示风格) ========== */
+.logout-section {
+  margin-top: 60rpx;
+  padding: 0 40rpx;
+}
+
+.logout-btn {
+  background: #ffffff;
+  border-radius: 24rpx;
+  height: 110rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
+  transition: all 0.2s;
+}
+
+.logout-btn-hover {
+  background: #fcfcfc;
+  transform: scale(0.98);
+}
+
+.logout-text {
+  color: #e53e3e; /* 经典警示红 */
+  font-size: 32rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
 </style>
