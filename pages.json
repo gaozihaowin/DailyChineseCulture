@@ -52,6 +52,15 @@
 		{
 			"path": "pages/volunteer-manage/volunteer-manage",
 			"style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "pages/CourseList/index",
+			"style": {
+				"navigationBarTitleText": "全部课程",
+				"navigationBarBackgroundColor": "#f9f7f2",
+				"navigationBarTextStyle": "black",
+				"backgroundColor": "#f9f7f2"
+			}
 		}
 	],
 	"globalStyle": {

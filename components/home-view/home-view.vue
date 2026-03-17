@@ -50,8 +50,9 @@
 
       <view class="section-header">
         <text class="section-title">热门课程</text>
-        <view class="section-more">
-          <uni-icons type="right" size="12" color="#8c8686"></uni-icons>
+        <view class="section-more" hover-class="more-hover" @click="goToAllCourses">
+          <text class="more-text">全部课程</text>
+          <uni-icons type="right" size="14" color="#8c8686"></uni-icons>
         </view>
       </view>
 
@@ -191,7 +192,14 @@ export default {
     closePopup() {
       this.showPopup = false;
     },
-    
+
+    // 跳转到全部课程页面
+    goToAllCourses() {
+      uni.navigateTo({
+        url: '/pages/CourseList/index'
+      });
+    },
+
     // 获取热门课程接口
     async fetchHotCourses() {
       try {
@@ -406,23 +414,32 @@ export default {
 /* =========================================================================
    [6] 课程列表区 (Course List - 优化视觉比例)
    ========================================================================= */
-.section-header { 
-  padding: 0 40rpx; 
-  margin-bottom: 30rpx; 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: flex-end; 
+.section-header {
+  padding: 0 40rpx;
+  margin-bottom: 30rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* 确保文字居中对齐 */
 }
-.section-title { 
-  font-size: 38rpx; 
-  font-weight: 800; 
-  color: #2d2424; 
+.section-title {
+  font-size: 38rpx;
+  font-weight: 800;
+  color: #2d2424;
 }
-.section-more { 
-  font-size: 26rpx; 
-  color: #8c8686; 
-  display: flex; 
-  align-items: center; 
+.section-more {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 10rpx 0 10rpx 20rpx; /* 增加点击热区 */
+  transition: opacity 0.2s;
+}
+.more-hover {
+  opacity: 0.6;
+}
+.more-text {
+  font-size: 26rpx;
+  color: #8c8686;
+  font-weight: 500;
 }
 .course-list { 
   padding: 0 40rpx; 
