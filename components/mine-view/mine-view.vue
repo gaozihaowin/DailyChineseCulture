@@ -483,7 +483,7 @@ export default {
   height: 100%; 
   display: flex; 
   flex-direction: column; 
-  background-color: #F4F5F7; 
+  background-color: transparent; /* 让全局宣纸色透出来 */
 }
 .art-header { 
   background: linear-gradient(160deg, #A31D1D 0%, #851212 100%); 

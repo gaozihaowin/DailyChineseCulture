@@ -110,10 +110,10 @@
 </script>
 
 <style scoped>
-  /* 全局布局保持不变 */
+  /* 全局布局 - 透明背景让宣纸色透出来 */
   .app-container {
     height: 100vh;
-    background-color: #f9f7f2;
+    background-color: transparent;
     display: flex;
     flex-direction: column;
     overflow: hidden;

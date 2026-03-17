@@ -165,7 +165,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .course-data {
   min-height: 600rpx;
-  background-color: #f8f7f4;
+  background-color: transparent !important; /* 确保透明，让米黄色透出来 */
 }
 
 /* ========== 加载状态样式 ========== */
@@ -210,11 +210,12 @@ onMounted(() => {
 
 /* 完成率大卡片 */
 .rate-card {
-  background-color: #ffffff;
-  border-radius: 16rpx;
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
   padding: 48rpx 32rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -243,10 +244,11 @@ onMounted(() => {
 
 .stat-card {
   flex: 1;
-  background-color: #ffffff;
-  border-radius: 16rpx;
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
   padding: 32rpx 24rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -295,10 +297,11 @@ onMounted(() => {
 
 .chart-card {
   position: relative;
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
-  border-radius: 20rpx;
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
   padding: 50rpx 24rpx 40rpx;
-  box-shadow: 0 8rpx 32rpx rgba(250, 125, 101, 0.08), 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
   overflow: hidden;
 }
 
@@ -431,10 +434,11 @@ onMounted(() => {
 }
 
 .achievement-list {
-  background-color: #ffffff;
-  border-radius: 16rpx;
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
   padding: 0 30rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .achievement-item {

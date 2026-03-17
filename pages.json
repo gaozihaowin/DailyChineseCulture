@@ -57,8 +57,10 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "致良知教育",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"navigationBarBackgroundColor": "#f9f7f2",
+		"backgroundColor": "#f9f7f2",
+		"backgroundColorTop": "#f9f7f2",
+		"backgroundColorBottom": "#f9f7f2"
 	},
 	"uniIdRouter": {}
 }

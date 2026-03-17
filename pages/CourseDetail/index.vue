@@ -161,12 +161,12 @@ const handleNavigation = () => {
 
 <style scoped lang="scss">
 /* ========== 全局布局 ========== */
-.container { 
+.container {
   display: flex;
   flex-direction: column;
   height: 100vh; /* 锁死屏幕高度 */
   overflow: hidden; /* 严禁整体滚动 */
-  background: #f4f6f9; /* 最底层的灰蓝色，只会在悬浮卡片边缘露出一点点 */
+  background: #ffffff !important; /* 最底层天光画布，衬托顶部彩卡 */
 }
 
 /* ========== 上半部：绝对固定区 ========== */
@@ -243,14 +243,15 @@ const handleNavigation = () => {
 }
 .hero-batch { font-size: 26rpx; font-weight: 600; letter-spacing: 2rpx; }
 
-/* 3. 沉浸式一体化白底 (融为一体，沉浸下去) */
+/* 3. 沉浸式一体化内容区 (画卷式层级) */
 .unified-header {
-  background: #ffffff; /* 纯白底色，和下方的 scroll-content 完全一致 */
+  background: #f9f7f2 !important; /* 绝对同步首页的暖象牙白 */
   margin-top: -60rpx; /* 向上提拉，垫在悬浮卡片下面！ */
   padding-top: 80rpx; /* 补充被遮挡的高度 */
-  border-radius: 48rpx 48rpx 0 0; /* 顶部大圆角，制造出“白纸”的边缘感 */
+  border-radius: 48rpx 48rpx 0 0; /* 顶部大圆角，制造出"画卷"的边缘感 */
   position: relative;
   z-index: 10; /* 层级低于彩卡，形成沉浸感 */
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.04); /* 顶部微弱阴影增强悬浮感 */
 }
 
 .info-part {
@@ -298,11 +299,11 @@ const handleNavigation = () => {
 }
 
 
-/* ========== 下半部：独立滚动区 (白纸的延伸) ========== */
+/* ========== 下半部：独立滚动区 (向下延伸) ========== */
 .scroll-content {
-  flex: 1; 
-  height: 0; 
-  background: #ffffff; /* 🚨 核心：和上面的 unified-header 颜色一样，形成一体化的“无边沉浸感” */
+  flex: 1;
+  height: 0;
+  background: #f9f7f2 !important; /* 绝对同步首页的暖象牙白 */
 }
 
 .module-wrapper {

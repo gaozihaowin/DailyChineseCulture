@@ -246,7 +246,7 @@ onMounted(() => {
 <style scoped lang="scss">
 .course-today {
   min-height: 600rpx;
-  background-color: #f8f7f4;
+  background-color: transparent !important; /* 确保透明，让米黄色透出来 */
 }
 
 /* ========== 加载状态样式 ========== */
@@ -291,10 +291,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 120rpx 60rpx;
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  margin: 20rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
+  margin: 24rpx 30rpx;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .empty-icon-wrapper {
@@ -360,11 +361,11 @@ onMounted(() => {
 
 /* ========== 进度卡片 ========== */
 .progress-card {
-  background: linear-gradient(135deg, #ffffff, #fafaf9);
-  border-radius: 20rpx;
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
   padding: 32rpx;
-  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
-  border: 1rpx solid rgba(158, 42, 43, 0.08);
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .progress-header {
@@ -434,10 +435,10 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 28rpx 24rpx;
-  background-color: #ffffff;
-  border-radius: 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  border: 1rpx solid rgba(0, 0, 0, 0.02);
+  background-color: #ffffff !important;
+  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border: 1px solid rgba(255, 255, 255, 0.5);
   transition: all 0.25s ease;
 
   &:active {
