@@ -163,8 +163,27 @@ const getCourseStatus = (course) => {
 // 4. 路由与网络请求
 // ==========================================
 
-const goToDetail = (id) => {
-  uni.navigateTo({ url: `/pages/CourseDetail/index?id=${id}&source=list` });
+const goToDetail = async (id) => {
+  uni.showLoading({ title: '核实身份中...', mask: true });
+  try {
+    const res = await get(API_CONFIG.paths.checkEnroll, { campId: id });
+    const resultData = (res.data && res.data.code) ? res.data : res;
+    
+    if (resultData.code === 200) {
+      if (resultData.data === true) {
+        uni.navigateTo({ url: `/pages/CourseDetail/index?id=${id}&source=list` });
+      } else {
+        uni.navigateTo({ url: `/pages/CampEnroll/index?id=${id}` });
+      }
+    } else {
+      uni.showToast({ title: resultData.msg || '核实失败', icon: 'none' });
+    }
+  } catch (error) {
+    console.error('Check enrollment error:', error);
+    uni.showToast({ title: '网络请求失败', icon: 'none' });
+  } finally {
+    uni.hideLoading();
+  }
 };
 
 const fetchCourses = async (isRefresh = false) => {

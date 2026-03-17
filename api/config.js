@@ -23,6 +23,7 @@ export const API_CONFIG = {
     hotCourses: '/courses/hot',
     courses: '/courses',
     courseList: '/courses/list', // 获取课程列表
+    checkEnroll: '/enrollment/check', // 核实报名身份
 	logout:'/user/logout',  //退出登陆
 	getVolunteerHistory:'/user/volunteer-history', //担当历史
 	quitVolunteer:'/user/volunteer-quit',//  退出担当

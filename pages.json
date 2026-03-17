@@ -61,6 +61,15 @@
 				"navigationBarTextStyle": "black",
 				"backgroundColor": "#f9f7f2"
 			}
+		},
+		{
+			"path": "pages/CampEnroll/index",
+			"style": {
+				"navigationBarTitleText": "课程报名",
+				"navigationBarBackgroundColor": "#fdfbf7",
+				"navigationBarTextStyle": "black",
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

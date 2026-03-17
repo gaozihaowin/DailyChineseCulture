@@ -57,7 +57,7 @@
       </view>
 
       <view class="course-list">
-        <view class="course-card" v-for="(course, index) in courseList" :key="index">
+        <view class="course-card" v-for="(course, index) in courseList" :key="index" @click="goToDetail(course.id)">
           
           <view class="card-thumb" :style="{ background: colorMap[course.type] || colorMap['默认'] }">
             <view class="thumb-tag" v-if="course.tag">{{ course.tag }}</view>
@@ -131,6 +131,7 @@
 <script>
 // 引入 API 配置
 import { API_CONFIG } from '../../api/config';
+import { get } from '../../utils/request';
 
 export default {
   name: 'HomeView',
@@ -216,6 +217,31 @@ export default {
       } catch (error) {
         console.error('获取热门课程失败:', error);
         uni.showToast({ title: '网络连接异常', icon: 'none' });
+      }
+    },
+
+    // 卡片点击拦截
+    async goToDetail(id) {
+      if (!id) return;
+      uni.showLoading({ title: '核实身份中...', mask: true });
+      try {
+        const res = await get(API_CONFIG.paths.checkEnroll, { campId: id });
+        const resultData = (res.data && res.data.code) ? res.data : res;
+        
+        if (resultData.code === 200) {
+          if (resultData.data === true) {
+            uni.navigateTo({ url: `/pages/CourseDetail/index?id=${id}&source=list` });
+          } else {
+            uni.navigateTo({ url: `/pages/CampEnroll/index?id=${id}` });
+          }
+        } else {
+          uni.showToast({ title: resultData.msg || '核实失败', icon: 'none' });
+        }
+      } catch (error) {
+        console.error('Check enrollment error:', error);
+        uni.showToast({ title: '网络请求失败', icon: 'none' });
+      } finally {
+        uni.hideLoading();
       }
     }
   }
