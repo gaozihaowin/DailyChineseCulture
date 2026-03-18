@@ -1,5 +1,7 @@
 <template>
   <view class="app-container">
+    <!-- 状态栏占位，防止顶部内容塌陷 (Rule 1) -->
+    <view :style="{ height: statusBarHeight + 'px' }"></view>
     
     <view class="content-area">
       <home-view v-show="currentTab === 0"></home-view>
@@ -61,6 +63,7 @@
     
     data() {
       return {
+        statusBarHeight: 20, // 默认状态栏高度
         currentTab: 0,
         /**
          * 【配置说明】
@@ -96,6 +99,11 @@
     },
 
     onLoad() {
+      // 获取系统状态栏高度
+      const systemInfo = uni.getSystemInfoSync();
+      if (systemInfo.statusBarHeight) {
+        this.statusBarHeight = systemInfo.statusBarHeight;
+      }
       uni.$on('switchTab', (index) => { this.switchTab(index); });
     },
     onUnload() {

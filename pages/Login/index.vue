@@ -1,5 +1,7 @@
 <template>
 	<view class="page-container">
+		<!-- 状态栏占位 (Rule 1) -->
+		<view :style="{ height: statusBarHeight + 'px' }"></view>
 		<view class="mobile-frame">
 			
 			<view class="bg-decoration">
@@ -135,6 +137,7 @@ import { API_CONFIG } from '../../api/config';
 export default {
 	data() {
 		return {
+			statusBarHeight: 0,
 			username: '',
 			password: '',
 			showPassword: false,
@@ -148,6 +151,13 @@ export default {
 				nickname: ''
 			}
 		};
+	},
+	
+	onLoad() {
+		const systemInfo = uni.getSystemInfoSync();
+		if (systemInfo.statusBarHeight) {
+			this.statusBarHeight = systemInfo.statusBarHeight;
+		}
 	},
 	
 	computed: {

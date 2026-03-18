@@ -73,6 +73,7 @@
 		}
 	],
 	"globalStyle": {
+		"navigationStyle": "custom",
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "致良知教育",
 		"navigationBarBackgroundColor": "#f9f7f2",

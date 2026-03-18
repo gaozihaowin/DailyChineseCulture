@@ -2,13 +2,7 @@
 	<view class="page-container">
 		<view class="header-section">
 			<view class="header-bg"></view>
-			<view class="nav-bar">
-				<view class="nav-back" @tap="goBack">
-					<uni-icons type="back" size="20" color="#fff"></uni-icons>
-				</view>
-				<text class="nav-title">个人资料编辑</text>
-				<view class="nav-placeholder"></view>
-			</view>
+			<NavBar title="个人资料编辑" :isTransparent="true" />
 		</view>
 
 		<view class="content-section">

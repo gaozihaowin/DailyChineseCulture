@@ -13,8 +13,12 @@ app.$mount()
 
 // #ifdef VUE3
 import { createSSRApp } from 'vue'
+import NavBar from './components/NavBar/index.vue'
+
 export function createApp() {
   const app = createSSRApp(App)
+  // 全局注册 NavBar 组件
+  app.component('NavBar', NavBar)
   return {
     app
   }
