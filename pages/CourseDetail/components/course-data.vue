@@ -1,22 +1,17 @@
 <template>
   <view class="course-data">
-    <!-- 加载状态 -->
     <view v-if="isLoading" class="loading-container">
       <view class="loading-spinner"></view>
       <text class="loading-text">加载数据中...</text>
     </view>
 
-    <!-- 数据展示 -->
     <view v-else-if="dataObj" class="content-wrapper">
-      <!-- 模块 A: 数据概览卡片 (金字塔布局: 1大 + 2小) -->
       <view class="overview-section">
-        <!-- 首行: 完成率大卡片 -->
         <view class="rate-card">
           <text class="rate-value">{{ dataObj.overallRate }}%</text>
           <text class="rate-label">总完成率</text>
         </view>
 
-        <!-- 次行: 总天数 + 已完成 -->
         <view class="stats-row">
           <view class="stat-card">
             <text class="stat-value">{{ dataObj.totalDays }}</text>
@@ -29,7 +24,6 @@
         </view>
       </view>
 
-      <!-- 模块 B: 学习趋势 (纯 CSS 柱状图) -->
       <view class="trend-section">
         <view class="section-header">
           <view class="section-line"></view>
@@ -37,31 +31,39 @@
         </view>
 
         <view class="chart-card">
-          <view class="chart-bg-line"></view>
-          <view class="chart-container">
-            <view
-              v-for="(item, index) in dataObj.trends"
-              :key="index"
-              class="bar-wrapper"
-              :style="{ animationDelay: index * 0.1 + 's' }"
-            >
-              <view class="bar-value-box">
-                <text v-if="item.rate > 0" class="bar-value">{{ item.rate }}</text>
-                <text v-else class="bar-value bar-value-zero">-</text>
+          <scroll-view 
+            scroll-x="true" 
+            class="trend-scroll-view" 
+            :scroll-into-view="currentScrollId" 
+            scroll-with-animation 
+          >
+            <view class="trend-track">
+              <view
+                v-for="(item, index) in dataObj.trends"
+                :key="index"
+                :id="'day-' + item.dayIndex"
+                class="bar-wrapper"
+                :class="item.status ? item.status.toLowerCase() : 'locked'"
+                :style="{ animationDelay: index * 0.05 + 's' }"
+              >
+                <view class="bar-value-box">
+                  <text v-if="item.status === 'COMPLETED' && item.rate > 0" class="bar-value">{{ item.rate }}</text>
+                  <text v-else-if="item.status === 'MISSED'" class="bar-value missed-value">0</text>
+                  <text v-else class="bar-value locked-value">-</text>
+                </view>
+                <view class="bar-track-bg">
+                  <view
+                    class="bar-body"
+                    :style="{ height: getBarHeight(item) }"
+                  ></view>
+                </view>
+                <text class="bar-label">{{ item.dayStr }}</text>
               </view>
-              <view class="bar-track">
-                <view
-                  class="bar-column"
-                  :style="{ height: Math.max(item.rate, 2) + '%' }"
-                ></view>
-              </view>
-              <text class="bar-label">{{ item.dayStr }}</text>
             </view>
-          </view>
+          </scroll-view>
         </view>
       </view>
 
-      <!-- 模块 C: 我的成就 -->
       <view v-if="dataObj.achievements && dataObj.achievements.length > 0" class="achievement-section">
         <view class="section-header">
           <view class="section-line"></view>
@@ -89,7 +91,6 @@
       </view>
     </view>
 
-    <!-- 错误/空数据状态 -->
     <view v-else class="error-state">
       <uni-icons type="refresh" size="60" color="#d1d5db"></uni-icons>
       <text class="error-text">数据加载失败</text>
@@ -99,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { API_CONFIG } from '@/api/config.js';
 import { request } from '@/utils/request.js';
 
@@ -114,6 +115,43 @@ const props = defineProps({
 // 定义响应式状态
 const dataObj = ref(null);
 const isLoading = ref(true);
+const currentScrollId = ref('');
+
+// 计算柱子高度
+const getBarHeight = (item) => {
+  if (item.status === 'LOCKED' || item.status === 'MISSED') {
+    return '4%';
+  }
+  if (item.status === 'COMPLETED') {
+    return Math.max(item.rate || 0, 4) + '%';
+  }
+  return '4%';
+};
+
+// 寻找滚动锚点
+const setScrollPosition = () => {
+  if (!dataObj.value || !dataObj.value.trends || dataObj.value.trends.length === 0) return;
+  
+  const trends = dataObj.value.trends;
+  let lastActiveIndex = -1;
+  
+  // 找到最后一个已学或漏打卡的节点
+  for (let i = trends.length - 1; i >= 0; i--) {
+    if (trends[i].status === 'COMPLETED' || trends[i].status === 'MISSED') {
+      lastActiveIndex = i;
+      break;
+    }
+  }
+  
+  if (lastActiveIndex !== -1) {
+    // 延迟执行以确保 DOM 已渲染
+    nextTick(() => {
+      // 往前偏移一点，让目标居中一些而不是紧贴左边
+      let targetIndex = Math.max(0, lastActiveIndex - 2);
+      currentScrollId.value = 'day-' + trends[targetIndex].dayIndex;
+    });
+  }
+};
 
 // 数据请求方法
 const fetchCourseData = async () => {
@@ -132,6 +170,7 @@ const fetchCourseData = async () => {
 
     if (apiData.code === 200) {
       dataObj.value = apiData.data || null;
+      setScrollPosition();
     } else {
       console.error('获取课程数据失败:', apiData.msg);
       uni.showToast({
@@ -298,59 +337,49 @@ onMounted(() => {
 .chart-card {
   position: relative;
   background-color: #ffffff !important;
-  border-radius: 30rpx; /* 匹配首页的 30rpx 圆角 */
-  padding: 50rpx 24rpx 40rpx;
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); /* 匹配首页的细腻阴影 */
+  border-radius: 30rpx;
+  padding: 40rpx 0 20rpx; /* 上下内边距，左右不留防止截断 */
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.5);
   overflow: hidden;
 }
 
-/* 背景装饰线 */
+/* 顶部装饰线保留 */
 .chart-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 4rpx;
   background: linear-gradient(90deg, transparent, #fa7d65, transparent);
   opacity: 0.3;
 }
 
-.chart-bg-line {
-  position: absolute;
-  bottom: 80rpx;
-  left: 24rpx;
-  right: 24rpx;
-  height: 1rpx;
-  background: linear-gradient(90deg, transparent, rgba(250, 125, 101, 0.15), transparent);
+.trend-scroll-view {
+  width: 100%;
+  white-space: nowrap;
 }
 
-.chart-container {
-  display: flex;
+.trend-track {
+  display: inline-flex;
   align-items: flex-end;
-  justify-content: space-around;
-  height: 320rpx;
-  padding-top: 40rpx;
-  position: relative;
-  z-index: 1;
+  padding: 20rpx 40rpx;
+  height: 320rpx; /* 保证容器高度 */
 }
 
 .bar-wrapper {
-  display: flex;
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
   width: 70rpx;
+  flex-shrink: 0;
+  margin-right: 30rpx;
   opacity: 0;
   transform: translateY(20rpx);
   animation: barFadeInUp 0.6s ease forwards;
 }
 
 @keyframes barFadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .bar-value-box {
@@ -359,73 +388,66 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   margin-bottom: 12rpx;
-  opacity: 0;
-  animation: valueFadeIn 0.4s ease 0.5s forwards;
-}
-
-@keyframes valueFadeIn {
-  to {
-    opacity: 1;
-  }
 }
 
 .bar-value {
   font-size: 22rpx;
   font-weight: 600;
   color: #fa7d65;
-  text-shadow: 0 2rpx 4rpx rgba(250, 125, 101, 0.2);
+  white-space: nowrap; /* 防止数字和字折行 */
 }
 
-.bar-value-zero {
-  color: #d1d5db;
-  font-weight: 400;
-}
+.missed-value { color: #ff8c8c; }
+.locked-value { color: #d1d5db; font-weight: 400; }
 
-.bar-track {
+.bar-track-bg {
   width: 36rpx;
   height: 200rpx;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: linear-gradient(to top, rgba(255, 177, 153, 0.1) 0%, rgba(255, 177, 153, 0.02) 100%);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.01) 100%);
   border-radius: 18rpx;
   padding: 4rpx;
 }
 
-.bar-column {
+.bar-body {
   width: 28rpx;
-  min-height: 4rpx;
-  background: linear-gradient(to top, #ffd4c7 0%, #ffb199 30%, #fa7d65 100%);
   border-radius: 14rpx 14rpx 8rpx 8rpx;
-  box-shadow: 0 4rpx 12rpx rgba(250, 125, 101, 0.25), inset 0 -2rpx 4rpx rgba(255, 255, 255, 0.3);
-  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
   position: relative;
   overflow: hidden;
 }
 
-/* 柱体高光效果 */
-.bar-column::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 20%;
-  width: 40%;
-  height: 100%;
+/* 状态样式核心：完成 */
+.completed .bar-body {
+  background: linear-gradient(to top, #ffd4c7 0%, #ffb199 30%, #fa7d65 100%);
+  box-shadow: 0 4rpx 12rpx rgba(250, 125, 101, 0.25), inset 0 -2rpx 4rpx rgba(255, 255, 255, 0.3);
+}
+.completed .bar-body::after {
+  content: ''; position: absolute; top: 0; left: 20%; width: 40%; height: 100%;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 60%);
-  border-radius: inherit;
 }
+.completed .bar-label { color: #4b5563; font-weight: 600; }
 
-.bar-wrapper:hover .bar-column {
-  box-shadow: 0 6rpx 20rpx rgba(250, 125, 101, 0.4);
-  filter: brightness(1.05);
+/* 状态样式核心：漏打卡 */
+.missed .bar-body {
+  background: #ffcccc;
 }
+.missed .bar-label { color: #ff8c8c; }
+
+/* 状态样式核心：未解锁 */
+.locked .bar-body {
+  background: #f0ece6;
+}
+.locked .bar-label { color: #d1d5db; }
+
 
 .bar-label {
   font-size: 20rpx;
-  color: #a0a0a0;
   margin-top: 16rpx;
-  font-weight: 500;
   letter-spacing: 1rpx;
+  transition: color 0.3s;
 }
 
 /* ========== 模块 C: 我的成就 ========== */
@@ -502,5 +524,16 @@ onMounted(() => {
     border: 2rpx solid #fa7d65;
     border-radius: 32rpx;
   }
+}
+
+/* ========================================================== */
+/* 【强力补丁】：彻底隐藏 WebKit 环境下的横向滚动条 */
+/* ========================================================== */
+.trend-scroll-view ::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  -webkit-appearance: none;
+  background: transparent;
 }
 </style>

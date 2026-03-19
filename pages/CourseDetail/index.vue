@@ -43,7 +43,9 @@
         </view>
       </view>
       
-    </view> <scroll-view scroll-y class="scroll-content" :show-scrollbar="false">
+    </view> 
+    
+    <scroll-view scroll-y class="scroll-content" :show-scrollbar="false">
       <view class="module-wrapper">
         <camp-intro v-show="currentTab === 0" :course-info="courseInfo"></camp-intro>
         <CourseSchedule v-show="currentTab === 1" :camp-id="courseId"></CourseSchedule>
@@ -54,15 +56,9 @@
       </view>
     </scroll-view>
 
-    <view class="bottom-action-bar">
-      <view 
-        class="action-btn" 
-        :class="{ 'is-enrolled': isEnrolled, 'is-loading': enrollLoading }"
-        hover-class="btn-hover" 
-        @click="handleEnroll"
-      >
-        {{ enrollLoading ? '报名中...' : (isEnrolled ? '已报名' : '进入小组深度交流') }}
-      </view>
+    <view class="fab-btn" @click="goToChat">
+      <text class="fab-icon">💬</text>
+      <text class="fab-text">进入小组交流</text>
     </view>
 
   </view>
@@ -78,11 +74,13 @@ import CourseSchedule from './components/CourseSchedule.vue';
 import CourseToday from './components/CourseToday.vue';
 import CourseData from './components/course-data.vue';
 
-// ----------------- 保持原有的业务逻辑 -----------------
+// ----------------- 页面基础状态 -----------------
 const currentTab = ref(0);
 const tabs = ['营期介绍', '课程安排', '今日课程', '课程数据'];
 const courseId = ref('');
+const courseInfo = ref({});
 
+// ----------------- 视觉辅助函数 -----------------
 const colorMap = {
   '诚意班': 'linear-gradient(135deg, #8a2021, #b53b3c)',
   '明理班': 'linear-gradient(135deg, #1e3c72, #2a5298)',
@@ -102,7 +100,6 @@ const getBadgeBackground = (campName) => {
   return colorMap['默认'];
 };
 
-// UI 辅助：提炼封面中心的大字
 const extractCampName = (name) => {
   if (!name) return '修习';
   const match = name.match(/【.*?】/);
@@ -110,45 +107,24 @@ const extractCampName = (name) => {
   return name.trim().substring(0, 4);
 };
 
-const courseInfo = ref({});
+// ----------------- 核心交互与数据 -----------------
 
-const isEnrolled = ref(false);
-const enrollLoading = ref(false);
-
-const handleEnroll = async () => {
-  const token = uni.getStorageSync('token');
-  if (!token) {
-    uni.navigateTo({ url: '/pages/Login/index' });
-    return;
-  }
-
-  if (isEnrolled.value) return;
-
-  enrollLoading.value = true;
-  try {
-    const response = await request({
-      url: API_CONFIG.paths.enrollCamp,
-      method: 'POST',
-      data: {
-        campId: Number(courseId.value)
-      }
-    });
-    
-    const apiData = response.data || response;
-    if (apiData.code === 200) {
-      uni.showToast({ title: '报名成功', icon: 'success' });
-      isEnrolled.value = true;
-    } else {
-      uni.showToast({ title: apiData.message || '报名失败', icon: 'none' });
-    }
-  } catch (error) {
-    console.error('报名接口请求错误:', error);
-    uni.showToast({ title: error.message || '网络异常，请重试', icon: 'none' });
-  } finally {
-    enrollLoading.value = false;
-  }
+// 聊天室入口点击事件（占位）
+const goToChat = () => {
+  uni.showToast({
+    title: '小组交流功能开发中，敬请期待',
+    icon: 'none',
+    duration: 2000
+  });
+  
+  // TODO: 后续在这里编写跳转聊天的逻辑
+  // 示例:
+  // uni.navigateTo({
+  //   url: `/pages/Chat/index?campId=${courseId.value}`
+  // });
 };
 
+// 获取课程详细信息
 const fetchCourseInfo = async (id) => {
   try {
     const url = API_CONFIG.paths.courses + '/' + id + '/info';
@@ -162,6 +138,7 @@ const fetchCourseInfo = async (id) => {
   }
 };
 
+// 生命周期
 onLoad((options) => {
   courseId.value = options.id || '101';
   fetchCourseInfo(courseId.value);
@@ -173,30 +150,29 @@ onLoad((options) => {
 .container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* 绝对锁死屏幕高度 */
-  background-color: #faf8f5; /* 暖宣纸色基底 */
-  overflow: hidden; /* 严禁外层滚动 */
+  height: 100vh;
+  background-color: #faf8f5; 
+  overflow: hidden; 
 }
 
 /* ========== 上半部：绝对固定区 ========== */
 .fixed-top-zone {
-  flex-shrink: 0; /* 保证这部分高度不被挤压 */
+  flex-shrink: 0; 
   display: flex;
   flex-direction: column;
   z-index: 100;
   position: relative;
-  background-color: #faf8f5; /* 与底色一致，衔接自然 */
+  background-color: #faf8f5; 
 }
 
-/* 1. 顶部 Hero 卡片 (重构为带边距的精美卡片) */
 .hero-wrapper {
-  padding: 0 0 20rpx; /* 给下方卡片留出悬浮空间 */
+  padding: 0 0 20rpx; 
   background: #faf8f5;
 }
 
 .hero-card {
   width: 100%;
-  height: 480rpx; /* 卡片高度 */
+  height: 480rpx; 
   border-bottom-left-radius: 60rpx;
   border-bottom-right-radius: 60rpx;
   position: relative;
@@ -205,10 +181,9 @@ onLoad((options) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 20rpx 40rpx rgba(0, 0, 0, 0.1); /* 强烈的底部投影 */
+  box-shadow: 0 20rpx 40rpx rgba(0, 0, 0, 0.1); 
 }
 
-/* 光影装饰圈 */
 .deco-circle { position: absolute; border-radius: 50%; z-index: 1; }
 .circle-left { width: 300rpx; height: 300rpx; top: -100rpx; left: -80rpx; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%); }
 .circle-right { width: 400rpx; height: 400rpx; bottom: -150rpx; right: -100rpx; background: radial-gradient(circle, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 70%); }
@@ -227,7 +202,7 @@ onLoad((options) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 60rpx; /* 避开系统状态栏 */
+  margin-top: 60rpx; 
 }
 
 .hero-name { 
@@ -255,19 +230,18 @@ onLoad((options) => {
   letter-spacing: 2rpx; 
 }
 
-/* 2. 悬浮核心信息卡 (第三层抽屉) */
 .info-card-wrapper {
   padding: 0 30rpx;
-  margin-top: -80rpx; /* 强力向上拉，覆盖在彩色卡片下边缘 */
+  margin-top: -80rpx; 
   position: relative;
-  z-index: 20; /* 层级高于 hero-card */
+  z-index: 20; 
 }
 
 .info-card {
   background: #ffffff;
   border-radius: 30rpx;
   padding: 40rpx 40rpx 30rpx;
-  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.05); /* 细腻悬浮阴影 */
+  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.05); 
   border: 1px solid rgba(0,0,0,0.02);
 }
 
@@ -295,13 +269,12 @@ onLoad((options) => {
   font-weight: 500; 
 }
 
-/* 3. Tab 控制栏 */
 .tabs-bar {
   display: flex;
   justify-content: space-around; 
-  background-color: #faf8f5; /* 融于底色 */
+  background-color: #faf8f5; 
   padding: 30rpx 20rpx 10rpx;
-  border-bottom: 1px solid rgba(0,0,0,0.03); /* 与滚动区的软分割线 */
+  border-bottom: 1px solid rgba(0,0,0,0.03); 
 }
 
 .tab-item {
@@ -314,7 +287,7 @@ onLoad((options) => {
 
 .tab-text {
   font-size: 30rpx;
-  color: #a0a0a0; /* 未选中稍淡 */
+  color: #a0a0a0; 
   font-weight: 500;
   transition: all 0.3s ease;
 }
@@ -339,66 +312,73 @@ onLoad((options) => {
   width: 40rpx; 
 }
 
-
 /* ========== 下半部：独立滚动区 ========== */
 .scroll-content {
-  flex: 1; /* 撑满剩余空间 */
-  height: 0; /* 触发 scroll-view 的核心魔法 */
+  flex: 1; 
+  height: 0; 
   background-color: #faf8f5;
 }
 
 .module-wrapper {
   padding: 30rpx 0;
-  min-height: 100%; /* 确保内容少时也能滚动到底部 */
+  min-height: 100%; 
 }
 
-/* ========== 底部操作栏 ========== */
-.bottom-action-bar {
+.safe-area-spacer {
+  height: 140rpx; /* 底部留白，防止内容滚到底部被胶囊按钮挡死 */
+}
+
+/* ========== 悬浮操作按钮 (FAB) ========== */
+.fab-btn {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(15px);
-  border-top: 1px solid rgba(0,0,0,0.03);
-  padding: 24rpx 40rpx calc(24rpx + env(safe-area-inset-bottom));
-  z-index: 999;
-  display: flex;
-  justify-content: center;
-}
-
-.action-btn {
-  width: 100%;
-  height: 96rpx;
+  right: 40rpx;
+  bottom: calc(80rpx + env(safe-area-inset-bottom));
   background: linear-gradient(135deg, #b53b3c, #8a2021);
+  padding: 24rpx 40rpx;
   border-radius: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-  font-size: 34rpx;
-  font-weight: 900;
-  letter-spacing: 4rpx;
-  box-shadow: 0 12rpx 24rpx rgba(158, 42, 43, 0.25);
-  transition: all 0.2s ease;
+  box-shadow: 0 12rpx 30rpx rgba(158, 42, 43, 0.4);
+  z-index: 999;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  /* 柔和的呼吸悬浮动画 */
+  animation: floatBreath 3s ease-in-out infinite;
 
-  &.is-enrolled {
-    background: #e0e0e0;
-    color: #999999;
-    box-shadow: none;
-    pointer-events: none;
+  .fab-icon {
+    font-size: 32rpx;
+    margin-right: 12rpx;
+    line-height: 1;
   }
 
-  &.is-loading {
-    opacity: 0.7;
-    pointer-events: none;
+  .fab-text {
+    color: #ffffff;
+    font-size: 28rpx;
+    font-weight: bold;
+    letter-spacing: 2rpx;
+  }
+
+  /* 点击时的下压反馈动效 */
+  &:active {
+    transform: scale(0.92) translateY(0);
+    box-shadow: 0 4rpx 12rpx rgba(158, 42, 43, 0.2);
+    animation: none; /* 点击时立刻暂停动画，手感更干脆 */
   }
 }
 
-.btn-hover {
-  transform: scale(0.96);
-  box-shadow: 0 6rpx 12rpx rgba(158, 42, 43, 0.15);
-}
-
-.safe-area-spacer {
-  height: 180rpx; /* 为固定底栏留出余量 */
+/* 呼吸悬浮动画关键帧 */
+@keyframes floatBreath {
+  0% { 
+    transform: translateY(0); 
+    box-shadow: 0 12rpx 30rpx rgba(158, 42, 43, 0.4); 
+  }
+  50% { 
+    transform: translateY(-12rpx); 
+    box-shadow: 0 20rpx 40rpx rgba(158, 42, 43, 0.3); 
+  }
+  100% { 
+    transform: translateY(0); 
+    box-shadow: 0 12rpx 30rpx rgba(158, 42, 43, 0.4); 
+  }
 }
 </style>
