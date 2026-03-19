@@ -25,6 +25,7 @@ export const API_CONFIG = {
     courseList: '/courses/list', // 获取课程列表
     courseDetail: '/courses/detail', // 获取课程详情
     checkEnroll: '/enrollment/check', // 核实报名身份
+    enrollCamp: '/camp/enroll', // 报名接口
 	logout:'/user/logout',  //退出登陆
 	getVolunteerHistory:'/user/volunteer-history', //担当历史
 	quitVolunteer:'/user/volunteer-quit',//  退出担当

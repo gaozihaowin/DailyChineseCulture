@@ -3,7 +3,6 @@
     <NavBar title="" :isTransparent="true" />
 
     <view class="fixed-top-zone">
-      
       <view class="cover-section" :style="{ background: getCoverBackground(campInfo.campName) }">
         <view class="cover-texture"></view>
         <view class="cover-gradient-mask"></view>
@@ -36,12 +35,10 @@
           </view>
         </view>
       </view>
-
     </view>
 
     <scroll-view scroll-y class="scroll-content" :show-scrollbar="false">
       <view class="scroll-inner">
-        
         <view class="intro-card animate-fade-up" style="animation-delay: 0.2s;">
           <view class="section-title">
             <view class="title-decorator"></view>
@@ -129,7 +126,6 @@
         </view>
 
         <view class="safe-area-spacer"></view>
-
       </view>
     </scroll-view>
 
@@ -138,8 +134,8 @@
         <text class="price-symbol">公益</text>
         <text class="price-label">免费修习</text>
       </view>
-      <view class="enroll-btn" @click="handleEnroll">
-        <text class="btn-text">立即报名</text>
+      <view class="enroll-btn" :class="{ 'is-disabled': isEnrolled }" @click="handleEnroll">
+        <text class="btn-text">{{ isEnrolled ? '已结缘' : '立即报名' }}</text>
       </view>
     </view>
   </view>
@@ -148,12 +144,14 @@
 <script setup>
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { get } from '@/utils/request';
+import { get, post } from '@/utils/request'; // 确保这里引入了 post
 import { API_CONFIG } from '@/api/config';
 
 // ========== 状态定义 ==========
 const campId = ref('');
 const campInfo = ref({});
+const isEnrolled = ref(false); 
+const enrollLoading = ref(false); 
 
 // ========== 颜色映射字典 (致良知高定色系) ==========
 const colorMap = {
@@ -165,7 +163,6 @@ const colorMap = {
   '默认': 'linear-gradient(135deg, #9e2a2b, #b53b3c)'
 };
 
-// 工具函数：获取封面背景色
 const getCoverBackground = (campName) => {
   if (!campName) return colorMap['默认'];
   for (const key in colorMap) {
@@ -176,7 +173,6 @@ const getCoverBackground = (campName) => {
   return colorMap['默认'];
 };
 
-// 工具函数：安全格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return '';
   let safeStr = dateString;
@@ -209,6 +205,10 @@ const fetchCampDetail = async (id) => {
     
     if (resultData.code === 200 && resultData.data) {
       campInfo.value = resultData.data;
+      // 假设后端在详情接口返回了是否已报名的标志
+      if (resultData.data.isEnrolled !== undefined) {
+         isEnrolled.value = resultData.data.isEnrolled;
+      }
     } else {
       uni.showToast({ title: resultData.msg || '获取详情失败', icon: 'none' });
     }
@@ -221,29 +221,51 @@ const fetchCampDetail = async (id) => {
 };
 
 // ========== 报名交互 ==========
-const handleEnroll = () => {
+const handleEnroll = async () => {
+  const token = uni.getStorageSync('token');
+  if (!token) {
+    uni.showToast({ title: '请先登录', icon: 'none' });
+    setTimeout(() => {
+      uni.navigateTo({ url: '/pages/Login/index' });
+    }, 1000);
+    return;
+  }
+
   if (!campId.value) {
     uni.showToast({ title: '营期信息异常', icon: 'none' });
     return;
   }
+  if (isEnrolled.value) {
+    uni.showToast({ title: '您已结缘该营期，无需重复报名', icon: 'none' });
+    return;
+  }
+  if (enrollLoading.value) return;
 
+  enrollLoading.value = true;
   uni.showLoading({ title: '结缘报名中...', mask: true });
   
-  // 模拟网络延迟与真实的 redirectTo 逻辑
-  setTimeout(() => {
+  try {
+    // 真实调用后端原生 MyBatis 接口，注意无 /api/ 前缀
+    const res = await post('/camp/enroll', { campId: Number(campId.value) });
+    const resultData = res.data || res; 
+
+    if (resultData.code === 200) {
+      uni.showToast({ title: '报名成功', icon: 'success' });
+      isEnrolled.value = true;
+      // 本地页面人数+1，增加反馈真实感
+      if (campInfo.value.participantCount !== undefined) {
+        campInfo.value.participantCount += 1;
+      }
+    } else {
+      uni.showToast({ title: resultData.message || '报名失败', icon: 'none' });
+    }
+  } catch (error) {
+    console.error('Enroll API error:', error);
+    uni.showToast({ title: '网络请求异常', icon: 'none' });
+  } finally {
+    enrollLoading.value = false;
     uni.hideLoading();
-    uni.showToast({
-      title: '报名成功',
-      icon: 'success',
-      duration: 1500
-    });
-    
-    setTimeout(() => {
-      uni.redirectTo({
-        url: `/pages/CourseDetail/index?id=${campId.value}&source=enroll`
-      });
-    }, 1500);
-  }, 1500);
+  }
 };
 </script>
 
@@ -253,9 +275,9 @@ const handleEnroll = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #faf8f5; /* 雅致的暖宣纸色 */
+  background-color: #faf8f5; 
   position: relative;
-  overflow: hidden; /* 锁死最外层滚动 */
+  overflow: hidden; 
 }
 
 @keyframes fadeUp {
@@ -276,10 +298,9 @@ const handleEnroll = () => {
   z-index: 10;
 }
 
-/* 封面区 */
 .cover-section {
   position: relative; 
-  height: 460rpx; /* 高度精简 */
+  height: 460rpx; 
   width: 100%;
   border-bottom-left-radius: 60rpx; 
   border-bottom-right-radius: 60rpx; 
@@ -287,7 +308,7 @@ const handleEnroll = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 60rpx; /* 为顶部NavBar留白 */
+  padding-top: 60rpx; 
 }
 .cover-texture {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -312,7 +333,7 @@ const handleEnroll = () => {
   color: #ffffff; 
   letter-spacing: 4rpx;
   line-height: 1.4;
-  text-align: center; /* 绝对居中 */
+  text-align: center; 
   margin-bottom: 24rpx; 
   text-shadow: 0 6rpx 16rpx rgba(0,0,0,0.2);
 }
@@ -332,10 +353,9 @@ const handleEnroll = () => {
   border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* 核心信息卡片 */
 .info-card-wrapper {
   padding: 0 30rpx;
-  margin-top: -60rpx; /* 悬浮 Z轴 效果 */
+  margin-top: -60rpx; 
   margin-bottom: 20rpx;
   position: relative; 
   z-index: 20;
@@ -361,7 +381,6 @@ const handleEnroll = () => {
 .participant-text { font-size: 24rpx; color: #5d5555; font-weight: 500;}
 .highlight-num { color: #9e2a2b; font-weight: 900; font-size: 32rpx; margin: 0 8rpx; }
 
-
 /* ========== 3. 下半部独立滚动区 ========== */
 .scroll-content { 
   flex: 1; 
@@ -370,19 +389,15 @@ const handleEnroll = () => {
 .scroll-inner {
   padding-top: 10rpx;
 }
-
-/* 公共白底内容卡片 */
 .intro-card {
   background-color: #ffffff; border-radius: 30rpx; padding: 40rpx 36rpx;
   margin: 0 30rpx 30rpx; box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.02);
 }
-
 .section-title {
   display: flex; align-items: center; margin-bottom: 32rpx;
   .title-decorator { width: 8rpx; height: 32rpx; background-color: #9e2a2b; border-radius: 6rpx; margin-right: 16rpx; }
   .title-text { font-size: 34rpx; font-weight: 900; color: #2d2424; letter-spacing: 4rpx; }
 }
-
 .section-content {
   .paragraph {
     display: block; font-size: 28rpx; color: #5d5555; line-height: 1.8;
@@ -391,8 +406,6 @@ const handleEnroll = () => {
   .paragraph:last-child { margin-bottom: 0; }
   .first-paragraph { font-weight: bold; color: #4a4040; }
 }
-
-/* 修习次第 */
 .feature-list { display: flex; flex-direction: column; gap: 36rpx; }
 .feature-item {
   display: flex; align-items: flex-start;
@@ -407,8 +420,6 @@ const handleEnroll = () => {
     .f-desc { color: #8c8686; }
   }
 }
-
-/* 同修契机 */
 .target-list { display: flex; flex-direction: column; gap: 24rpx; }
 .target-item {
   display: flex; align-items: flex-start; background: #faf8f4; padding: 24rpx; border-radius: 20rpx;
@@ -419,8 +430,6 @@ const handleEnroll = () => {
   }
   .t-text { font-size: 28rpx; color: #5d5555; line-height: 1.6; }
 }
-
-/* 圣贤寄语引言卡 */
 .quote-card { margin: 0 30rpx 40rpx; }
 .wisdom-border { 
   position: relative; background: rgba(158, 42, 43, 0.02); 
@@ -439,10 +448,10 @@ const handleEnroll = () => {
 
 .safe-area-spacer { height: 160rpx; }
 
-/* ========== 4. 底部吸底操作栏 (小巧精致优化版) ========== */
+/* ========== 4. 底部吸底操作栏 ========== */
 .bottom-bar {
   position: fixed; bottom: 0; left: 0; right: 0; 
-  height: 120rpx; /* 高度调低更精致 */
+  height: 120rpx; 
   background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
   border-top: 1px solid rgba(0,0,0,0.03);
   display: flex; align-items: center; justify-content: space-between;
@@ -457,11 +466,21 @@ const handleEnroll = () => {
 
 .enroll-btn {
   background: linear-gradient(135deg, #b53b3c 0%, #8a2021 100%);
-  padding: 16rpx 44rpx; /* 内边距缩小，按钮更精致紧凑 */
+  padding: 16rpx 44rpx; 
   border-radius: 50rpx;
   box-shadow: 0 8rpx 20rpx rgba(138, 32, 33, 0.2);
   transition: all 0.2s ease;
 }
 .enroll-btn:active { transform: scale(0.95); box-shadow: 0 4rpx 10rpx rgba(138, 32, 33, 0.15); }
 .btn-text { color: #ffffff; font-size: 28rpx; font-weight: bold; letter-spacing: 2rpx; }
+
+/* === 核心新增：已报名（置灰禁用）状态 === */
+.enroll-btn.is-disabled {
+  background: #cccccc;
+  box-shadow: none;
+  pointer-events: none; 
+}
+.enroll-btn.is-disabled:active {
+  transform: none; 
+}
 </style>

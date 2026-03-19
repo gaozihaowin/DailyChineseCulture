@@ -55,8 +55,13 @@
     </scroll-view>
 
     <view class="bottom-action-bar">
-      <view class="action-btn" hover-class="btn-hover" @click="handleAction">
-        进入小组讨论
+      <view 
+        class="action-btn" 
+        :class="{ 'is-enrolled': isEnrolled, 'is-loading': enrollLoading }"
+        hover-class="btn-hover" 
+        @click="handleEnroll"
+      >
+        {{ enrollLoading ? '报名中...' : (isEnrolled ? '已报名' : '进入小组深度交流') }}
       </view>
     </view>
 
@@ -107,6 +112,43 @@ const extractCampName = (name) => {
 
 const courseInfo = ref({});
 
+const isEnrolled = ref(false);
+const enrollLoading = ref(false);
+
+const handleEnroll = async () => {
+  const token = uni.getStorageSync('token');
+  if (!token) {
+    uni.navigateTo({ url: '/pages/Login/index' });
+    return;
+  }
+
+  if (isEnrolled.value) return;
+
+  enrollLoading.value = true;
+  try {
+    const response = await request({
+      url: API_CONFIG.paths.enrollCamp,
+      method: 'POST',
+      data: {
+        campId: Number(courseId.value)
+      }
+    });
+    
+    const apiData = response.data || response;
+    if (apiData.code === 200) {
+      uni.showToast({ title: '报名成功', icon: 'success' });
+      isEnrolled.value = true;
+    } else {
+      uni.showToast({ title: apiData.message || '报名失败', icon: 'none' });
+    }
+  } catch (error) {
+    console.error('报名接口请求错误:', error);
+    uni.showToast({ title: error.message || '网络异常，请重试', icon: 'none' });
+  } finally {
+    enrollLoading.value = false;
+  }
+};
+
 const fetchCourseInfo = async (id) => {
   try {
     const url = API_CONFIG.paths.courses + '/' + id + '/info';
@@ -118,10 +160,6 @@ const fetchCourseInfo = async (id) => {
   } catch (error) {
     console.error('获取课程信息失败:', error);
   }
-};
-
-const handleAction = () => {
-  uni.showToast({ title: '准备进入小组...', icon: 'none' });
 };
 
 onLoad((options) => {
@@ -341,6 +379,18 @@ onLoad((options) => {
   letter-spacing: 4rpx;
   box-shadow: 0 12rpx 24rpx rgba(158, 42, 43, 0.25);
   transition: all 0.2s ease;
+
+  &.is-enrolled {
+    background: #e0e0e0;
+    color: #999999;
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  &.is-loading {
+    opacity: 0.7;
+    pointer-events: none;
+  }
 }
 
 .btn-hover {
