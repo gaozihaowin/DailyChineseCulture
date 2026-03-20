@@ -71,8 +71,16 @@
 
               <!-- 中间内容 -->
               <view class="task-content">
-                <text class="task-title">{{ task.title }}</text>
-                <text v-if="task.subtitle" class="task-subtitle">{{ task.subtitle }}</text>
+                <view class="title-row">
+                  <text class="task-title">{{ task.taskName }}</text>
+                  <view 
+                    class="required-tag" 
+                    :class="task.isRequired === 1 ? 'tag-required' : 'tag-optional'"
+                  >
+                    {{ task.isRequired === 1 ? '必修' : '选修' }}
+                  </view>
+                </view>
+                <text v-if="task.taskDesc" class="task-subtitle">{{ task.taskDesc }}</text>
               </view>
 
               <!-- 右侧状态 -->
@@ -112,6 +120,9 @@ const props = defineProps({
     required: true
   }
 });
+
+// 定义 Emits
+const emit = defineEmits(['updateProgress']);
 
 // 定义响应式状态
 const courseData = ref(null);
@@ -162,12 +173,24 @@ const getTaskTypeClass = (taskType) => {
 
 // 获取任务图标
 const getTaskIcon = (taskType) => {
-  return taskType === 'FIXED' ? 'star' : 'plus';
+  switch (taskType) {
+    case 'READ': return 'info'; // uni-icons 的 book 类似图标通常是 info 或者直接用文本 emoji 代替更好，这里尽量用存在的，或者 'info' / 'star'，其实 'image' / 'camera' 等也可以。如果使用原生 uni-icons，可以用 'info' 代表阅读，'videocam' 代表视频。我们用 'info'。
+    case 'VIDEO': return 'videocam';
+    case 'HOMEWORK': return 'compose';
+    case 'EXTRA': return 'star';
+    default: return 'star';
+  }
 };
 
 // 获取任务图标颜色
 const getTaskIconColor = (taskType) => {
-  return taskType === 'FIXED' ? '#9e2a2b' : '#059669';
+  switch (taskType) {
+    case 'READ': return '#3b82f6';
+    case 'VIDEO': return '#8b5cf6';
+    case 'HOMEWORK': return '#f59e0b';
+    case 'EXTRA': return '#10b981';
+    default: return '#9e2a2b';
+  }
 };
 
 // 处理任务打卡
@@ -198,7 +221,7 @@ const handleCompleteTask = async (task) => {
       url: url,
       method: 'POST',
       header: { 'content-type': 'application/json' },
-      data: { taskType: task.taskId }
+      data: { taskId: task.taskId }
     });
 
     const apiData = response.data;
@@ -207,6 +230,9 @@ const handleCompleteTask = async (task) => {
       // 极致的就地更新：直接修改当前任务状态和总进度
       task.isDone = 1;
       courseData.value.completionRate = apiData.data.completionRate;
+
+      // 发出事件通知父组件进度更新
+      emit('updateProgress', courseData.value.completionRate);
 
       // 关闭 Loading，显示成功提示
       uni.hideLoading();
@@ -492,15 +518,39 @@ onMounted(() => {
   min-width: 0;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
 .task-title {
   font-size: 28rpx;
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 8rpx;
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.required-tag {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  margin-left: 12rpx;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tag-required {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.tag-optional {
+  background-color: #f3f4f6;
+  color: #9ca3af;
 }
 
 .task-subtitle {
