@@ -195,7 +195,7 @@ const getTaskIconColor = (taskType) => {
 
 // 处理任务打卡
 const handleCompleteTask = async (task) => {
-  // 防抖防呆：如果任务已完成，直接返回
+  // 防呆：如果任务已完成，直接返回
   if (task.isDone === 1) {
     uni.showToast({
       title: '任务已完成',
@@ -204,8 +204,8 @@ const handleCompleteTask = async (task) => {
     return;
   }
 
-  // 打开 Loading
-  uni.showLoading({ title: '打卡记录中...' });
+  // 打开 Loading（防止用户疯狂连点）
+  uni.showLoading({ title: '记录中...', mask: true });
 
   try {
     // 从组件状态中获取真实的 planId
@@ -227,14 +227,15 @@ const handleCompleteTask = async (task) => {
     const apiData = response.data;
 
     if (apiData.code === 200) {
-      // 极致的就地更新：直接修改当前任务状态和总进度
+      // 就地更新：直接修改当前任务状态
       task.isDone = 1;
+
+      // 更新总进度（后端返回的 completionRate，选修任务打卡时可能不变）
       courseData.value.completionRate = apiData.data.completionRate;
 
       // 发出事件通知父组件进度更新
       emit('updateProgress', courseData.value.completionRate);
 
-      // 关闭 Loading，显示成功提示
       uni.hideLoading();
       uni.showToast({
         title: '任务完成！',
@@ -250,7 +251,6 @@ const handleCompleteTask = async (task) => {
   } catch (error) {
     uni.hideLoading();
     console.error('打卡请求失败:', error);
-    // 错误已在 request 中统一处理
   }
 };
 

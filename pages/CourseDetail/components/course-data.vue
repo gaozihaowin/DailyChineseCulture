@@ -39,7 +39,7 @@
           >
             <view class="trend-track">
               <view
-                v-for="(item, index) in dataObj.trends"
+                v-for="(item, index) in displayTrends"
                 :key="index"
                 :id="'day-' + item.dayIndex"
                 class="bar-wrapper"
@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { API_CONFIG } from '@/api/config.js';
 import { request } from '@/utils/request.js';
 
@@ -117,6 +117,31 @@ const dataObj = ref(null);
 const isLoading = ref(true);
 const currentScrollId = ref('');
 
+// ==========================================
+// 核心优化：计算属性，截断未来未解锁的天数
+// ==========================================
+const displayTrends = computed(() => {
+  if (!dataObj.value || !dataObj.value.trends) return [];
+  const trends = dataObj.value.trends;
+
+  let lastVisibleIndex = -1;
+  // 从后往前找，找到最后一个不是 LOCKED (未解锁) 的天数，即为“今天”或“营期最后一天”
+  for (let i = trends.length - 1; i >= 0; i--) {
+    if (trends[i].status !== 'LOCKED') {
+      lastVisibleIndex = i;
+      break;
+    }
+  }
+
+  // 极端情况防呆：如果营期还没开始，全都是 LOCKED，为了 UI 不崩塌，只显示第 1 天
+  if (lastVisibleIndex === -1) {
+    return trends.slice(0, 1);
+  }
+
+  // 截取从第 1 天到最后可见天数（当天或营期结束）的数组
+  return trends.slice(0, lastVisibleIndex + 1);
+});
+
 // 计算柱子高度
 const getBarHeight = (item) => {
   if (item.status === 'LOCKED' || item.status === 'MISSED') {
@@ -128,29 +153,16 @@ const getBarHeight = (item) => {
   return '4%';
 };
 
-// 寻找滚动锚点
+// 寻找滚动锚点 (由于数组已被截断，逻辑大幅简化)
 const setScrollPosition = () => {
-  if (!dataObj.value || !dataObj.value.trends || dataObj.value.trends.length === 0) return;
+  const trends = displayTrends.value;
+  if (!trends || trends.length === 0) return;
   
-  const trends = dataObj.value.trends;
-  let lastActiveIndex = -1;
-  
-  // 找到最后一个已学或漏打卡的节点
-  for (let i = trends.length - 1; i >= 0; i--) {
-    if (trends[i].status === 'COMPLETED' || trends[i].status === 'MISSED') {
-      lastActiveIndex = i;
-      break;
-    }
-  }
-  
-  if (lastActiveIndex !== -1) {
-    // 延迟执行以确保 DOM 已渲染
-    nextTick(() => {
-      // 往前偏移一点，让目标居中一些而不是紧贴左边
-      let targetIndex = Math.max(0, lastActiveIndex - 2);
-      currentScrollId.value = 'day-' + trends[targetIndex].dayIndex;
-    });
-  }
+  nextTick(() => {
+    // 直接滚动到倒数第二天（为了让最后一天的柱子稍微居中，而不是紧贴最右边边缘）
+    let targetIndex = Math.max(0, trends.length - 2);
+    currentScrollId.value = 'day-' + trends[targetIndex].dayIndex;
+  });
 };
 
 // 数据请求方法
@@ -441,6 +453,28 @@ onMounted(() => {
   background: #f0ece6;
 }
 .locked .bar-label { color: #d1d5db; }
+
+/* 状态样式核心：部分完成 */
+.partial .bar-body {
+  background: linear-gradient(to top, #fef3c7 0%, #fde68a 50%, #fcd34d 100%);
+  box-shadow: 0 4rpx 12rpx rgba(251, 191, 36, 0.25), inset 0 -2rpx 4rpx rgba(255, 255, 255, 0.3);
+}
+.partial .bar-body::after {
+  content: ''; position: absolute; top: 0; left: 20%; width: 40%; height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 60%);
+}
+.partial .bar-label { color: #d97706; font-weight: 600; }
+
+/* 状态样式核心：补卡 */
+.makeup .bar-body {
+  background: linear-gradient(to top, #e0e7ff 0%, #a5b4fc 50%, #818cf8 100%);
+  box-shadow: 0 4rpx 12rpx rgba(129, 140, 248, 0.25), inset 0 -2rpx 4rpx rgba(255, 255, 255, 0.3);
+}
+.makeup .bar-body::after {
+  content: ''; position: absolute; top: 0; left: 20%; width: 40%; height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 60%);
+}
+.makeup .bar-label { color: #6366f1; font-weight: 600; }
 
 
 .bar-label {
