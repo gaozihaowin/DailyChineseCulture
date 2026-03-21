@@ -100,15 +100,17 @@
     <uni-popup
       ref="taskPopup"
       type="bottom"
-      background-color="#ffffff"
+      background-color="transparent" 
       mask-background-color="rgba(0,0,0,0.6)" 
       class="safe-popup" 
     >
       <view class="task-popup-container">
+        <view class="popup-drag-handle"></view>
+
         <view class="popup-header">
           <text class="popup-title">{{ currentTask?.taskName || '' }}</text>
           <view class="popup-close" @click="closeTaskPopup">
-            <uni-icons type="close" size="20" color="#6b7280"></uni-icons>
+            <uni-icons type="closeempty" size="20" color="#9ca3af"></uni-icons>
           </view>
         </view>
 
@@ -123,7 +125,9 @@
               object-fit="contain"
             ></video>
             <view v-else class="video-placeholder">
-              <uni-icons type="videocam" size="60" color="#d1d5db"></uni-icons>
+              <view class="placeholder-icon-circle">
+                <uni-icons type="videocam" size="40" color="#d1d5db"></uni-icons>
+              </view>
               <text class="placeholder-text">暂无视频内容</text>
             </view>
           </view>
@@ -131,7 +135,7 @@
           <view v-else-if="currentTask?.taskType === 'READ'" class="read-container">
             <rich-text
               v-if="currentTask.taskDesc || currentTask.taskUrl"
-              :nodes="currentTask.taskUrl ? `<a href='${currentTask.taskUrl}'>点击查看阅读材料</a><br><br>${currentTask.taskDesc}` : currentTask.taskDesc"
+              :nodes="currentTask.taskUrl ? `<a href='${currentTask.taskUrl}' style='color:#9e2a2b; text-decoration:underline;'>点击查看阅读材料</a><br><br>${currentTask.taskDesc}` : currentTask.taskDesc"
               class="read-content"
             ></rich-text>
             <view v-else class="read-placeholder">
@@ -140,20 +144,22 @@
           </view>
 
           <view v-else-if="currentTask?.taskType === 'HOMEWORK'" class="homework-container">
-            <textarea
-              v-model="homeworkContent"
-              class="homework-textarea"
-              :placeholder="currentTask?.isDone === 1 ? '你已提交过心得体会' : '请输入你的心得体会（字数不限）...'"
-              placeholder-class="textarea-placeholder"
-              maxlength="2000"
-              :disabled="currentTask?.isDone === 1"
-            ></textarea>
-            <text class="word-count">{{ homeworkContent.length }} / 2000</text>
+            <view class="homework-input-wrapper">
+              <textarea
+                v-model="homeworkContent"
+                class="homework-textarea"
+                :placeholder="currentTask?.isDone === 1 ? '你已提交过心得体会' : '请输入你的心得体会，记录此刻的灵感...'"
+                placeholder-class="textarea-placeholder"
+                maxlength="2000"
+                :disabled="currentTask?.isDone === 1"
+              ></textarea>
+              <text class="word-count">{{ homeworkContent.length }} / 2000</text>
+            </view>
           </view>
 
           <view v-else class="extra-container">
             <view class="extra-icon-wrapper">
-              <uni-icons type="star" size="48" color="#10b981"></uni-icons>
+              <uni-icons type="star-filled" size="48" color="#10b981"></uni-icons>
             </view>
             <text class="extra-title">{{ currentTask?.taskName }}</text>
             <text v-if="currentTask?.taskDesc" class="extra-desc">{{ currentTask.taskDesc }}</text>
@@ -167,6 +173,7 @@
             class="submit-btn"
             :class="{ 'btn-disabled': isSubmitting || currentTask?.isDone === 1 }"
             @click="submitTask"
+            hover-class="submit-btn-hover"
           >
             <text v-if="isSubmitting">提交中...</text>
             <text v-else-if="currentTask?.isDone === 1">已完成</text>
@@ -183,17 +190,24 @@ import { ref, onMounted, watch } from 'vue';
 import { API_CONFIG } from '@/api/config.js';
 import { request } from '@/utils/request.js';
 
-// ========== Props & Emits ==========
 const props = defineProps({
   campId: {
     type: [Number, String],
     required: true
+  },
+  // =========================================
+  // 升维改造：新增 targetPlanId，支持查看任意一天的课程
+  // 如果传入了 planId，后端会返回对应那天的数据
+  // 如果为 null，则后端自动返回"今天"的数据
+  // =========================================
+  targetPlanId: {
+    type: [Number, String],
+    default: null
   }
 });
 
 const emit = defineEmits(['updateProgress']);
 
-// ========== 响应式状态 ==========
 const courseData = ref(null);
 const isLoading = ref(true);
 const currentTask = ref(null);
@@ -201,18 +215,26 @@ const homeworkContent = ref('');
 const taskPopup = ref(null);
 const isSubmitting = ref(false);
 
-// ========== 获取今日课程数据 ==========
 const fetchTodayData = async () => {
   try {
     isLoading.value = true;
-    const url = API_CONFIG.paths.todayCourse.replace('{{campId}}', props.campId.toString());
+
+    // =========================================
+    // 升维改造：构建 URL，支持可选的 planId 查询参数
+    // 如果传入了 targetPlanId，则请求指定那天的数据
+    // =========================================
+    let url = API_CONFIG.paths.todayCourse.replace('{{campId}}', props.campId.toString());
+    if (props.targetPlanId) {
+      url += `?planId=${props.targetPlanId}`;
+    }
+
     const response = await request({ url: url, method: 'GET' });
     const apiData = response.data;
 
     if (apiData.code === 200) {
       courseData.value = apiData.data || null;
     } else {
-      uni.showToast({ title: apiData.msg || '获取今日课程失败', icon: 'none' });
+      uni.showToast({ title: apiData.msg || '获取课程数据失败', icon: 'none' });
     }
   } catch (error) {
     console.error('网络请求失败:', error);
@@ -221,7 +243,6 @@ const fetchTodayData = async () => {
   }
 };
 
-// ========== 辅助计算与样式方法 ==========
 const getCompletedCount = () => {
   if (!courseData.value || !courseData.value.tasks) return 0;
   return courseData.value.tasks.filter(task => task.isDone === 1).length;
@@ -251,11 +272,9 @@ const getTaskIconColor = (taskType) => {
   }
 };
 
-// ========== 弹窗控制 ==========
 const openTaskPopup = (task) => {
   currentTask.value = task;
   homeworkContent.value = '';
-  // 确保弹窗能够正常打开
   if (taskPopup.value) {
       taskPopup.value.open();
   }
@@ -271,7 +290,6 @@ const closeTaskPopup = () => {
   }, 300);
 };
 
-// ========== 核心提交逻辑 ==========
 const submitTask = async () => {
   if (isSubmitting.value || !currentTask.value || currentTask.value.isDone === 1) return;
 
@@ -334,11 +352,24 @@ const submitTask = async () => {
   }
 };
 
-// ========== 生命周期与监听 ==========
+// =========================================
+// 双重 Watch 监听：确保切换"天"时能实时响应
+// =========================================
+
+// 监听 campId 变化（营期切换）
 watch(() => props.campId, (newCampId) => {
   if (newCampId) {
     fetchTodayData();
   }
+});
+
+// =========================================
+// 升维改造核心：监听 targetPlanId 变化
+// 当父组件（如课程大纲）切换到不同天时，
+// targetPlanId 会变化，触发数据重新拉取
+// =========================================
+watch(() => props.targetPlanId, (newVal) => {
+  fetchTodayData();
 });
 
 onMounted(() => {
@@ -357,374 +388,100 @@ onMounted(() => {
 /* =========================================
    加载与空状态
 ========================================= */
-.loading-container { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 160rpx 0; 
-}
-
-.loading-spinner { 
-  width: 56rpx; 
-  height: 56rpx; 
-  border: 4rpx solid #e5e7eb; 
-  border-top: 4rpx solid #9e2a2b; 
-  border-radius: 50%; 
-  animation: spin 1s linear infinite; 
-  margin-bottom: 24rpx; 
-}
-
-.loading-text { 
-  font-size: 26rpx; 
-  color: #9ca3af; 
-  letter-spacing: 2rpx; 
-}
-
-@keyframes spin { 
-  0% { transform: rotate(0deg); } 
-  100% { transform: rotate(360deg); } 
-}
-
-.content-wrapper { 
-  padding: 30rpx; 
-}
-
-.empty-state { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 120rpx 60rpx; 
-  background-color: #ffffff !important; 
-  border-radius: 30rpx; 
-  margin: 24rpx 30rpx; 
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); 
-  border: 1px solid rgba(255, 255, 255, 0.5); 
-}
-
-.empty-icon-wrapper { 
-  width: 160rpx; 
-  height: 160rpx; 
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb); 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  margin-bottom: 40rpx; 
-}
-
-.empty-date { 
-  font-size: 36rpx; 
-  font-weight: 600; 
-  color: #374151; 
-  margin-bottom: 16rpx; 
-}
-
-.empty-text { 
-  font-size: 30rpx; 
-  color: #6b7280; 
-  margin-bottom: 16rpx; 
-  letter-spacing: 2rpx; 
-}
-
-.empty-hint { 
-  font-size: 24rpx; 
-  color: #9ca3af; 
-  letter-spacing: 1rpx; 
-}
+.loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 160rpx 0; }
+.loading-spinner { width: 56rpx; height: 56rpx; border: 4rpx solid #e5e7eb; border-top: 4rpx solid #9e2a2b; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24rpx; }
+.loading-text { font-size: 26rpx; color: #9ca3af; letter-spacing: 2rpx; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.content-wrapper { padding: 30rpx; }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120rpx 60rpx; background-color: #ffffff !important; border-radius: 30rpx; margin: 24rpx 30rpx; box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); }
+.empty-icon-wrapper { width: 160rpx; height: 160rpx; background: linear-gradient(135deg, #f3f4f6, #e5e7eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 40rpx; }
+.empty-date { font-size: 36rpx; font-weight: 600; color: #374151; margin-bottom: 16rpx; }
+.empty-text { font-size: 30rpx; color: #6b7280; margin-bottom: 16rpx; letter-spacing: 2rpx; }
+.empty-hint { font-size: 24rpx; color: #9ca3af; letter-spacing: 1rpx; }
 
 /* =========================================
    进度卡片与列表骨架
 ========================================= */
-.today-content .header-section { 
-  margin-bottom: 40rpx; 
-}
-
-.today-content .date-row { 
-  display: flex; 
-  align-items: center; 
-  gap: 16rpx; 
-  margin-bottom: 24rpx; 
-}
-
-.today-content .current-date { 
-  font-size: 40rpx; 
-  font-weight: 700; 
-  color: #1f2937; 
-  letter-spacing: 2rpx; 
-}
-
-.today-content .date-tag { 
-  padding: 8rpx 20rpx; 
-  background: linear-gradient(135deg, #9e2a2b, #b91c1c); 
-  border-radius: 24rpx; 
-  font-size: 22rpx; 
-  color: #ffffff; 
-  font-weight: 500; 
-}
-
-.progress-card { 
-  background-color: #ffffff !important; 
-  border-radius: 30rpx; 
-  padding: 32rpx; 
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); 
-  border: 1px solid rgba(255, 255, 255, 0.5); 
-}
-
-.progress-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  margin-bottom: 20rpx; 
-}
-
-.progress-label { 
-  font-size: 26rpx; 
-  font-weight: 500; 
-  color: #4b5563; 
-}
-
-.progress-rate { 
-  font-size: 36rpx; 
-  font-weight: 700; 
-  color: #9e2a2b; 
-}
-
-.progress-bar-container { 
-  margin-bottom: 16rpx; 
-}
-
-.progress-bar-bg { 
-  width: 100%; 
-  height: 12rpx; 
-  background-color: #e5e7eb; 
-  border-radius: 6rpx; 
-  overflow: hidden; 
-}
-
-.progress-bar-fill { 
-  height: 100%; 
-  background: linear-gradient(90deg, #9e2a2b, #dc2626); 
-  border-radius: 6rpx; 
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
-}
-
-.progress-desc { 
-  font-size: 24rpx; 
-  color: #6b7280; 
-  text-align: right; 
-  display: block; 
-}
-
-.tasks-section .section-title { 
-  font-size: 30rpx; 
-  font-weight: 600; 
-  color: #1f2937; 
-  margin-bottom: 24rpx; 
-  display: block; 
-  letter-spacing: 2rpx; 
-}
-
-.tasks-list { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 20rpx; 
-}
-
-.task-card { 
-  display: flex; 
-  align-items: center; 
-  padding: 28rpx 24rpx; 
-  background-color: #ffffff !important; 
-  border-radius: 30rpx; 
-  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); 
-  border: 1px solid rgba(255, 255, 255, 0.5); 
-  transition: all 0.25s ease; 
-}
-
-.task-card:active { 
-  background-color: #fafaf9; 
-  transform: scale(0.995); 
-}
-
-.task-card.task-done { 
-  opacity: 0.85; 
-  background-color: #fafaf9; 
-}
-
-.task-card.task-done .task-title { 
-  color: #9ca3af; 
-  text-decoration: line-through; 
-}
-
-.task-card.task-done .task-subtitle { 
-  color: #d1d5db; 
-}
-
-.task-icon { 
-  width: 64rpx; 
-  height: 64rpx; 
-  border-radius: 16rpx; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  margin-right: 24rpx; 
-  flex-shrink: 0; 
-  transition: all 0.3s ease; 
-}
-
-.task-icon.icon-fixed { 
-  background-color: #fef2f2; 
-  border: 2rpx solid #fecaca; 
-}
-
-.task-icon.icon-extra { 
-  background-color: #ecfdf5; 
-  border: 2rpx solid #a7f3d0; 
-}
-
-.task-content { 
-  flex: 1; 
-  display: flex; 
-  flex-direction: column; 
-  min-width: 0; 
-}
-
-.title-row { 
-  display: flex; 
-  align-items: center; 
-  margin-bottom: 8rpx; 
-}
-
-.task-title { 
-  font-size: 28rpx; 
-  font-weight: 600; 
-  color: #1f2937; 
-  line-height: 1.4; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-  white-space: nowrap; 
-}
-
-.required-tag { 
-  font-size: 20rpx; 
-  padding: 4rpx 12rpx; 
-  border-radius: 8rpx; 
-  margin-left: 12rpx; 
-  font-weight: 500; 
-  white-space: nowrap; 
-}
-
-.tag-required { 
-  background-color: #fee2e2; 
-  color: #ef4444; 
-}
-
-.tag-optional { 
-  background-color: #f3f4f6; 
-  color: #9ca3af; 
-}
-
-.task-subtitle { 
-  font-size: 24rpx; 
-  color: #6b7280; 
-  line-height: 1.4; 
-  overflow: hidden; 
-  text-overflow: ellipsis; 
-  white-space: nowrap; 
-}
-
-.task-status { 
-  margin-left: 16rpx; 
-  flex-shrink: 0; 
-}
-
-.status-done { 
-  padding: 8rpx 16rpx; 
-  background-color: #dcfce7; 
-  border-radius: 24rpx; 
-}
-
-.status-done .status-text { 
-  font-size: 22rpx; 
-  font-weight: 500; 
-  color: #16a34a; 
-}
-
-.status-pending { 
-  display: flex; 
-  align-items: center; 
-  gap: 8rpx; 
-  padding: 8rpx 16rpx; 
-  background-color: #f3f4f6; 
-  border-radius: 24rpx; 
-}
-
-.status-pending .status-text { 
-  font-size: 22rpx; 
-  font-weight: 500; 
-  color: #6b7280; 
-}
-
-.error-state { 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  justify-content: center; 
-  padding: 160rpx 60rpx; 
-}
-
-.error-state .error-text { 
-  font-size: 28rpx; 
-  color: #6b7280; 
-  margin-top: 24rpx; 
-  margin-bottom: 16rpx; 
-}
-
-.error-state .error-hint { 
-  font-size: 26rpx; 
-  color: #9e2a2b; 
-  padding: 12rpx 32rpx; 
-  border: 2rpx solid #9e2a2b; 
-  border-radius: 32rpx; 
-}
+.today-content .header-section { margin-bottom: 40rpx; }
+.today-content .date-row { display: flex; align-items: center; gap: 16rpx; margin-bottom: 24rpx; }
+.today-content .current-date { font-size: 40rpx; font-weight: 700; color: #1f2937; letter-spacing: 2rpx; }
+.today-content .date-tag { padding: 8rpx 20rpx; background: linear-gradient(135deg, #9e2a2b, #b91c1c); border-radius: 24rpx; font-size: 22rpx; color: #ffffff; font-weight: 500; }
+.progress-card { background-color: #ffffff !important; border-radius: 30rpx; padding: 32rpx; box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); }
+.progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.progress-label { font-size: 26rpx; font-weight: 500; color: #4b5563; }
+.progress-rate { font-size: 36rpx; font-weight: 700; color: #9e2a2b; }
+.progress-bar-container { margin-bottom: 16rpx; }
+.progress-bar-bg { width: 100%; height: 12rpx; background-color: #e5e7eb; border-radius: 6rpx; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, #9e2a2b, #dc2626); border-radius: 6rpx; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-desc { font-size: 24rpx; color: #6b7280; text-align: right; display: block; }
+.tasks-section .section-title { font-size: 30rpx; font-weight: 600; color: #1f2937; margin-bottom: 24rpx; display: block; letter-spacing: 2rpx; }
+.tasks-list { display: flex; flex-direction: column; gap: 20rpx; }
+.task-card { display: flex; align-items: center; padding: 28rpx 24rpx; background-color: #ffffff !important; border-radius: 30rpx; box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.03); border: 1px solid rgba(255, 255, 255, 0.5); transition: all 0.25s ease; }
+.task-card:active { background-color: #fafaf9; transform: scale(0.995); }
+.task-card.task-done { opacity: 0.85; background-color: #fafaf9; }
+.task-card.task-done .task-title { color: #9ca3af; text-decoration: line-through; }
+.task-card.task-done .task-subtitle { color: #d1d5db; }
+.task-icon { width: 64rpx; height: 64rpx; border-radius: 16rpx; display: flex; align-items: center; justify-content: center; margin-right: 24rpx; flex-shrink: 0; transition: all 0.3s ease; }
+.task-icon.icon-fixed { background-color: #fef2f2; border: 2rpx solid #fecaca; }
+.task-icon.icon-extra { background-color: #ecfdf5; border: 2rpx solid #a7f3d0; }
+.task-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.title-row { display: flex; align-items: center; margin-bottom: 8rpx; }
+.task-title { font-size: 28rpx; font-weight: 600; color: #1f2937; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.required-tag { font-size: 20rpx; padding: 4rpx 12rpx; border-radius: 8rpx; margin-left: 12rpx; font-weight: 500; white-space: nowrap; }
+.tag-required { background-color: #fee2e2; color: #ef4444; }
+.tag-optional { background-color: #f3f4f6; color: #9ca3af; }
+.task-subtitle { font-size: 24rpx; color: #6b7280; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-status { margin-left: 16rpx; flex-shrink: 0; }
+.status-done { padding: 8rpx 16rpx; background-color: #dcfce7; border-radius: 24rpx; }
+.status-done .status-text { font-size: 22rpx; font-weight: 500; color: #16a34a; }
+.status-pending { display: flex; align-items: center; gap: 8rpx; padding: 8rpx 16rpx; background-color: #f3f4f6; border-radius: 24rpx; }
+.status-pending .status-text { font-size: 22rpx; font-weight: 500; color: #6b7280; }
+.error-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 160rpx 60rpx; }
+.error-state .error-text { font-size: 28rpx; color: #6b7280; margin-top: 24rpx; margin-bottom: 16rpx; }
+.error-state .error-hint { font-size: 26rpx; color: #9e2a2b; padding: 12rpx 32rpx; border: 2rpx solid #9e2a2b; border-radius: 32rpx; }
 
 /* =========================================
-   任务详情弹出层 - 终极修复方案
+   任务详情弹出层 - 绝美重构版
 ========================================= */
 
-/* 强制提升层级，尝试在组件级压盖 */
 :deep(.safe-popup) {
-    position: relative;
-    z-index: 99999 !important;
+  position: relative;
+  z-index: 99999 !important;
 }
 
-/* 在弹窗内部显式包裹一层有背景色的容器，防止内容透明 */
 .task-popup-container {
   display: flex;
   flex-direction: column;
-  height: 70vh;
-  max-height: 70vh;
-  background-color: #ffffff; /* 确保背景色为白色 */
-  border-radius: 20rpx 20rpx 0 0; /* 保持圆角 */
-  overflow: hidden; /* 防止内容溢出圆角 */
+  height: 75vh;  /* 稍微加高一点，视觉更舒展 */
+  max-height: 75vh;
+  background-color: #ffffff; 
+  border-radius: 40rpx 40rpx 0 0; /* 更平滑的顶级大圆角 */
+  overflow: hidden; 
+  position: relative;
+}
+
+/* 顶部胶囊指示条 (主流 App 标配) */
+.popup-drag-handle {
+  width: 72rpx;
+  height: 8rpx;
+  background-color: #e5e7eb;
+  border-radius: 4rpx;
+  margin: 20rpx auto 0;
 }
 
 .popup-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx 30rpx;
-  border-bottom: 1rpx solid #f3f4f6;
+  padding: 32rpx 40rpx 24rpx; /* 调整内边距，取消生硬的下边框 */
   flex-shrink: 0;
-  background-color: #ffffff; /* 确保标题栏背景色 */
+  background-color: #ffffff;
 }
 
 .popup-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1f2937;
+  font-size: 36rpx; /* 字体加大加粗 */
+  font-weight: 700;
+  color: #111827;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -733,81 +490,108 @@ onMounted(() => {
 }
 
 .popup-close {
-  width: 56rpx;
-  height: 56rpx;
+  width: 60rpx;
+  height: 60rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f3f4f6;
+  background-color: #f3f4f6; /* 更柔和的背景色 */
   border-radius: 50%;
   flex-shrink: 0;
+  transition: background-color 0.2s;
+  
+  &:active {
+    background-color: #e5e7eb;
+  }
 }
 
 .popup-scroll {
   flex: 1;
   height: 0; 
-  padding: 30rpx;
+  padding: 10rpx 40rpx 40rpx; /* 侧边距加宽，阅读体验更好 */
   box-sizing: border-box;
-  background-color: #ffffff; /* 确保滚动区背景色 */
+  background-color: #ffffff; 
 }
 
+/* 底部操作区：弥散阴影代替生硬边框 */
 .popup-footer {
-  padding: 24rpx 30rpx;
-  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #f3f4f6;
-  background-color: #ffffff; /* 确保底部操作区背景色 */
+  padding: 24rpx 40rpx;
+  padding-bottom: calc(32rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  background-color: #ffffff; 
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.03); /* 高级悬浮感阴影 */
   flex-shrink: 0;
 }
 
+/* 沉浸式高质感按钮 */
 .submit-btn {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: linear-gradient(135deg, #9e2a2b, #b91c1c);
-  border-radius: 44rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: linear-gradient(135deg, #e53935, #b71c1c); /* 优化后的中国红渐变 */
+  border-radius: 48rpx;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
   text-align: center;
   border: none;
-  transition: opacity 0.3s;
+  box-shadow: 0 12rpx 32rpx rgba(183, 28, 28, 0.25); /* 按钮自身的发光阴影 */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &.btn-disabled {
-    background: #e5e7eb;
+    background: #f3f4f6;
     color: #9ca3af;
+    box-shadow: none;
   }
 }
 
+.submit-btn-hover {
+  transform: scale(0.98); /* 点击时的物理反馈缩小效果 */
+  box-shadow: 0 4rpx 12rpx rgba(183, 28, 28, 0.15);
+}
+
 /* =========================================
-   容器内部样式 (视频、阅读、作业)
+   容器内部样式重构 (视频、阅读、作业)
 ========================================= */
+
 .video-container { 
   width: 100%; 
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.06); /* 视频模块增加层次阴影 */
 }
 
 .task-video { 
   width: 100%; 
-  height: 400rpx; 
-  border-radius: 16rpx; 
-  background-color: #000000; 
+  height: 420rpx; 
+  background-color: #111827; 
 }
 
 .video-placeholder { 
   width: 100%; 
-  height: 400rpx; 
+  height: 420rpx; 
   display: flex; 
   flex-direction: column; 
   align-items: center; 
   justify-content: center; 
   background-color: #f9fafb; 
-  border-radius: 16rpx; 
 }
 
-.video-placeholder .placeholder-text { 
-  font-size: 26rpx; 
+.placeholder-icon-circle {
+  width: 96rpx;
+  height: 96rpx;
+  background-color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 20rpx rgba(0,0,0,0.04);
+  margin-bottom: 24rpx;
+}
+
+.placeholder-text { 
+  font-size: 28rpx; 
   color: #9ca3af; 
-  margin-top: 16rpx; 
 }
 
 .read-container { 
@@ -815,50 +599,58 @@ onMounted(() => {
 }
 
 .read-content { 
-  font-size: 28rpx; 
-  line-height: 1.8; 
+  font-size: 30rpx; /* 更适合长文阅读的字号 */
+  line-height: 1.85; 
   color: #374151; 
+  letter-spacing: 1rpx;
 }
 
 .read-placeholder { 
   display: flex; 
   align-items: center; 
   justify-content: center; 
-  padding: 80rpx 0; 
+  padding: 100rpx 0; 
 }
 
-.read-placeholder .placeholder-text { 
-  font-size: 26rpx; 
-  color: #9ca3af; 
-}
-
+/* 高级感拉满的作业输入区 */
 .homework-container { 
   width: 100%; 
 }
 
+.homework-input-wrapper {
+  background-color: #f9fafb;
+  border: 2rpx solid #f3f4f6;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  transition: all 0.3s ease;
+  
+  /* 微弱的内发光，体现输入框的凹陷感 */
+  box-shadow: inset 0 4rpx 8rpx rgba(0, 0, 0, 0.02);
+}
+
 .homework-textarea { 
   width: 100%; 
-  height: 400rpx; 
-  padding: 24rpx; 
-  background-color: #f9fafb; 
-  border-radius: 16rpx; 
-  font-size: 28rpx; 
-  line-height: 1.6; 
+  height: 380rpx; 
+  font-size: 30rpx; 
+  line-height: 1.7; 
   color: #1f2937; 
   box-sizing: border-box; 
+  background: transparent;
 }
 
 .textarea-placeholder { 
   color: #9ca3af; 
-  font-size: 28rpx; 
+  font-size: 30rpx; 
+  line-height: 1.7;
 }
 
 .word-count { 
   display: block; 
   text-align: right; 
-  font-size: 22rpx; 
-  color: #9ca3af; 
-  margin-top: 12rpx; 
+  font-size: 24rpx; 
+  color: #d1d5db; 
+  margin-top: 16rpx; 
+  font-weight: 500;
 }
 
 .extra-container { 
@@ -866,30 +658,31 @@ onMounted(() => {
   flex-direction: column; 
   align-items: center; 
   justify-content: center; 
-  padding: 60rpx 30rpx; 
+  padding: 80rpx 30rpx; 
   text-align: center; 
 }
 
 .extra-icon-wrapper { 
-  width: 120rpx; 
-  height: 120rpx; 
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5); 
+  width: 140rpx; 
+  height: 140rpx; 
+  background: linear-gradient(135deg, #ecfdf5, #a7f3d0); 
   border-radius: 50%; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
-  margin-bottom: 32rpx; 
+  margin-bottom: 40rpx; 
+  box-shadow: 0 16rpx 32rpx rgba(16, 185, 129, 0.2); /* 发光效果 */
 }
 
 .extra-title { 
-  font-size: 32rpx; 
-  font-weight: 600; 
-  color: #1f2937; 
+  font-size: 36rpx; 
+  font-weight: 700; 
+  color: #111827; 
   margin-bottom: 16rpx; 
 }
 
 .extra-desc { 
-  font-size: 26rpx; 
+  font-size: 28rpx; 
   color: #6b7280; 
   line-height: 1.6; 
 }
