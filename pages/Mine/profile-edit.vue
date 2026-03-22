@@ -192,7 +192,7 @@ export default {
 					uni.showLoading({ title: '上传中...', mask: true });
 					
 					uni.uploadFile({
-						url: API_CONFIG.baseUrl + API_CONFIG.paths.upload,
+						url: API_CONFIG.baseUrl + API_CONFIG.paths.upload + '?type=avatar',
 						filePath: tempFilePath,
 						name: 'file',
 						header: {
@@ -206,10 +206,10 @@ export default {
 									this.form.avatar = data.data;
 									uni.showToast({ title: '上传成功', icon: 'success' });
 								} else {
-									uni.showToast({ title: data.msg || '上传失败', icon: 'none' });
+									uni.showToast({ title: data.msg || data.message || '上传失败', icon: 'none' });
 								}
 							} catch (error) {
-								uni.showToast({ title: '上传失败，请重试', icon: 'none' });
+								uni.showToast({ title: '解析失败，请重试', icon: 'none' });
 							}
 						},
 						fail: (error) => {

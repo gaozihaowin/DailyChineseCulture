@@ -1,6 +1,9 @@
 // API配置文件
 // 存储API基础地址和其他API相关配置
 
+// 判断是否为开发环境
+const isDev = process.env.NODE_ENV === 'development';
+
 // 导出API配置
 export const API_CONFIG = {
   // 本地开发环境地址（确保和你的后端服务端口一致）

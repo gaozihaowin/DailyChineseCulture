@@ -174,32 +174,28 @@ export default {
 				
 				// 调用后端上传接口
 				uni.uploadFile({
-					url: API_CONFIG.baseUrl + API_CONFIG.paths.upload,
+					url: API_CONFIG.baseUrl + API_CONFIG.paths.upload + '?type=avatar',
 					filePath: filePath,
-					name: 'file', // 文件字段名
+					name: 'file',
 					header: {
 						'Authorization': 'Bearer ' + token
 					},
 					success: (res) => {
 						uni.hideLoading();
-						
+
 						try {
-							// 解析响应数据
 							const response = JSON.parse(res.data);
-							
+
 							if (response.code === 200) {
-								// 上传成功，保存图片URL
 								this.formData.avatar = response.data;
 								uni.showToast({ title: '上传成功', icon: 'success' });
 							} else {
-								// 上传失败
-								uni.showToast({ 
-									title: response.msg || '上传失败', 
-									icon: 'none' 
+								uni.showToast({
+									title: response.msg || response.message || '上传失败',
+									icon: 'none'
 								});
 							}
 						} catch (parseError) {
-							// 解析失败
 							uni.showToast({ title: '服务器返回数据格式错误', icon: 'none' });
 							console.error('解析响应失败:', parseError);
 						}
@@ -207,9 +203,9 @@ export default {
 					fail: (error) => {
 						uni.hideLoading();
 						console.error('上传失败:', error);
-						uni.showToast({ 
-							title: error.errMsg || '网络连接异常', 
-							icon: 'none' 
+						uni.showToast({
+							title: error.errMsg || '网络连接异常',
+							icon: 'none'
 						});
 					}
 				});

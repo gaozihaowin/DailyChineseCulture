@@ -309,8 +309,39 @@ export default {
       try {
         const { avatarUrl } = await uni.chooseAvatar({});
         if (avatarUrl) {
-          this.userInfo.avatar = avatarUrl;
-          await this.updateUserInfo();
+          if (avatarUrl.startsWith('http')) {
+            this.userInfo.avatar = avatarUrl;
+            await this.updateUserInfo();
+          } else {
+            uni.showLoading({ title: '上传中...', mask: true });
+            const token = uni.getStorageSync('token') || this.token;
+            uni.uploadFile({
+              url: API_CONFIG.baseUrl + API_CONFIG.paths.upload + '?type=avatar',
+              filePath: avatarUrl,
+              name: 'file',
+              header: {
+                'Authorization': 'Bearer ' + token
+              },
+              success: (uploadRes) => {
+                uni.hideLoading();
+                try {
+                  const data = JSON.parse(uploadRes.data);
+                  if (data.code === 200) {
+                    this.userInfo.avatar = data.data;
+                    this.updateUserInfo();
+                  } else {
+                    uni.showToast({ title: data.msg || data.message || '上传失败', icon: 'none' });
+                  }
+                } catch (e) {
+                  uni.showToast({ title: '解析失败，请重试', icon: 'none' });
+                }
+              },
+              fail: (error) => {
+                uni.hideLoading();
+                uni.showToast({ title: '网络连接异常', icon: 'none' });
+              }
+            });
+          }
         }
       } catch (e) {
         uni.chooseImage({
@@ -318,8 +349,35 @@ export default {
           sizeType: ['compressed'],
           sourceType: ['album', 'camera'],
           success: async (res) => {
-            this.userInfo.avatar = res.tempFilePaths[0];
-            await this.updateUserInfo();
+            uni.showLoading({ title: '上传中...', mask: true });
+            const token = uni.getStorageSync('token') || this.token;
+            const tempFilePath = res.tempFilePaths[0];
+            uni.uploadFile({
+              url: API_CONFIG.baseUrl + API_CONFIG.paths.upload + '?type=avatar',
+              filePath: tempFilePath,
+              name: 'file',
+              header: {
+                'Authorization': 'Bearer ' + token
+              },
+              success: (uploadRes) => {
+                uni.hideLoading();
+                try {
+                  const data = JSON.parse(uploadRes.data);
+                  if (data.code === 200) {
+                    this.userInfo.avatar = data.data;
+                    this.updateUserInfo();
+                  } else {
+                    uni.showToast({ title: data.msg || data.message || '上传失败', icon: 'none' });
+                  }
+                } catch (e) {
+                  uni.showToast({ title: '解析失败，请重试', icon: 'none' });
+                }
+              },
+              fail: (error) => {
+                uni.hideLoading();
+                uni.showToast({ title: '网络连接异常', icon: 'none' });
+              }
+            });
           }
         });
       }
