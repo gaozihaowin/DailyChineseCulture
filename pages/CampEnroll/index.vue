@@ -134,24 +134,33 @@
         <text class="price-symbol">公益</text>
         <text class="price-label">免费修习</text>
       </view>
-      <view class="enroll-btn" :class="{ 'is-disabled': isEnrolled }" @click="handleEnroll">
-        <text class="btn-text">{{ isEnrolled ? '已结缘' : '立即报名' }}</text>
+      <view class="enroll-btn" :class="{ 'is-disabled': isEnrolled || isCampEnded }" @click="handleEnroll">
+        <text class="btn-text">{{ isEnrolled ? '已结缘' : (isCampEnded ? '已结营' : '立即报名') }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { get, post } from '@/utils/request'; // 确保这里引入了 post
+import { get, post } from '@/utils/request';
 import { API_CONFIG } from '@/api/config';
 
 // ========== 状态定义 ==========
 const campId = ref('');
 const campInfo = ref({});
-const isEnrolled = ref(false); 
-const enrollLoading = ref(false); 
+const isEnrolled = ref(false);
+const enrollLoading = ref(false);
+
+// ========== 基于时间的营期结束判断（废弃 status 字段依赖） ==========
+const isCampEnded = computed(() => {
+  if (!campInfo.value.endTime) return false;
+  const endStr = campInfo.value.endTime.replace(/-/g, '/');
+  const endTime = new Date(endStr).getTime();
+  const nowTime = new Date().getTime();
+  return nowTime > endTime;
+}); 
 
 // ========== 颜色映射字典 (致良知高定色系) ==========
 const colorMap = {
@@ -202,10 +211,16 @@ const fetchCampDetail = async (id) => {
   try {
     const res = await get(API_CONFIG.paths.courseDetail, { id });
     const resultData = (res.data && res.data.code) ? res.data : res;
-    
+
     if (resultData.code === 200 && resultData.data) {
       campInfo.value = resultData.data;
-      // 假设后端在详情接口返回了是否已报名的标志
+
+      // 【新增排查日志】确认后端返回的 endTime 字段
+      console.log('===== 营期详情接口数据获取成功 =====');
+      console.log('后端返回的完整 campInfo:', campInfo.value);
+      console.log('关键字段 endTime 的值:', campInfo.value.endTime);
+      console.log('====================================');
+
       if (resultData.data.isEnrolled !== undefined) {
          isEnrolled.value = resultData.data.isEnrolled;
       }
@@ -235,6 +250,13 @@ const handleEnroll = async () => {
     uni.showToast({ title: '营期信息异常', icon: 'none' });
     return;
   }
+
+  // 基于时间的前端防御拦截（替换原来的 status === 2 判断）
+  if (isCampEnded.value) {
+    uni.showToast({ title: '当前营期已结束，不可报名', icon: 'none' });
+    return;
+  }
+
   if (isEnrolled.value) {
     uni.showToast({ title: '您已结缘该营期，无需重复报名', icon: 'none' });
     return;
@@ -243,11 +265,11 @@ const handleEnroll = async () => {
 
   enrollLoading.value = true;
   uni.showLoading({ title: '结缘报名中...', mask: true });
-  
+
   try {
     // 真实调用后端原生 MyBatis 接口，注意无 /api/ 前缀
     const res = await post('/camp/enroll', { campId: Number(campId.value) });
-    const resultData = res.data || res; 
+    const resultData = res.data || res;
 
     if (resultData.code === 200) {
       uni.showToast({ title: '报名成功', icon: 'success' });

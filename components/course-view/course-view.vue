@@ -26,8 +26,9 @@
         <view 
           class="course-card" 
           v-for="(item, index) in displayList" 
-          :key="index"
+          :key="item.id || index"
           @click="navigateToCourseDetail(item.id)"
+          :style="{ 'animation-delay': (index * 0.06) + 's' }"
         >
           <view class="card-left" 
                 :class="{ 'thumb-gray': item.status === 'hist' }"
@@ -211,6 +212,27 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+/* ========== 动画定义区 ========== */
+@keyframes slideFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(40rpx);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slowFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* 1. 全局背景 */
 .view-container {
   height: 100%;
@@ -254,16 +276,16 @@ onUnmounted(() => {
   text-align: center;
   padding: 16rpx 0;
   border-radius: 34rpx;
-  transition: all 0.3s ease;
+  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); /* 让切换更柔和 */
 }
 .tab-active {
   background-color: #ffffff;
-  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
 }
 .tab-text {
   font-size: 28rpx;
   color: #8c8686;
-  transition: color 0.3s ease;
+  transition: color 0.35s ease;
 }
 .tab-active .tab-text {
   color: #9e2a2b;
@@ -291,10 +313,15 @@ onUnmounted(() => {
   padding: 24rpx;
   gap: 24rpx;
   align-items: center;
-  transition: transform 0.2s;
+  
+  /* 交互与入场动画 */
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s;
+  opacity: 0; /* 配合 animation-fill-mode 隐藏初始状态 */
+  animation: slideFadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 .course-card:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.02);
 }
 
 /* 左侧色块 */
@@ -388,7 +415,7 @@ onUnmounted(() => {
 .progress-fill {
   height: 100%;
   border-radius: 4rpx;
-  transition: width 0.3s ease;
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); /* 进度条动画更加平滑 */
 }
 
 /* 扁平化操作按钮 */
@@ -401,6 +428,10 @@ onUnmounted(() => {
   font-weight: bold;
   padding: 10rpx 30rpx;
   border-radius: 30rpx;
+  transition: opacity 0.2s;
+}
+.flat-btn:active {
+  opacity: 0.7;
 }
 .btn-ing { background-color: rgba(158, 42, 43, 0.08); color: #9e2a2b; }
 .btn-done { background: rgba(22, 163, 74, 0.1); color: #16a34a; }
@@ -413,6 +444,10 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding-top: 160rpx;
+  
+  /* 空状态柔和出现 */
+  opacity: 0;
+  animation: slowFadeIn 0.8s ease forwards;
 }
 .empty-emoji {
   font-size: 80rpx;
