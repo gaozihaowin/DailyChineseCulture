@@ -43,12 +43,13 @@
 
         <view class="identity-switch-bar">
           <text class="switch-label">多端身份管理</text>
-          <view class="switch-action-btn" @tap.stop="toggleIdentityMenu">
-            <uni-icons type="loop" size="14" color="#a31d1d"></uni-icons>
+          <view class="switch-action-btn" hover-class="switch-action-btn-hover" @tap.stop="toggleIdentityMenu">
+            <uni-icons type="loop" size="14" color="#a31d1d" :class="{ 'icon-rotate': isIdentityOpen }"></uni-icons>
             <text class="switch-btn-text">切换身份</text>
           </view>
           
           <view class="dropdown-menu" v-if="isIdentityOpen">
+            <view class="dropdown-arrow-up"></view>
             <view 
               class="dropdown-item" 
               v-for="(role, index) in identityOptions" 
@@ -71,7 +72,9 @@
         </view>
       </view>
 
-    </view> <scroll-view scroll-y class="scroll-view" @tap="closeIdentityMenu" :show-scrollbar="false">
+    </view> 
+    
+    <scroll-view scroll-y class="scroll-view" @tap="closeIdentityMenu" :show-scrollbar="false">
       <view class="scroll-content-inner">
 
         <view class="floating-card grid-card fade-in-up delay-2">
@@ -150,7 +153,8 @@ export default {
       },
       token: '', 
       isIdentityOpen: false,
-      currentIdentity: '学员端',
+      // 绝对初始值
+      currentIdentity: '学员端', 
       identityOptions: [
         { name: '学员端' }, 
         { name: '志愿者端' }
@@ -194,7 +198,6 @@ export default {
     getLocalUserInfo() {
       const token = uni.getStorageSync('token');
       const localUser = uni.getStorageSync('userInfo');
-      const localIdentity = uni.getStorageSync('currentIdentity');
       
       if (token) this.token = token;
       if (localUser && JSON.stringify(localUser) !== '{}') {
@@ -206,12 +209,10 @@ export default {
           avatar: localUser.avatar || this.userInfo.avatar
         };
       }
-      if (localIdentity) {
-        this.currentIdentity = localIdentity;
-      } else {
-        this.currentIdentity = '学员端';
-        uni.setStorageSync('currentIdentity', '学员端');
-      }
+      
+      // 【终极修复 1】：只要加载此组件，立刻覆写缓存和本地状态为“学员端”
+      this.currentIdentity = '学员端';
+      uni.setStorageSync('currentIdentity', '学员端');
     },
 
     async fetchUserInfo() {
@@ -231,18 +232,16 @@ export default {
             user_id: data.userId || '', openid: data.openid || '', account: data.account || '',
             nickname: data.nickname || this.userInfo.nickname, avatar: data.avatar || this.userInfo.avatar
           };
-          this.currentIdentity = data.currentIdentity || '学员端';
-          if (data.statsList) this.statsList = data.statsList;
           
+          if (data.statsList) this.statsList = data.statsList;
           uni.setStorageSync('userInfo', this.userInfo);
-          uni.setStorageSync('currentIdentity', this.currentIdentity);
-        } else {
+
+          // 【终极修复 2】：无视后端返回的身份，强行锁定为学员端
           this.currentIdentity = '学员端';
           uni.setStorageSync('currentIdentity', '学员端');
         }
       } catch (error) {
-        this.currentIdentity = '学员端';
-        uni.setStorageSync('currentIdentity', '学员端');
+        console.error('拉取信息失败', error);
       } finally {
         uni.hideLoading();
       }
@@ -279,14 +278,22 @@ export default {
         });
         
         if (res.statusCode === 200 && res.data.code === 200) {
-          this.currentIdentity = res.data.data.currentIdentity || role.name;
-          uni.setStorageSync('currentIdentity', this.currentIdentity);
+          // 切换成功，保存新的 Token
+          if (res.data.data.token) {
+            this.token = res.data.data.token;
+            uni.setStorageSync('token', res.data.data.token);
+          }
+
+          // 将目标身份存入全局，准备跳转
+          uni.setStorageSync('currentIdentity', role.name);
           this.isIdentityOpen = false; 
           uni.hideLoading();
-          uni.showToast({ title: `已切换为${role.name}`, icon: 'none' });
+          uni.showToast({ title: `已切换为${role.name}`, icon: 'success' });
           
-          const targetUrl = role.name === '志愿者端' ? '/pages/volunteer/index' : '/pages/Main/index';
-          uni.reLaunch({ url: targetUrl });
+          setTimeout(() => {
+            const targetUrl = role.name === '志愿者端' ? '/pages/volunteer/index' : '/pages/Main/index';
+            uni.reLaunch({ url: targetUrl });
+          }, 300);
         } else {
           uni.hideLoading(); 
           uni.showToast({ title: res.data.msg || '切换身份失败', icon: 'none' });
@@ -354,19 +361,18 @@ export default {
 .mine-container {
   display: flex;
   flex-direction: column;
-  background-color: #faf8f5; /* 暖宣纸底色 */
+  background-color: #faf8f5; 
   position: relative;
   height: 100vh;
   overflow: hidden;
 }
 
-/* Layer 0: 红色背景层 */
 .crimson-background {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 560rpx; /* 高度微微拉长，完美包裹顶层卡片 */
+  height: 560rpx; 
   background: linear-gradient(150deg, #9e2a2b 0%, #7a1212 100%);
   border-bottom-left-radius: 60rpx;
   border-bottom-right-radius: 60rpx;
@@ -374,7 +380,7 @@ export default {
 }
 
 /* ==========================================
-   2. 绝对固定区 (不参与滚动)
+   2. 绝对固定区
 ========================================== */
 .fixed-top-zone {
   position: relative;
@@ -410,7 +416,7 @@ export default {
 }
 
 /* ==========================================
-   ✨ 核心重构：通用卡片与玻璃态卡片
+   ✨ 卡片通用样式与玻璃态
 ========================================== */
 .floating-card {
   background: #ffffff;
@@ -422,21 +428,21 @@ export default {
   transition: transform 0.2s ease;
 }
 
-/* 专为悬浮在红底上的卡片设计的玻璃态 */
 .glass-card {
-  background: rgba(255, 255, 255, 0.94); /* 微微透出红底，大幅度柔和视觉 */
-  backdrop-filter: blur(20px); /* 强毛玻璃混色效果 */
+  background: rgba(255, 255, 255, 0.94); 
+  backdrop-filter: blur(20px); 
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8); /* 模拟玻璃高光边缘 */
-  box-shadow: 0 16rpx 40rpx rgba(122, 18, 18, 0.12); /* 阴影改成偏红色，彻底融入背景 */
+  border: 1px solid rgba(255, 255, 255, 0.8); 
+  box-shadow: 0 16rpx 40rpx rgba(122, 18, 18, 0.12); 
 }
 
 /* ==========================================
-   3. 第一层：个人主卡片
+   3. 第一层：个人主卡片 (最高层级)
 ========================================== */
 .profile-card {
   margin-top: 10rpx;
   padding: 32rpx 32rpx 24rpx; 
+  z-index: 50; 
 }
 
 .profile-main {
@@ -526,7 +532,6 @@ export default {
   font-weight: bold;
 }
 
-/* 切分线与切换身份栏 */
 .divider {
   height: 1px;
   background-color: rgba(0,0,0,0.04);
@@ -552,6 +557,12 @@ export default {
   background: rgba(163, 29, 29, 0.06);
   padding: 10rpx 20rpx;
   border-radius: 40rpx;
+  transition: all 0.2s;
+}
+
+.switch-action-btn-hover {
+  transform: scale(0.95);
+  background: rgba(163, 29, 29, 0.12);
 }
 
 .switch-btn-text {
@@ -560,35 +571,57 @@ export default {
   font-weight: bold;
 }
 
-/* 身份切换下拉菜单 */
+/* 按钮图标动画 */
+.icon-rotate {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+/* ==========================================
+   ✨ 下拉菜单 
+========================================== */
 .dropdown-menu {
   position: absolute;
-  top: 56rpx;
+  top: 64rpx;
   right: 0;
-  width: 220rpx;
+  min-width: 220rpx; 
+  width: auto;
   background: #ffffff;
   border-radius: 16rpx;
-  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.15);
   border: 1px solid #f0ece6;
-  padding: 10rpx;
+  padding: 12rpx;
   z-index: 100;
   animation: scaleIn 0.2s cubic-bezier(0.1, 0.7, 0.1, 1);
   transform-origin: top right;
 }
 
+.dropdown-arrow-up {
+  position: absolute;
+  top: -12rpx;
+  right: 36rpx;
+  width: 0;
+  height: 0;
+  border-left: 12rpx solid transparent;
+  border-right: 12rpx solid transparent;
+  border-bottom: 12rpx solid #ffffff;
+}
+
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.95) translateY(-10rpx); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20rpx;
+  padding: 22rpx 20rpx;
   font-size: 26rpx;
   color: #4a4040;
   border-radius: 8rpx;
+  white-space: nowrap; 
+  transition: background-color 0.2s;
 }
 
 .dropdown-item:active {
@@ -601,13 +634,14 @@ export default {
 }
 
 /* ==========================================
-   4. 第二层：核心数据统计 (固定区)
+   4. 第二层：核心数据统计 (降低层级)
 ========================================== */
 .stats-card {
   display: flex;
   justify-content: space-around;
   padding: 24rpx 16rpx; 
   margin-bottom: 20rpx;
+  z-index: 10; 
 }
 
 .stat-item {
@@ -616,13 +650,18 @@ export default {
   align-items: center;
   gap: 8rpx;
   flex: 1;
+  min-width: 0; 
 }
 
 .stat-num {
-  font-size: 38rpx;
-  font-weight: 900;
+  font-size: 32rpx; 
+  font-weight: 800;
   color: #2d2424;
   font-family: 'DIN', sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140rpx; 
 }
 
 .stat-label {
@@ -631,7 +670,7 @@ export default {
 }
 
 /* ==========================================
-   5. 核心滚动区 (仅下半部可滑)
+   5. 核心滚动区
 ========================================== */
 .scroll-view {
   flex: 1;
@@ -645,7 +684,7 @@ export default {
 }
 
 /* ==========================================
-   6. 宫格与列表服务 (滚动区，非毛玻璃普通白卡)
+   6. 宫格与列表服务
 ========================================== */
 .grid-card {
   padding: 28rpx;
@@ -689,7 +728,6 @@ export default {
   font-weight: 600;
 }
 
-/* 列表区域样式 */
 .list-card {
   padding: 28rpx 32rpx;
 }
@@ -763,7 +801,6 @@ export default {
   color: #a09a9a;
 }
 
-/* 纯 CSS 绘制的小箭头 */
 .pure-css-arrow {
   width: 12rpx;
   height: 12rpx;
