@@ -340,6 +340,7 @@ const submitTask = async () => {
       closeTaskPopup();
       uni.hideLoading();
       uni.showToast({ title: '任务完成！', icon: 'success' });
+      uni.$emit('refreshCourseList');
     } else {
       uni.hideLoading();
       uni.showToast({ title: apiData.msg || '提交失败', icon: 'none' });

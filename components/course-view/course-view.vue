@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { API_CONFIG } from '../../api/config';
 
 // ========== 状态定义 ==========
@@ -197,6 +197,16 @@ onMounted(() => {
   }
   // 默认加载第一个 Tab 数据
   fetchCourseData(topTabs[0].type);
+
+  // 监听打卡成功的全局事件，静默刷新当前列表数据
+  uni.$on('refreshCourseList', () => {
+    fetchCourseData(topTabs[currentTopTab.value].type);
+  });
+});
+
+onUnmounted(() => {
+  // 组件销毁时必须移除监听，防止内存泄漏
+  uni.$off('refreshCourseList');
 });
 </script>
 
