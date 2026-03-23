@@ -7,10 +7,7 @@
         <text>致良知教育</text>
       </view>
       
-      <view class="header-actions">
-        <uni-icons type="search" size="24" color="#2d2424" style="margin-right: 30rpx;"></uni-icons>
-        <uni-icons type="notification" size="24" color="#2d2424"></uni-icons>
-      </view>
+     
     </view>
 
 

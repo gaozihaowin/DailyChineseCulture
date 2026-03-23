@@ -98,7 +98,7 @@ import { API_CONFIG } from '../../api/config';
 const statusBarHeight = ref(20);
 const currentTopTab = ref(0);
 const displayList = ref([]);
-const isFirstLoad = ref(true); // 【新增】首次冷启动标识
+const isFirstLoad = ref(true); // 首次冷启动标识
 
 // Tab 选项与后端的 tabType 映射
 const topTabs = [
@@ -155,7 +155,7 @@ const navigateToCourseDetail = (courseId) => {
   });
 };
 
-// ========== 核心业务逻辑 (保留原网络请求) ==========
+// ========== 核心业务逻辑 ==========
 
 const fetchCourseData = async (tabType) => {
   const token = uni.getStorageSync('token');
@@ -205,10 +205,10 @@ onMounted(() => {
     statusBarHeight.value = systemInfo.statusBarHeight;
   }
   
-  // 默认加载第一个 Tab 数据
+  // 默认加载
   fetchCourseData(topTabs[0].type);
 
-  // 【新增】等最长的动画播放完毕后，卸载入场动画类名
+  // 动画执行完毕后移除标识，实现热切换无延迟
   setTimeout(() => {
     isFirstLoad.value = false;
   }, 1000);
@@ -272,7 +272,7 @@ onUnmounted(() => {
   letter-spacing: 2rpx;
 }
 
-/* 3. 分段选择器 (丝滑滑块升级版) */
+/* 3. 分段选择器 (丝滑背景滑块) */
 .tabs-container {
   padding: 0 40rpx 30rpx;
 }
@@ -281,19 +281,19 @@ onUnmounted(() => {
   background-color: #f0ece6;
   border-radius: 40rpx;
   padding: 6rpx;
-  position: relative; /* 为滑块定位准备 */
+  position: relative;
 }
 .tab-slider {
   position: absolute;
   top: 6rpx;
   left: 6rpx;
-  width: calc(33.333% - 4rpx); /* 精确计算单块宽度 */
+  width: calc(33.333% - 4rpx); 
   height: calc(100% - 12rpx);
   background-color: #ffffff;
   border-radius: 34rpx;
   box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
   transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  z-index: 1; /* 垫在文字下方 */
+  z-index: 1;
 }
 .tab-item {
   flex: 1;
@@ -301,7 +301,7 @@ onUnmounted(() => {
   padding: 16rpx 0;
   border-radius: 34rpx;
   position: relative;
-  z-index: 2; /* 文字在滑块上方 */
+  z-index: 2; 
   transition: color 0.3s ease;
 }
 .tab-text {
@@ -326,27 +326,27 @@ onUnmounted(() => {
   gap: 30rpx;
 }
 
-/* 4. 课程卡片 (布局重构区) */
+/* 4. 课程卡片 (恢复大气尺寸布局) */
 .course-card {
   display: flex;
   background-color: #ffffff;
   border-radius: 30rpx;
   box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03);
-  padding: 24rpx;
-  gap: 24rpx;
-  align-items: stretch; /* 让左右两侧高度自适应拉伸 */
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s;
+  padding: 24rpx; /* 恢复正常内边距 */
+  gap: 24rpx; /* 恢复正常间距 */
+  align-items: stretch;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s;
 }
 .course-card:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.02);
 }
 
-/* 左侧色块 */
+/* 左侧色块 (恢复 180rpx 大尺寸) */
 .card-left {
-  width: 180rpx; /* 稍微加宽一点，显得更稳重 */
-  min-height: 200rpx; /* 保证最小高度 */
-  border-radius: 20rpx;
+  width: 180rpx; 
+  min-height: 180rpx; 
+  border-radius: 20rpx; 
   position: relative;
   display: flex;
   flex-direction: column;
@@ -362,8 +362,8 @@ onUnmounted(() => {
   left: 0;
   background: rgba(0, 0, 0, 0.25);
   color: #ffffff;
-  font-size: 20rpx;
-  padding: 4rpx 12rpx;
+  font-size: 20rpx; /* 恢复字号 */
+  padding: 4rpx 12rpx; 
   border-top-left-radius: 20rpx;
   border-bottom-right-radius: 12rpx;
   backdrop-filter: blur(4px);
@@ -372,32 +372,33 @@ onUnmounted(() => {
 .status-badge.done { background: rgba(22, 163, 74, 0.8); }
 
 .camp-short-name {
-  font-size: 44rpx;
+  font-size: 40rpx; /* 恢复大气字号 */
   font-weight: bold;
   color: #ffffff;
-  letter-spacing: 8rpx;
+  letter-spacing: 8rpx; 
   writing-mode: vertical-rl;
   text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.2);
 }
 .camp-term { font-size: 20rpx; color: rgba(255,255,255,0.9); margin-top: 10rpx; }
 
-/* 右侧信息 (空间释放核心) */
+/* 右侧信息 */
 .card-right {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 200rpx; /* 移除定死的高度，改用 min-height */
+  justify-content: space-between; 
+  min-height: 180rpx; /* 对应左侧高度 */
   padding: 6rpx 0;
 }
 
+/* 顶部信息集 (标题和时间) */
 .info-top {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
 }
 .card-title {
-  font-size: 30rpx;
+  font-size: 30rpx; /* 恢复清晰字号 */
   font-weight: bold;
   color: #2d2424;
   line-height: 1.4;
@@ -408,21 +409,21 @@ onUnmounted(() => {
 }
 .text-gray { color: #8c8686; }
 .card-time {
-  font-size: 22rpx;
+  font-size: 22rpx; /* 恢复字号 */
   color: #a0a0a0;
 }
 
-/* 底部并排布局：进度条靠左，按钮靠右 */
+/* 底部信息集 (进度条和按钮并排) */
 .info-bottom {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-top: 20rpx; /* 推到底部并留出呼吸感 */
+  margin-top: 20rpx; 
 }
 
 .progress-section {
   flex: 1;
-  margin-right: 24rpx; /* 与右侧按钮保持距离 */
+  margin-right: 20rpx; 
   margin-bottom: 6rpx;
 }
 .progress-info {
@@ -439,7 +440,7 @@ onUnmounted(() => {
   font-weight: bold;
 }
 .progress-track {
-  height: 8rpx;
+  height: 8rpx; /* 恢复进度条高度 */
   background-color: #f5f5f5;
   border-radius: 4rpx;
   overflow: hidden;
@@ -452,12 +453,12 @@ onUnmounted(() => {
 
 /* 扁平化操作按钮 */
 .action-wrapper {
-  flex-shrink: 0;
+  flex-shrink: 0; 
 }
 .flat-btn {
-  font-size: 24rpx;
+  font-size: 24rpx; /* 恢复正常大小 */
   font-weight: bold;
-  padding: 12rpx 32rpx;
+  padding: 12rpx 32rpx; 
   border-radius: 30rpx;
   transition: opacity 0.2s;
 }
@@ -475,6 +476,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding-top: 160rpx;
+  
   opacity: 0;
   animation: slowFadeIn 0.8s ease forwards;
 }

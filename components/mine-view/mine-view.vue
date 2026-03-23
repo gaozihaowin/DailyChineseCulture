@@ -10,9 +10,7 @@
           <text class="brand-en">ZHI LIANG ZHI</text>
           <text class="brand-cn">致良知教育</text>
         </view>
-        <view class="header-action">
-          <uni-icons type="gear" size="24" color="#ffffff"></uni-icons>
-        </view>
+        
       </view>
 
       <view class="floating-card glass-card profile-card" :class="{ 'anim-fade-up delay-1': isFirstLoad }">
@@ -25,7 +23,6 @@
           <view class="info-wrapper">
             <view class="name-row">
               <text class="user-name">{{ userInfo.nickname || '请设置昵称' }}</text>
-              <uni-icons type="vip-filled" size="18" color="#F59E0B" class="vip-icon"></uni-icons>
             </view>
             <view class="account-row" v-if="userInfo.account">
               <text class="account-id">@{{ userInfo.account }}</text>
