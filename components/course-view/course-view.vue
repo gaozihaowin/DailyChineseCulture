@@ -2,13 +2,15 @@
   <view class="view-container">
     <view :style="{ height: statusBarHeight + 'px' }"></view>
 
-    <view class="header-area">
+    <view class="header-area" :class="{ 'animate-fade-down': isFirstLoad }">
       <view class="title-decorator"></view>
       <text class="main-title">我的课程</text>
     </view>
 
-    <view class="tabs-container">
+    <view class="tabs-container" :class="{ 'animate-fade-down-delay': isFirstLoad }">
       <view class="tabs-wrapper">
+        <view class="tab-slider" :style="{ transform: `translateX(${currentTopTab * 100}%)` }"></view>
+        
         <view 
           v-for="(tab, index) in topTabs" 
           :key="index"
@@ -27,8 +29,9 @@
           class="course-card" 
           v-for="(item, index) in displayList" 
           :key="item.id || index"
+          :class="{ 'animate-slide-up-stagger': isFirstLoad }"
+          :style="{ 'animation-delay': isFirstLoad ? (index * 0.08) + 's' : '0s' }"
           @click="navigateToCourseDetail(item.id)"
-          :style="{ 'animation-delay': (index * 0.06) + 's' }"
         >
           <view class="card-left" 
                 :class="{ 'thumb-gray': item.status === 'hist' }"
@@ -43,31 +46,36 @@
           </view>
 
           <view class="card-right">
-            <view class="card-title" :class="{ 'text-gray': item.status === 'hist' }">{{ item.title }}</view>
-            <view class="card-time">📅 报名时间: {{ item.updateDate }}</view>
+            <view class="info-top">
+              <view class="card-title" :class="{ 'text-gray': item.status === 'hist' }">{{ item.title }}</view>
+              <view class="card-time">📅 报名时间: {{ item.updateDate }}</view>
+            </view>
             
-            <view class="progress-section">
-              <view class="progress-info">
-                <text class="progress-label">学习进度</text>
-                <text class="progress-value" :style="{ color: item.status === 'done' ? '#16a34a' : '#9e2a2b' }">
-                  {{ item.progress }}%
-                </text>
+            <view class="info-bottom">
+              <view class="progress-section">
+                <view class="progress-info">
+                  <text class="progress-label">学习进度</text>
+                  <text class="progress-value" :style="{ color: item.status === 'done' ? '#16a34a' : '#9e2a2b' }">
+                    {{ item.progress }}%
+                  </text>
+                </view>
+                <view class="progress-track">
+                  <view class="progress-fill" 
+                        :style="{ 
+                          width: item.progress + '%', 
+                          background: item.status === 'done' ? 'linear-gradient(90deg, #16a34a, #22c55e)' : 'linear-gradient(90deg, #b53b3c, #9e2a2b)' 
+                        }">
+                  </view>
+                </view>
               </view>
-              <view class="progress-track">
-                <view class="progress-fill" 
-                      :style="{ 
-                        width: item.progress + '%', 
-                        background: item.status === 'done' ? 'linear-gradient(90deg, #16a34a, #22c55e)' : 'linear-gradient(90deg, #b53b3c, #9e2a2b)' 
-                      }">
+
+              <view class="action-wrapper">
+                <view class="flat-btn" :class="'btn-' + item.status">
+                  {{ getActionText(item.status) }}
                 </view>
               </view>
             </view>
 
-            <view class="action-wrapper">
-              <view class="flat-btn" :class="'btn-' + item.status">
-                {{ getActionText(item.status) }}
-              </view>
-            </view>
           </view>
         </view>
       </view>
@@ -90,6 +98,7 @@ import { API_CONFIG } from '../../api/config';
 const statusBarHeight = ref(20);
 const currentTopTab = ref(0);
 const displayList = ref([]);
+const isFirstLoad = ref(true); // 【新增】首次冷启动标识
 
 // Tab 选项与后端的 tabType 映射
 const topTabs = [
@@ -149,7 +158,6 @@ const navigateToCourseDetail = (courseId) => {
 // ========== 核心业务逻辑 (保留原网络请求) ==========
 
 const fetchCourseData = async (tabType) => {
-  // 读取token
   const token = uni.getStorageSync('token');
   if (!token) {
     uni.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
@@ -196,49 +204,52 @@ onMounted(() => {
   if (systemInfo.statusBarHeight) {
     statusBarHeight.value = systemInfo.statusBarHeight;
   }
+  
   // 默认加载第一个 Tab 数据
   fetchCourseData(topTabs[0].type);
 
-  // 监听打卡成功的全局事件，静默刷新当前列表数据
+  // 【新增】等最长的动画播放完毕后，卸载入场动画类名
+  setTimeout(() => {
+    isFirstLoad.value = false;
+  }, 1000);
+
   uni.$on('refreshCourseList', () => {
     fetchCourseData(topTabs[currentTopTab.value].type);
   });
 });
 
 onUnmounted(() => {
-  // 组件销毁时必须移除监听，防止内存泄漏
   uni.$off('refreshCourseList');
 });
 </script>
 
 <style scoped lang="scss">
 /* ========== 动画定义区 ========== */
-@keyframes slideFadeUp {
-  0% {
-    opacity: 0;
-    transform: translateY(40rpx);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes sleekFadeDown {
+  0% { opacity: 0; transform: translateY(-20rpx); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sleekFadeUp {
+  0% { opacity: 0; transform: translateY(40rpx); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slowFadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
+
+.animate-fade-down { animation: sleekFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fade-down-delay { opacity: 0; animation: sleekFadeDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; }
+.animate-slide-up-stagger { opacity: 0; animation: sleekFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 /* 1. 全局背景 */
 .view-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #faf8f5; /* 暖宣纸色 */
+  background-color: #faf8f5; 
 }
 
 /* 2. 顶部标题区 */
@@ -261,7 +272,7 @@ onUnmounted(() => {
   letter-spacing: 2rpx;
 }
 
-/* 3. 分段选择器 */
+/* 3. 分段选择器 (丝滑滑块升级版) */
 .tabs-container {
   padding: 0 40rpx 30rpx;
 }
@@ -270,22 +281,33 @@ onUnmounted(() => {
   background-color: #f0ece6;
   border-radius: 40rpx;
   padding: 6rpx;
+  position: relative; /* 为滑块定位准备 */
+}
+.tab-slider {
+  position: absolute;
+  top: 6rpx;
+  left: 6rpx;
+  width: calc(33.333% - 4rpx); /* 精确计算单块宽度 */
+  height: calc(100% - 12rpx);
+  background-color: #ffffff;
+  border-radius: 34rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  z-index: 1; /* 垫在文字下方 */
 }
 .tab-item {
   flex: 1;
   text-align: center;
   padding: 16rpx 0;
   border-radius: 34rpx;
-  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1); /* 让切换更柔和 */
-}
-.tab-active {
-  background-color: #ffffff;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+  position: relative;
+  z-index: 2; /* 文字在滑块上方 */
+  transition: color 0.3s ease;
 }
 .tab-text {
   font-size: 28rpx;
   color: #8c8686;
-  transition: color 0.35s ease;
+  font-weight: 500;
 }
 .tab-active .tab-text {
   color: #9e2a2b;
@@ -304,7 +326,7 @@ onUnmounted(() => {
   gap: 30rpx;
 }
 
-/* 4. 课程卡片 */
+/* 4. 课程卡片 (布局重构区) */
 .course-card {
   display: flex;
   background-color: #ffffff;
@@ -312,22 +334,18 @@ onUnmounted(() => {
   box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03);
   padding: 24rpx;
   gap: 24rpx;
-  align-items: center;
-  
-  /* 交互与入场动画 */
-  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s;
-  opacity: 0; /* 配合 animation-fill-mode 隐藏初始状态 */
-  animation: slideFadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  align-items: stretch; /* 让左右两侧高度自适应拉伸 */
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s;
 }
 .course-card:active {
-  transform: scale(0.96);
+  transform: scale(0.97);
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.02);
 }
 
 /* 左侧色块 */
 .card-left {
-  width: 160rpx;
-  height: 160rpx;
+  width: 180rpx; /* 稍微加宽一点，显得更稳重 */
+  min-height: 200rpx; /* 保证最小高度 */
   border-radius: 20rpx;
   position: relative;
   display: flex;
@@ -354,22 +372,29 @@ onUnmounted(() => {
 .status-badge.done { background: rgba(22, 163, 74, 0.8); }
 
 .camp-short-name {
-  font-size: 40rpx;
+  font-size: 44rpx;
   font-weight: bold;
   color: #ffffff;
   letter-spacing: 8rpx;
   writing-mode: vertical-rl;
   text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.2);
 }
-.camp-term { font-size: 20rpx; color: rgba(255,255,255,0.9); margin-top: 6rpx; }
+.camp-term { font-size: 20rpx; color: rgba(255,255,255,0.9); margin-top: 10rpx; }
 
-/* 右侧信息 */
+/* 右侧信息 (空间释放核心) */
 .card-right {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 160rpx;
+  min-height: 200rpx; /* 移除定死的高度，改用 min-height */
+  padding: 6rpx 0;
+}
+
+.info-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 .card-title {
   font-size: 30rpx;
@@ -385,13 +410,20 @@ onUnmounted(() => {
 .card-time {
   font-size: 22rpx;
   color: #a0a0a0;
-  margin-top: 8rpx;
 }
 
-/* 进度条重绘 */
+/* 底部并排布局：进度条靠左，按钮靠右 */
+.info-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 20rpx; /* 推到底部并留出呼吸感 */
+}
+
 .progress-section {
-  margin-top: auto;
-  margin-bottom: 12rpx;
+  flex: 1;
+  margin-right: 24rpx; /* 与右侧按钮保持距离 */
+  margin-bottom: 6rpx;
 }
 .progress-info {
   display: flex;
@@ -415,18 +447,17 @@ onUnmounted(() => {
 .progress-fill {
   height: 100%;
   border-radius: 4rpx;
-  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); /* 进度条动画更加平滑 */
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* 扁平化操作按钮 */
 .action-wrapper {
-  display: flex;
-  justify-content: flex-end;
+  flex-shrink: 0;
 }
 .flat-btn {
   font-size: 24rpx;
   font-weight: bold;
-  padding: 10rpx 30rpx;
+  padding: 12rpx 32rpx;
   border-radius: 30rpx;
   transition: opacity 0.2s;
 }
@@ -444,8 +475,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding-top: 160rpx;
-  
-  /* 空状态柔和出现 */
   opacity: 0;
   animation: slowFadeIn 0.8s ease forwards;
 }

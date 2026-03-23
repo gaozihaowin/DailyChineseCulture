@@ -15,9 +15,9 @@
         </view>
       </view>
 
-      <view class="floating-card glass-card profile-card fade-in-up">
+      <view class="floating-card glass-card profile-card" :class="{ 'anim-fade-up delay-1': isFirstLoad }">
         <view class="profile-main" @tap="goToEditProfile">
-          <view class="avatar-wrapper">
+          <view class="avatar-wrapper" :class="{ 'anim-pop-in delay-2': isFirstLoad }">
             <image class="avatar-img" :src="userInfo.avatar" mode="aspectFill"></image>
             <view class="status-dot"></view>
           </view>
@@ -65,7 +65,7 @@
         </view>
       </view>
 
-      <view class="floating-card glass-card stats-card fade-in-up delay-1">
+      <view class="floating-card glass-card stats-card" :class="{ 'anim-fade-up delay-2': isFirstLoad }">
         <view class="stat-item" v-for="(item, index) in statsList" :key="index">
           <text class="stat-num">{{ item.value }}</text>
           <text class="stat-label">{{ item.label }}</text>
@@ -77,7 +77,7 @@
     <scroll-view scroll-y class="scroll-view" @tap="closeIdentityMenu" :show-scrollbar="false">
       <view class="scroll-content-inner">
 
-        <view class="floating-card grid-card fade-in-up delay-2">
+        <view class="floating-card grid-card" :class="{ 'anim-fade-up delay-3': isFirstLoad }">
           <view class="grid-container">
             <view class="grid-item" v-for="(item, index) in coreServices" :key="index" @tap="handleMenuClick(item)">
               <view class="grid-icon-box" :style="{ backgroundColor: item.bgColor }">
@@ -88,7 +88,7 @@
           </view>
         </view>
 
-        <view class="floating-card list-card fade-in-up delay-3">
+        <view class="floating-card list-card" :class="{ 'anim-fade-up delay-4': isFirstLoad }">
           <view class="section-title-row">
             <view class="title-decorator"></view>
             <text class="section-title">常用服务</text>
@@ -107,7 +107,7 @@
           </view>
         </view>
 
-        <view class="floating-card list-card fade-in-up delay-4">
+        <view class="floating-card list-card" :class="{ 'anim-fade-up delay-5': isFirstLoad }">
           <view class="menu-item" v-for="(item, index) in otherServices" :key="index" @tap="handleMenuClick(item)">
             <view class="menu-left">
               <view class="list-icon-box" style="background-color: #F7F8FA;">
@@ -121,7 +121,7 @@
           </view>
         </view>
 
-        <view class="logout-section fade-in-up delay-5">
+        <view class="logout-section" :class="{ 'anim-fade-up delay-6': isFirstLoad }">
           <view class="logout-btn" hover-class="logout-btn-hover" @tap="handleLogout">
             <text class="logout-text">退出当前账号</text>
           </view>
@@ -143,6 +143,9 @@ export default {
   
   data() {
     return {
+      // 【新增】首次加载标识
+      isFirstLoad: true,
+      
       statusBarHeight: 20,
       userInfo: { 
         nickname: '', 
@@ -192,6 +195,11 @@ export default {
     
     this.getLocalUserInfo();
     this.fetchUserInfo();
+    
+    // 【新增】动画执行完毕后移除标识，实现热切换无延迟
+    setTimeout(() => {
+      this.isFirstLoad = false;
+    }, 1000); 
   },
   
   methods: {
@@ -355,6 +363,38 @@ export default {
 </script>
 
 <style scoped>
+/* ==========================================
+   0. 全新升级动画区 (Animations)
+========================================== */
+.anim-fade-up { 
+  opacity: 0; 
+  /* 使用丝滑的阻尼曲线 */
+  animation: sleekFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+}
+.anim-pop-in {
+  opacity: 0;
+  transform: scale(0.8);
+  animation: sleekPopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 精准交错延迟 */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.12s; }
+.delay-3 { animation-delay: 0.18s; }
+.delay-4 { animation-delay: 0.24s; }
+.delay-5 { animation-delay: 0.30s; }
+.delay-6 { animation-delay: 0.36s; }
+
+@keyframes sleekFadeUp { 
+  0% { opacity: 0; transform: translateY(40rpx); }
+  100% { opacity: 1; transform: translateY(0); } 
+}
+@keyframes sleekPopIn {
+  0% { opacity: 0; transform: scale(0.8); }
+  70% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 /* ==========================================
    1. 基础架构与背景
 ========================================== */
@@ -578,7 +618,7 @@ export default {
 }
 
 /* ==========================================
-   ✨ 下拉菜单 
+   ✨ 下拉菜单 (保持交互动画)
 ========================================== */
 .dropdown-menu {
   position: absolute;
@@ -853,21 +893,4 @@ export default {
   height: 160rpx;
 }
 
-/* ==========================================
-   8. 动画进场类
-========================================== */
-.fade-in-up { 
-  opacity: 0; 
-  animation: fadeInUp 0.5s cubic-bezier(0.1, 0.7, 0.1, 1) forwards; 
-}
-.delay-1 { animation-delay: 0.05s; }
-.delay-2 { animation-delay: 0.1s; }
-.delay-3 { animation-delay: 0.15s; }
-.delay-4 { animation-delay: 0.2s; }
-.delay-5 { animation-delay: 0.25s; }
-
-@keyframes fadeInUp { 
-  0% { opacity: 0; transform: translateY(30rpx); }
-  100% { opacity: 1; transform: translateY(0); } 
-}
 </style>

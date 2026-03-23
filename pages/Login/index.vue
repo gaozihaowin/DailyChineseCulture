@@ -1,6 +1,5 @@
 <template>
 	<view class="page-container">
-		<!-- 状态栏占位 (Rule 1) -->
 		<view :style="{ height: statusBarHeight + 'px' }"></view>
 		<view class="mobile-frame">
 			
@@ -37,19 +36,24 @@
 					<view class="input-icon-box">
 						<view class="css-icon-lock">
 							<view class="lock-shackle"></view>
-							<view class="lock-body"></view>
+							<view class="lock-body">
+								<view class="lock-dot"></view>
+							</view>
 						</view>
 					</view>
 					<input 
 						class="form-input" 
-						:type="showPassword ? 'text' : 'password'"
+						type="text"
+						:password="!showPassword"
 						v-model="password"
 						placeholder="请输入密码"
 						placeholder-class="custom-placeholder"
 						@input="onPasswordInput"
 					/>
 					<view class="toggle-password" @tap="togglePassword">
-						<view :class="['eye-icon', showPassword ? 'eye-open' : '']"></view>
+						<view class="eye-btn" :class="{ 'eye-active': showPassword }">
+							<view class="icon-eye" :class="!showPassword ? 'icon-eye-closed' : ''"></view>
+						</view>
 					</view>
 				</view>
 
@@ -60,7 +64,7 @@
 					:disabled="!isFormValid || isLoading || !isAgree"
 				>
 					<text v-if="isLoading">登录中...</text>
-					<text v-else>登录/注册</text>
+					<text v-else>登录 / 注册</text>
 				</button>
 
 				<view class="links-row">
@@ -78,8 +82,8 @@
 				</view>
 				
 				<button class="btn-wechat" @tap="wechatLogin" hover-class="wechat-hover">
-						<text class="wechat-text">微信一键登录</text>
-					</button>
+					<text class="wechat-text">微信一键登录</text>
+				</button>
 				
 				<view class="agreement-group" @tap="toggleAgree">
 					<view class="agree-checkbox" :class="isAgree ? 'agree-checked' : ''">
@@ -96,7 +100,7 @@
 
 		</view>
 
-		 <view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
+		<view v-if="showWxAuthModal" class="wx-auth-modal" @tap="hideWxAuthModal">
 			<view class="wx-auth-content" @tap.stop>
 				<view class="wx-auth-title">完善登录资料</view>
 				<view class="wx-auth-desc">选择你的微信头像和昵称，完成登录</view>
@@ -227,7 +231,7 @@ export default {
 									if (isComplete === false) {
 										console.log('用户信息不完整，跳转到学员端信息补全页面');
 										uni.reLaunch({ 
-											url: '/pages/Login/complete-info', // 学员端补全页
+											url: '/pages/Login/complete-info',
 											success: (res) => {
 												console.log('跳转到信息补全页面成功', res);
 											},
@@ -519,6 +523,7 @@ export default {
 	margin-top: 12rpx;
 }
 
+/* ================= 输入框容器优化 ================= */
 .form-section {
 	padding: 0 70rpx;
 	z-index: 1;
@@ -530,26 +535,30 @@ export default {
 .form-input {
 	width: 100%;
 	height: 110rpx;
-	padding: 0 100rpx;
-	background-color: #ffffff;
-	border-radius: 20rpx;
+	padding: 0 100rpx; /* 左右预留图标空间 */
+	background-color: #f6f5f3; /* 柔和宣纸灰背景 */
+	border-radius: 24rpx; /* 更圆润的边缘 */
 	font-size: 30rpx;
 	color: #333;
-	box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.03);
 	box-sizing: border-box;
 	border: 2rpx solid transparent;
-	transition: all 0.3s;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .form-input:focus {
-	border-color: rgba(158, 42, 43, 0.15);
-	background-color: #fff;
+	background-color: #ffffff;
+	border-color: rgba(158, 42, 43, 0.3);
+	box-shadow: 0 8rpx 24rpx rgba(158, 42, 43, 0.06);
 }
 .form-input[disabled] {
 	background-color: #f5f5f5;
 	color: #999;
 }
-.custom-placeholder { color: #c4c4c4; font-size: 28rpx; }
+.custom-placeholder { 
+	color: #b8b3b3; 
+	font-size: 28rpx; 
+}
 
+/* ================= 左侧前置图标优化 ================= */
 .input-icon-box {
 	position: absolute;
 	left: 36rpx;
@@ -560,73 +569,116 @@ export default {
 	justify-content: center;
 	z-index: 10;
 }
+
+/* 优化后的账号Icon */
 .css-icon-user {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 }
 .user-head {
-	width: 18rpx;
-	height: 18rpx;
-	border: 3rpx solid #9e2a2b;
+	width: 16rpx;
+	height: 16rpx;
+	border: 3.5rpx solid #9e2a2b;
 	border-radius: 50%;
 	margin-bottom: 2rpx;
 }
 .user-body {
-	width: 30rpx;
-	height: 14rpx;
-	border: 3rpx solid #9e2a2b;
+	width: 28rpx;
+	height: 12rpx;
+	border: 3.5rpx solid #9e2a2b;
 	border-radius: 16rpx 16rpx 0 0;
 	border-bottom: none;
 }
+
+/* 优化后的密码锁Icon */
 .css-icon-lock {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 }
 .lock-shackle {
-	width: 14rpx;
-	height: 12rpx;
-	border: 3rpx solid #9e2a2b;
+	width: 12rpx;
+	height: 10rpx;
+	border: 3.5rpx solid #9e2a2b;
 	border-bottom: none;
 	border-radius: 8rpx 8rpx 0 0;
 }
 .lock-body {
 	width: 26rpx;
-	height: 18rpx;
-	border: 3rpx solid #9e2a2b;
-	border-radius: 4rpx;
+	height: 20rpx;
+	border: 3.5rpx solid #9e2a2b;
+	border-radius: 6rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.lock-dot {
+	width: 4rpx;
+	height: 4rpx;
+	background-color: #9e2a2b;
+	border-radius: 50%;
 }
 
+/* ================= 右侧密码防窥小眼睛优化 ================= */
 .toggle-password {
 	position: absolute;
-	right: 40rpx;
+	right: 20rpx;
 	top: 0;
 	height: 110rpx;
 	display: flex;
 	align-items: center;
 	z-index: 10;
-	padding-left: 20rpx;
 }
-.eye-icon {
-	width: 32rpx;
+.eye-btn {
+	padding: 20rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.icon-eye {
+	width: 36rpx;
 	height: 20rpx;
-	border: 2rpx solid #ccc;
-	border-radius: 50% 50%;
+	border: 3.5rpx solid #b8b3b3;
+	border-radius: 80% 80% 80% 80% / 100% 100% 100% 100%;
 	position: relative;
+	transition: all 0.3s ease;
 }
-.eye-open { border-color: #9e2a2b; }
-.eye-open::after {
+/* 瞳孔 */
+.icon-eye::after {
 	content: '';
 	position: absolute;
-	left: 10rpx;
-	top: 4rpx;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 	width: 8rpx;
 	height: 8rpx;
-	background: #9e2a2b;
+	background-color: #b8b3b3;
 	border-radius: 50%;
+	transition: all 0.3s ease;
+}
+/* 闭眼状态的斜杠 */
+.icon-eye-closed::before {
+	content: '';
+	position: absolute;
+	top: -6rpx;
+	left: 16rpx;
+	width: 3.5rpx;
+	height: 32rpx;
+	background-color: #b8b3b3;
+	transform: rotate(45deg);
+	z-index: 2;
+	border-radius: 2rpx;
+}
+/* 睁眼点亮状态 */
+.eye-active .icon-eye {
+	border-color: #9e2a2b;
+}
+.eye-active .icon-eye::after {
+	background-color: #9e2a2b;
 }
 
+/* ================= 按钮与下方链接 ================= */
 .btn-login {
 	width: 100%;
 	height: 110rpx;
@@ -635,18 +687,18 @@ export default {
 	color: #fff;
 	font-size: 34rpx;
 	font-weight: bold;
-	border-radius: 20rpx;
+	border-radius: 24rpx; /* 与输入框统一圆角 */
 	box-shadow: 0 16rpx 36rpx rgba(158, 42, 43, 0.2);
 	margin-top: 40rpx;
 	letter-spacing: 12rpx;
 	transition: all 0.3s ease;
 }
 .btn-login::after { border: none; }
-.btn-hover-active { transform: scale(0.98); opacity: 0.95; }
+.btn-hover-active { transform: scale(0.98); opacity: 0.95; box-shadow: 0 8rpx 20rpx rgba(158, 42, 43, 0.15); }
 .btn-login[disabled] {
-	background: linear-gradient(135deg, #cccccc, #999999);
-	box-shadow: 0 8rpx 16rpx rgba(0, 0, 0, 0.1);
-	opacity: 0.7;
+	background: linear-gradient(135deg, #d3caca, #b8b3b3);
+	box-shadow: 0 8rpx 16rpx rgba(0, 0, 0, 0.05);
+	opacity: 0.8;
 	pointer-events: none;
 }
 
@@ -666,6 +718,7 @@ export default {
 .link-text { color: #888; }
 .link-text.highlight { color: #9e2a2b; font-weight: bold; }
 
+/* ================= 底部区域 ================= */
 .footer-section {
   margin-top: 120rpx;
   padding: 0 70rpx 80rpx;
@@ -682,7 +735,7 @@ export default {
 .btn-wechat {
 	width: 100%;
 	height: 100rpx;
-  background-color: #07c160 !important;
+	background-color: #07c160 !important;
 	border-radius: 50rpx;
 	display: flex;
 	align-items: center;
@@ -715,6 +768,7 @@ export default {
 	align-items: center;
 	justify-content: center;
 	margin-right: 12rpx;
+	transition: all 0.2s;
 }
 .agree-checked {
 	background-color: #9e2a2b;
@@ -731,6 +785,7 @@ export default {
 }
 .highlight-text { color: #9e2a2b; }
 
+/* ================= 微信授权弹窗 ================= */
 .wx-auth-modal {
   position: fixed;
   top: 0;

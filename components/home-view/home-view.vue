@@ -1,7 +1,7 @@
 <template>
   <view class="view-container">
     
-    <view class="header">
+    <view class="header" :class="{ 'animate-fade-down': isFirstLoad }">
       <view class="logo-text">
         <text class="logo-seal">良知</text>
         <text>致良知教育</text>
@@ -16,7 +16,7 @@
 
     <scroll-view scroll-y class="scroll-content">
       
-      <view class="hero-banner">
+      <view class="hero-banner" :class="{ 'animate-slide-up-1': isFirstLoad }">
         <view class="hero-title">致良知教育研究院</view>
         <view class="hero-subtitle">让身边多一位致良知的中国人</view>
         <view class="quote-box">
@@ -27,9 +27,11 @@
 
       <view class="grid-nav">
         <view 
-          class="nav-item" 
+          class="nav-item"
+          :class="{ 'animate-pop-in': isFirstLoad }" 
           v-for="(item, index) in navList" 
           :key="index"
+          :style="{ 'animation-delay': isFirstLoad ? (index * 0.08 + 0.1) + 's' : '0s' }"
           @click="handleNavClick(item, index)"
         >
           <view class="icon-box" :style="{ backgroundColor: item.bgColor }">
@@ -39,7 +41,7 @@
         </view>
       </view>
 
-      <view class="wisdom-section">
+      <view class="wisdom-section" :class="{ 'animate-slide-up-2': isFirstLoad }">
         <view class="wisdom-border">
           <text class="wisdom-text">种树者必培其根，种德者必养其心。</text>
           <view class="wisdom-footer">
@@ -48,7 +50,7 @@
         </view>
       </view>
 
-      <view class="section-header">
+      <view class="section-header" :class="{ 'animate-slide-up-3': isFirstLoad }">
         <text class="section-title">热门课程</text>
         <view class="section-more" hover-class="more-hover" @click="goToAllCourses">
           <text class="more-text">全部课程</text>
@@ -57,7 +59,14 @@
       </view>
 
       <view class="course-list">
-        <view class="course-card" v-for="(course, index) in courseList" :key="index" @click="goToDetail(course.id)">
+        <view 
+          class="course-card"
+          :class="{ 'animate-slide-up-stagger': isFirstLoad }" 
+          v-for="(course, index) in courseList" 
+          :key="index" 
+          :style="{ 'animation-delay': isFirstLoad ? (index * 0.1 + 0.3) + 's' : '0s' }"
+          @click="goToDetail(course.id)"
+        >
           
           <view class="card-thumb" :style="{ background: colorMap[course.type] || colorMap['默认'] }">
             <view class="thumb-tag" v-if="course.tag">{{ course.tag }}</view>
@@ -75,7 +84,7 @@
         </view>
       </view>
       
-      <view class="footer-art">
+      <view class="footer-art" :class="{ 'animate-fade-in-slow': isFirstLoad }">
         <view class="art-line"></view>
         
         <view class="art-content">
@@ -105,19 +114,19 @@
         <view class="popup-body">
           <view class="tree-structure">
             <view class="tree-node level-1">
-              <view class="node-content">致知班</view>
+              <view class="node-content node-anim-1">致知班</view>
             </view>
-            <view class="tree-connector"></view>
+            <view class="tree-connector conn-anim-1"></view>
             <view class="tree-node level-2">
-              <view class="node-content">格物班</view>
+              <view class="node-content node-anim-2">格物班</view>
             </view>
-            <view class="tree-connector"></view>
+            <view class="tree-connector conn-anim-2"></view>
             <view class="tree-node level-3">
-              <view class="node-content">正心班</view>
+              <view class="node-content node-anim-3">正心班</view>
             </view>
-            <view class="tree-connector"></view>
+            <view class="tree-connector conn-anim-3"></view>
             <view class="tree-node level-4">
-              <view class="node-content">诚意班</view>
+              <view class="node-content node-anim-4">诚意班</view>
             </view>
           </view>
         </view>
@@ -141,6 +150,9 @@ export default {
    * ------------------------------------------------------------------ */
   data() {
     return {
+      // 【新增】首次加载控制标识
+      isFirstLoad: true,
+      
       // 导航配置：四大核心班级
       navList: [
         { name: '明理班', iconUrl: 'https://img.icons8.com/fluency/96/books.png',   bgColor: '#FFF0F0' },
@@ -149,7 +161,7 @@ export default {
         { name: '良知班', iconUrl: 'https://img.icons8.com/color/96/brain.png',    bgColor: '#F0FFF4' }
       ],
       
-      // 【新增】前端本地维护的班级颜色映射表
+      // 前端本地维护的班级颜色映射表
       colorMap: {
         '诚意班': 'linear-gradient(135deg, #8a2021, #b53b3c)',
         '明理班': 'linear-gradient(135deg, #1e3c72, #2a5298)',
@@ -173,6 +185,11 @@ export default {
    * ------------------------------------------------------------------ */
   mounted() {
     this.fetchHotCourses();
+    
+    // 【新增】在最长的一波入场动画完成后，解除动画绑定，保证后续切换零延迟
+    setTimeout(() => {
+      this.isFirstLoad = false;
+    }, 2000); // 2秒足以覆盖所有 stagger 和 slow-fade 动画
   },
   
   /** ------------------------------------------------------------------
@@ -249,6 +266,39 @@ export default {
 </script>
 
 <style scoped>
+/* =========================================================================
+   [0] 动画定义区 (Animations)
+   ========================================================================= */
+@keyframes fadeSlideDown {
+  0% { opacity: 0; transform: translateY(-30rpx); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(40rpx); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.85); }
+  70% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes slowFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes growLine {
+  0% { height: 0; opacity: 0; }
+  100% { height: 40rpx; opacity: 1; }
+}
+
+.animate-fade-down { animation: fadeSlideDown 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.animate-slide-up-1 { opacity: 0; animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s forwards; }
+.animate-slide-up-2 { opacity: 0; animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s forwards; }
+.animate-slide-up-3 { opacity: 0; animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards; }
+.animate-pop-in { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-slide-up-stagger { opacity: 0; animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.animate-fade-in-slow { opacity: 0; animation: slowFadeIn 1.2s ease 0.6s forwards; }
+
 /* =========================================================================
    [1] 全局与基础布局 (Global Layout)
    ========================================================================= */
@@ -372,6 +422,7 @@ export default {
   border: 1px solid rgba(158, 42, 43, 0.05);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .icon-box::before {
   content: '';
@@ -383,10 +434,9 @@ export default {
   background: radial-gradient(circle, rgba(158, 42, 43, 0.05) 0%, transparent 70%);
   transform: rotate(45deg);
 }
-.icon-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15rpx 40rpx rgba(158, 42, 43, 0.12);
-  transition: all 0.3s ease;
+.icon-box:active {
+  transform: scale(0.9);
+  box-shadow: 0 4rpx 15rpx rgba(158, 42, 43, 0.05);
 }
 .nav-label { 
   font-size: 26rpx; 
@@ -438,14 +488,14 @@ export default {
 }
 
 /* =========================================================================
-   [6] 课程列表区 (Course List - 优化视觉比例)
+   [6] 课程列表区 (Course List)
    ========================================================================= */
 .section-header {
   padding: 0 40rpx;
   margin-bottom: 30rpx;
   display: flex;
   justify-content: space-between;
-  align-items: center; /* 确保文字居中对齐 */
+  align-items: center; 
 }
 .section-title {
   font-size: 38rpx;
@@ -456,7 +506,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 4rpx;
-  padding: 10rpx 0 10rpx 20rpx; /* 增加点击热区 */
+  padding: 10rpx 0 10rpx 20rpx; 
   transition: opacity 0.2s;
 }
 .more-hover {
@@ -478,14 +528,15 @@ export default {
   display: flex; 
   gap: 24rpx; 
   box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.03); 
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .course-card:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.02); 
 }
 .card-thumb { 
   width: 200rpx; 
-  height: 200rpx; /* 将高度适当拉长，容纳下标题和角标 */
+  height: 200rpx; 
   border-radius: 24rpx; 
   display: flex; 
   flex-direction: column; 
@@ -495,7 +546,7 @@ export default {
   text-align: center; 
   position: relative; 
   flex-shrink: 0; 
-  overflow: hidden; /* 防止左上角角标溢出圆角 */
+  overflow: hidden; 
 }
 .thumb-title { font-size: 36rpx; font-weight: 900; letter-spacing: 2rpx; }
 .thumb-sub { font-size: 22rpx; opacity: 0.9; margin-top: 8rpx; }
@@ -503,7 +554,7 @@ export default {
   position: absolute; 
   top: 0; 
   left: 0; 
-  background: linear-gradient(90deg, #d4af37, #c5a065); /* 给角标增加高级渐变 */
+  background: linear-gradient(90deg, #d4af37, #c5a065); 
   color: #fff; 
   font-size: 18rpx; 
   padding: 6rpx 16rpx; 
@@ -523,7 +574,7 @@ export default {
   color: #2d2424; 
   line-height: 1.5; 
   display: -webkit-box; 
-  -webkit-line-clamp: 2; /* 标题最多显示两行 */
+  -webkit-line-clamp: 2; 
   -webkit-box-orient: vertical; 
   overflow: hidden; 
 }
@@ -617,10 +668,10 @@ export default {
   background: #fff;
   border-radius: 24rpx;
   box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.2);
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
 }
-@keyframes slideUp { from { transform: translateY(50rpx); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(60rpx); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 .popup-header {
   display: flex;
@@ -711,4 +762,14 @@ export default {
   transform: scale(0.95);
   box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
 }
+
+/* 弹窗内进阶动画 (依次出现) */
+.node-anim-1 { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s forwards; }
+.conn-anim-1 { opacity: 0; animation: growLine 0.4s ease 0.3s forwards; }
+.node-anim-2 { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards; }
+.conn-anim-2 { opacity: 0; animation: growLine 0.4s ease 0.7s forwards; }
+.node-anim-3 { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s forwards; }
+.conn-anim-3 { opacity: 0; animation: growLine 0.4s ease 1.1s forwards; }
+.node-anim-4 { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s forwards; }
+
 </style>
