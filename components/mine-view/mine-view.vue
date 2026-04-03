@@ -172,7 +172,7 @@ export default {
         { text: '我的考试', iconUrl: 'https://img.icons8.com/color/96/test-passed.png', bgColor: '#F0FFF4' }
       ],
       commonServices: [
-        { text: '咨询服务单', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#FFF5F5', extra: '' },
+        { text: '管理员申请', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#FFF5F5', extra: '' },
         { text: '返现与提现', iconUrl: 'https://img.icons8.com/fluency/48/wallet.png', bgColor: '#F5F7FA', extra: '' },
         { text: '我的社群', iconUrl: 'https://img.icons8.com/fluency/48/conference-call.png', bgColor: '#F0F9FF', extra: '加入' }
       ],
@@ -313,6 +313,8 @@ export default {
       if (!this.token) return this.toLogin();
       if (item.text === '我的课程') {
         uni.$emit('switchTab', 1);
+      } else if (item.text === '管理员申请') {
+        uni.navigateTo({ url: '/pages/Mine/apply-admin/index' });
       } else if (item.path) {
         uni.navigateTo({ url: item.path });
       } else {
