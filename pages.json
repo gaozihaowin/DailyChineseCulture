@@ -32,6 +32,12 @@
 			}
 		},
 		{
+			"path": "pages/Mine/apply-admin/list",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
 		        "path": "pages/Main/index",
 		        "style": { "navigationStyle": "custom" }
 		},

@@ -169,7 +169,7 @@ export default {
         { text: '我的课程', iconUrl: 'https://img.icons8.com/color/96/books.png', bgColor: '#FFF0F0' },
         { text: '我的订单', iconUrl: 'https://img.icons8.com/color/96/purchase-order.png', bgColor: '#F0F8FF' },
         { text: '我的证书', iconUrl: 'https://img.icons8.com/color/96/best-seller.png', bgColor: '#FFFAF0' },
-        { text: '我的考试', iconUrl: 'https://img.icons8.com/color/96/test-passed.png', bgColor: '#F0FFF4' }
+        { text: '申请记录', iconUrl: 'https://img.icons8.com/fluency/48/clipboard.png', bgColor: '#F0FFF4', path: '/pages/Mine/apply-admin/list' }
       ],
       commonServices: [
         { text: '管理员申请', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#FFF5F5', extra: '' },

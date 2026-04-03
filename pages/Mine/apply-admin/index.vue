@@ -170,9 +170,10 @@ const handleSubmit = async () => {
         uni.navigateBack();
       }, 1500);
     } else {
+      const errorMsg = resData.message || resData.msg || '提交失败，请重试';
       uni.showModal({
-        title: '提交失败',
-        content: resData.msg || '未知错误，请稍后重试',
+        title: '提示',
+        content: errorMsg,
         showCancel: false
       });
     }
