@@ -59,9 +59,7 @@
 		},
 		{
 			"path": "pages/volunteer/homework/statslist",
-			"style": {
-				"navigationBarTitleText": ""
-			}
+				"style": { "navigationStyle": "custom" }
 		},
 		{
 			"path": "pages/volunteer-history/volunteer-history",
@@ -88,6 +86,31 @@
 				"navigationBarTextStyle": "black",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/chat-group/chatdetail",
+			"style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "pages/chat-group/chatindex",
+			"style": { "navigationStyle": "custom" }
+		},
+		{
+		        "path": "pages/volunteer/homework/homework-list",
+		        "style": { "navigationStyle": "custom" }
+		},{
+			"path": "pages/volunteer-manage/member-list",
+			"style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "components/chat-view/chat-view",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/chat-group/add-member",
+			"style": { "navigationStyle": "custom" }
 		}
 	],
 	"globalStyle": {
