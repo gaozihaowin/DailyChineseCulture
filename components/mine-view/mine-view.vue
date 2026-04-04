@@ -266,46 +266,44 @@ export default {
     },
     
     async switchIdentity(role) {
-      if (this.currentIdentity === role.name) { 
-        this.isIdentityOpen = false; 
-        return; 
+      if (this.currentIdentity === role.name) {
+        this.isIdentityOpen = false;
+        return;
       }
-      
+    
       if (!this.token) return this.toLogin();
       uni.showLoading({ title: '切换中...', mask: true });
-      
+    
       try {
         const res = await uni.request({
-          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.switchIdentity}`,
+          url: `${API_CONFIG.baseUrl}/app/user/switch-identity`, // ✅ 写死正确地址
           method: 'POST',
-          header: { 'Authorization': `Bearer ${this.token}`, 'content-type': 'application/json' },
-          data: { user_id: this.userInfo.user_id, identity: role.name }
-        });
-        
-        if (res.statusCode === 200 && res.data.code === 200) {
-          // 切换成功，保存新的 Token
-          if (res.data.data.token) {
-            this.token = res.data.data.token;
-            uni.setStorageSync('token', res.data.data.token);
+          header: {
+            'Authorization': `Bearer ${this.token}`,
+            'content-type': 'application/json'
+          },
+          data: {
+            identity: role.name
           }
-
-          // 将目标身份存入全局，准备跳转
+        });
+    
+        if (res.statusCode === 200 && res.data.code === 200) {
           uni.setStorageSync('currentIdentity', role.name);
-          this.isIdentityOpen = false; 
+          this.isIdentityOpen = false;
           uni.hideLoading();
           uni.showToast({ title: `已切换为${role.name}`, icon: 'success' });
-          
+    
           setTimeout(() => {
             const targetUrl = role.name === '志愿者端' ? '/pages/volunteer/index' : '/pages/Main/index';
             uni.reLaunch({ url: targetUrl });
           }, 300);
         } else {
-          uni.hideLoading(); 
-          uni.showToast({ title: res.data.msg || '切换身份失败', icon: 'none' });
+          uni.hideLoading();
+          uni.showToast({ title: res.data?.msg || '切换失败', icon: 'none' });
         }
       } catch (error) {
-        uni.hideLoading(); 
-        uni.showToast({ title: '网络连接异常', icon: 'none' });
+        uni.hideLoading();
+        uni.showToast({ title: '网络异常', icon: 'none' });
       }
     },
     
