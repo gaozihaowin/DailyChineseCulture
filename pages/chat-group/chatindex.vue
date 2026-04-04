@@ -1,0 +1,435 @@
+<template>
+  <view class="view-container">
+    <view class="art-header"> 
+      <view class="nav-bar"> 
+        <view class="back-btn" @tap="navBack">
+          <view class="back-arrow"></view>
+        </view>
+        <view class="nav-brand"> 
+          <text class="brand-en">ZHI LIANG ZHI</text> 
+          <text class="brand-cn">群聊管理</text> 
+        </view> 
+        <view class="placeholder"></view>
+      </view> 
+    </view>
+
+    <scroll-view 
+      scroll-y 
+      class="scroll-content"
+      :enhanced="true"
+      :show-scrollbar="true"
+      v-if="managementScopes.length > 0"
+    >
+      <view class="content-wrapper"> 
+        <view class="section-box scope-selector"> 
+          <view class="selector-title">选择管理范围：</view> 
+          <scroll-view class="scope-list" scroll-x> 
+            <view 
+              v-for="scope in managementScopes" 
+              :key="scope.id" 
+              class="scope-item" 
+              :class="{ active: selectedScope === scope }" 
+              @click="selectScope(scope)" 
+            > 
+              <view class="scope-duty">{{ scope.dutyType }}</view> 
+              <view class="scope-target">{{ scope.fullName }}</view>
+            </view>
+          </scroll-view> 
+        </view> 
+
+        <view class="section-box task-content">
+          <view v-if="isLoading" class="empty-tip">
+            <text>加载中...</text>
+          </view>
+        
+          <view v-if="!hasCreatedAllRequiredGroups" class="create-btn-box">
+            <text class="empty-text">当前范围未创建完成群聊</text>
+            <button class="create-btn" @click="handleCreateAllGroups">
+              一键创建当前范围所有群聊
+            </button>
+          </view>
+
+          <view class="group-list-container" v-if="groupList.length > 0">
+            <view class="section-title">我的群聊</view>
+            
+            <view 
+              v-for="group in groupList" 
+              :key="group.chatId" 
+              class="group-item"
+              @click="openGroupChat(group)"
+            >
+              <view class="group-tag" :class="group.typeTagClass">
+                {{ group.typeText }}
+              </view>
+              <view class="group-name">{{ group.name }}</view>
+              <view v-if="group.unreadCount > 0" class="unread-badge">
+                {{ group.unreadCount }}
+              </view>
+            </view>
+          </view>
+
+          <view v-else-if="hasCreatedAllRequiredGroups && groupList.length === 0" class="empty-tip">
+            <text>暂无群聊</text>
+          </view>
+        </view>
+
+        <view class="safe-area-spacer"></view> 
+      </view>
+    </scroll-view>
+
+    <view v-else class="no-scope-tip"> 
+      <text>暂无管理范围权限</text> 
+    </view>
+  </view>
+</template>
+
+<script>
+import { API_CONFIG } from '../../api/config.js';
+
+export default {
+  data() {
+    return {
+      token: '',
+      managementScopes: [],
+      selectedScope: null,
+      groupList: [],
+      hasCreatedAllRequiredGroups: false,
+      isLoading: false
+    };
+  },
+  mounted() {
+    this.token = uni.getStorageSync('token');
+    this.getManagementScopes();
+  },
+  methods: {
+    navBack() {
+      uni.navigateBack();
+    },
+    getManagementScopes() {
+      if (!this.token) {
+        uni.showToast({ title: '请先登录', icon: 'none' });
+        return;
+      }
+      this.isLoading = true;
+      uni.request({
+        url: `${API_CONFIG.baseUrl}/volunteer/scopes`,
+        header: { Authorization: `Bearer ${this.token}` },
+        success: (res) => {
+          this.isLoading = false;
+          if (res.data.code === 200) {
+            this.managementScopes = this.formatScopeData(res.data.data);
+            if (this.managementScopes.length > 0) {
+              this.selectedScope = this.managementScopes[0];
+              this.loadGroupListByScope();
+            }
+          }
+        }
+      });
+    },
+
+    formatScopeData(data) {
+      let scopes = [];
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          const targetType = item.targetType;
+          let id = null;
+          let fullName = '';
+          const campName = item.campName || '';
+          const campId = item.campId;
+
+          if (targetType === 'class') {
+            id = item.classId || item.id;
+            fullName = campName ? `${campName}-${item.className || item.name}` : (item.className || item.name);
+          } else if (targetType === 'big_group') {
+            id = item.bigGroupId || item.id;
+            const groupName = item.className ? `${item.className}-${item.bigGroupName}` : (item.bigGroupName || item.name);
+            fullName = campName ? `${campName}-${groupName}` : groupName;
+          } else if (targetType === 'small_group') {
+            id = item.smallGroupId || item.id;
+            const groupName = item.className ? `${item.className}-${item.bigGroupName || ''}-${item.smallGroupName}` : (item.smallGroupName || item.name);
+            fullName = campName ? `${campName}-${groupName}` : groupName;
+          }
+
+          if (id) {
+            scopes.push({
+              ...item,
+              campId: campId,
+              id: id,
+              fullName: fullName
+            });
+          }
+        });
+      }
+      return scopes;
+    },
+
+    selectScope(scope) {
+      this.selectedScope = scope;
+      this.loadGroupListByScope();
+    },
+
+    loadGroupListByScope() {
+      if (!this.selectedScope) return;
+      this.isLoading = true;
+
+      uni.request({
+        url: `${API_CONFIG.baseUrl}/group-chat/list`,
+        header: { Authorization: `Bearer ${this.token}` },
+        data: {
+          dutyType: this.selectedScope.dutyType,
+          targetId: this.selectedScope.id
+        },
+        success: (res) => {
+          this.isLoading = false;
+          if (res.data.code === 200) {
+            this.groupList = res.data.data.map(item => {
+              let typeTagClass, typeText, memberDesc;
+              if (item.type === '班级群') {
+                typeTagClass = 'class';
+                typeText = '班级群';
+              } else if (item.type === '大组群') {
+                typeTagClass = 'big';
+                typeText = '大组群';
+              } else {
+                typeTagClass = 'small';
+                typeText = '小组群';
+              }
+              return {
+                ...item,
+                typeTagClass,
+                typeText,
+                memberDesc,
+                unreadCount: item.unreadCount || 0
+              };
+            });
+
+            const dutyType = this.selectedScope.dutyType;
+            const hasClassGroup = this.groupList.some(g => g.type === '班级群');
+            const hasBigGroup = this.groupList.some(g => g.type === '大组群');
+            const hasSmallGroup = this.groupList.some(g => g.type === '小组群');
+            
+            if (["学组", "检组"].includes(dutyType)) {
+              this.hasCreatedAllRequiredGroups = hasSmallGroup;
+            } 
+            else if (["学委", "检委"].includes(dutyType)) {
+              this.hasCreatedAllRequiredGroups = hasBigGroup && hasSmallGroup;
+            } 
+            else if (["学班", "检班"].includes(dutyType)) {
+              this.hasCreatedAllRequiredGroups = hasClassGroup && hasBigGroup && hasSmallGroup;
+            } 
+            else {
+              this.hasCreatedAllRequiredGroups = false;
+            }
+          }
+        },
+        fail: () => {
+          this.isLoading = false;
+          this.hasCreatedAllRequiredGroups = false;
+          this.groupList = [];
+        }
+      });
+    },
+
+    handleCreateAllGroups() {
+      const s = this.selectedScope;
+      if (!s) {
+        uni.showToast({ title: "请选择管理范围", icon: "none" });
+        return;
+      }
+
+      uni.showModal({
+        title: '确认创建',
+        content: `确定为【${s.fullName}】创建所有群聊吗？`,
+        success: (ok) => {
+          if (ok.confirm) {
+            uni.showLoading({ title: "创建中..." });
+            
+            uni.request({
+              url: `${API_CONFIG.baseUrl}/group-chat/auto-create`,
+              method: 'POST',
+              header: {
+                Authorization: `Bearer ${this.token}`,
+                "Content-Type": "application/json"
+              },
+              data: {
+                campId: s.campId,
+                targetId: s.id,
+                dutyType: s.dutyType
+              },
+              success: (res) => {
+                uni.hideLoading();
+                let result = res.data || res;
+                
+                if (result.code === 200 || result.msg?.includes("已存在") || result.msg?.includes("重复")) {
+                  uni.showToast({ title: "创建成功", icon: "success" });
+                } else {
+                  uni.showToast({ title: result.msg || "创建完成", icon: "success" });
+                }
+                
+                setTimeout(() => this.loadGroupListByScope(), 800);
+              },
+              fail: (err) => {
+                uni.hideLoading();
+                uni.showToast({ title: "创建完成", icon: "success" });
+                setTimeout(() => this.loadGroupListByScope(), 800);
+              }
+            });
+          }
+        }
+      });
+    },
+
+    openGroupChat(group) {
+      uni.navigateTo({
+        url: `/pages/chat-group/chatdetail?chatId=${group.chatId}&name=${group.name}`
+      });
+    }
+  }
+};
+</script>
+
+<style scoped>
+.view-container {
+  height: 100vh; 
+  display: flex;
+  flex-direction: column;
+  background-color: #F4F4F5;
+  width: 100%;
+  overflow-x: hidden; 
+  position: relative;
+}
+.art-header { 
+  background: linear-gradient(160deg, #A31D1D 0%, #851212 100%);
+  padding: 88rpx 30rpx 30rpx;
+  border-bottom-left-radius: 48rpx;
+  border-bottom-right-radius: 48rpx;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0; 
+  margin-bottom: 30rpx;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999;
+} 
+.nav-bar { 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20rpx;
+  margin-bottom: 30rpx;
+  width: 100%;
+} 
+
+.back-btn {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.back-arrow {
+  width: 20rpx;
+  height: 20rpx;
+  border-top: 3rpx solid #fff;
+  border-left: 3rpx solid #fff;
+  transform: rotate(-45deg);
+}
+.placeholder { width: 48rpx; height: 48rpx; }
+.nav-brand { flex: 1; text-align: center; } 
+.brand-en { font-size: 18rpx; color: rgba(255,255,255,0.5); display: block; margin-bottom: 4rpx; } 
+.brand-cn { font-size: 36rpx; font-weight: bold; color: #fff; }
+.scroll-content {
+  flex: 1;
+  height: 0; 
+  box-sizing: border-box; 
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden; 
+  padding-top: 220rpx;
+}
+.content-wrapper { padding: 0 30rpx; box-sizing: border-box; min-height: calc(100% + 1px); }
+.section-box { 
+  background: #fff;
+  margin: 30rpx 0; 
+  border-radius: 24rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.02);
+  width: 100%;
+  box-sizing: border-box;
+}
+.scope-selector .selector-title { font-size: 28rpx; color: #333; margin-bottom: 20rpx; font-weight: bold; }
+.scope-list { white-space: nowrap; }
+.scope-item {
+  display: inline-block;
+  padding: 15rpx 25rpx;
+  margin-right: 15rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  background: #fafafa;
+  min-width: 200rpx;
+}
+.scope-item.active { border-color: #A31D1D; background: #fdf2f2; }
+.scope-duty { font-size: 24rpx; color: #A31D1D; font-weight: bold; margin-bottom: 5rpx; }
+.scope-target { font-size: 22rpx; color: #666; }
+.task-content { padding: 10rpx 0; }
+.empty-tip { text-align: center; padding: 80rpx 0; color: #999; font-size: 28rpx; } 
+.create-btn-box { text-align: center; padding: 20rpx 0 40rpx; }
+.empty-text { display: block; font-size: 28rpx; color: #999; margin-bottom: 30rpx; }
+.create-btn { background-color: #A31D1D; color: #fff; padding: 20rpx 30rpx; border-radius: 16rpx; font-size: 28rpx; border: none; }
+
+.section-title { 
+  font-size: 28rpx; 
+  font-weight: bold; 
+  margin: 0 20rpx 20rpx 20rpx;
+  color: #333; 
+  padding-bottom: 10rpx; 
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.group-item { 
+  padding: 25rpx 20rpx; 
+  border-bottom: 1rpx solid #f0f0f0; 
+  position: relative; 
+  border-radius: 12rpx;
+  margin-bottom: 6rpx;
+}
+.group-item:last-child {
+  border-bottom: none;
+}
+.group-item:active {
+  background: #f7f7f7;
+}
+
+.group-tag { position: absolute; right: 20rpx; top: 25rpx; padding: 6rpx 12rpx; border-radius: 8rpx; font-size: 20rpx; color: #fff; }
+.group-tag.class { background-color: #A31D1D; }
+.group-tag.big { background-color: #4CAF50; }
+.group-tag.small { background-color: #2196F3; }
+.group-name { font-size: 30rpx; font-weight: bold; margin-bottom: 10rpx; color: #333; }
+.group-desc { font-size: 24rpx; color: #999; }
+.unread-badge {
+  position: absolute;
+  right: 20rpx;
+  bottom: 20rpx;
+  background-color: #ff4d4f;
+  color: #fff;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+}
+.no-scope-tip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #999;
+  background-color: #F4F4F5;
+  padding-top: 220rpx;
+}
+.safe-area-spacer { height: 200rpx; }
+</style>
