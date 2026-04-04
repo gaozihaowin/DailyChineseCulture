@@ -7,10 +7,7 @@
       <home-view v-show="currentTab === 0"></home-view>
       <course-view v-show="currentTab === 1"></course-view>
       <mine-view v-show="currentTab === 2"></mine-view>
-      <view v-show="currentTab === 3" class="placeholder-page">
-        <uni-icons type="chat-filled" size="80" color="#e0e0e0"></uni-icons>
-        <text class="tip-text">聊天页面 正在开发</text>
-      </view>
+      <chat-view v-show="currentTab === 3"></chat-view>
     </view>
 
     <view class="bottom-nav-wrapper">
@@ -56,10 +53,11 @@
   import HomeView from '@/components/home-view/home-view.vue';
   import CourseView from '@/components/course-view/course-view.vue';
   import MineView from '@/components/mine-view/mine-view.vue';
+  import ChatView from '@/components/chat-view/chat-view.vue';
 
   export default {
     name: 'IndexPage',
-    components: { HomeView, CourseView, MineView },
+    components: { HomeView, CourseView, MineView ,ChatView},
     
     data() {
       return {
