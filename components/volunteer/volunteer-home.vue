@@ -88,7 +88,7 @@ export default {
           name: '群聊', 
           iconUrl: 'https://img.icons8.com/ios-filled/50/9e2a2b/chat.png', 
           bgColor: '#F0FFF4',
-          path: '/pages/volunteer-chat/volunteer-chat' // 补充群聊页面路径
+          path: '/pages/chat-group/chatindex' // 补充群聊页面路径
         }
       ],
       todayDate: '',
