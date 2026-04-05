@@ -168,7 +168,8 @@ export default {
       coreServices: [
         { text: '我的课程', iconUrl: 'https://img.icons8.com/color/96/books.png', bgColor: '#FFF0F0' },
         { text: '我的订单', iconUrl: 'https://img.icons8.com/color/96/purchase-order.png', bgColor: '#F0F8FF' },
-        { text: '我的证书', iconUrl: 'https://img.icons8.com/color/96/best-seller.png', bgColor: '#FFFAF0' },
+        // ✅ 修复后的完整行，引号闭合、路径全小写
+        { text: '我的证书', iconUrl: 'https://img.icons8.com/color/96/best-seller.png', bgColor: '#FFFAF0', path: '/pages/certificate/mycertificate' },
         { text: '我的考试', iconUrl: 'https://img.icons8.com/color/96/test-passed.png', bgColor: '#F0FFF4' }
       ],
       commonServices: [
@@ -310,11 +311,26 @@ export default {
     },
     
     handleMenuClick(item) {
-      if (!this.token) return this.toLogin();
+      // 日志1：确认点击了哪个按钮
+      console.log("✅ 点击了按钮：", item);
+      
+      if (!this.token) {
+        console.log("❌ 未登录，跳转到登录页");
+        return this.toLogin();
+      }
+      
       if (item.text === '我的课程') {
         uni.$emit('switchTab', 1);
       } else if (item.path) {
-        uni.navigateTo({ url: item.path });
+        // 日志2：确认进入了跳转分支
+        console.log("🚀 准备跳转路径：", item.path);
+        uni.navigateTo({ 
+          url: item.path,
+          // 日志3：如果跳转失败，打印错误信息
+          fail: (err) => {
+            console.error("❌ 跳转失败：", err);
+          }
+        });
       } else {
         uni.showToast({ title: item.text, icon: 'none' });
       }

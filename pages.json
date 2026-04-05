@@ -6,8 +6,19 @@
     	}
   	},
 	"pages": [
+		// 【核心修复】首页必须放第一个！
 		{
-			
+		        "path": "pages/Main/index",
+		        "style": { "navigationStyle": "custom" }
+		},
+		// 我的证书页面（正常位置）
+		{
+		  "path": "pages/certificate/mycertificate",
+		  "style": {
+		    "navigationBarTitleText": "我的证书"
+		  }
+		},
+		{
 			"path": "pages/Login/index",
 			"style": {
 				"navigationStyle": "custom" 
@@ -24,10 +35,6 @@
 			"style": {
 				"navigationStyle": "custom"
 			}
-		},
-		{
-		        "path": "pages/Main/index",
-		        "style": { "navigationStyle": "custom" }
 		},
 		{
 			"path": "pages/CourseDetail/index",
