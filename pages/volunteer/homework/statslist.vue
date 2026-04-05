@@ -15,10 +15,10 @@
       <view class="nav-tabs">
         <view 
           class="nav-tab" 
-          :class="{ active: activeTab === 'completed' }"
-          @click="switchTab('completed')"
+          :class="{ active: activeTab === 'submitted' }"
+          @click="switchTab('submitted')"
         >
-          已交（{{ detailLists.completed.length }}）
+          准时（{{ detailLists.submitted.length }}）
         </view>
         <view 
           class="nav-tab" 
@@ -37,7 +37,14 @@
       </view>
     </view>
 
-    <scroll-view scroll-y class="scroll-content">
+    <scroll-view 
+      scroll-y 
+      class="scroll-content"
+      :enhanced="true"
+      :show-scrollbar="true"
+      :scroll-with-animation="true"
+      :enable-back-to-top="true"
+    >
       <view class="content-wrapper">
         <view class="section-box scope-info">
           <view class="scope-name">{{ scopeName }}</view>
@@ -53,21 +60,28 @@
               v-for="(member, index) in currentList" 
               :key="index" 
               class="member-item"
-              @click="gotoUserDetail(member.userId)"
             >
+    
               <view class="member-info">
-                <view class="basic-item">账户名: <text class="value-text">{{ member.account || '--' }}</text></view>
                 <view class="basic-item">姓名: <text class="value-text">{{ member.name || '--' }}</text></view>
                 <view class="basic-item">手机号: <text class="value-text">{{ member.phone || '--' }}</text></view>
               </view>
-              <view class="status-tag" v-if="activeTab === 'completed' && member.submitTime" :class="member.isLate ? 'late' : 'completed'">
-                {{ member.isLate ? '迟交' : '已交' }}
+           
+              <view class="status-tag completed" v-if="activeTab === 'submitted'">
+                已交
               </view>
-              <view class="status-tag pending" v-else-if="activeTab === 'pending'">未交</view>
-              <view class="status-tag late" v-else-if="activeTab === 'late'">迟交</view>
+              <view class="status-tag pending" v-else-if="activeTab === 'pending'">
+                未交
+              </view>
+              <view class="status-tag late" v-else-if="activeTab === 'late'">
+                迟交
+              </view>
             </view>
           </view>
         </view>
+
+        <!-- 底部安全区占位-->
+        <view class="safe-area-spacer"></view>
       </view>
     </scroll-view>
   </view>
@@ -80,19 +94,18 @@ export default {
   name: 'StatsList',
   data() {
     return {
-      activeTab: 'completed',
+      activeTab: 'submitted',
       selectedScopeType: '',
       selectedScopeId: '',
       selectedDate: '',
       scopeName: '',
       detailLists: {
-        completed: [],
+        submitted: [],
         pending: [],
         late: []
       },
       currentList: [],
       token: '',
-      isLoading: false
     };
   },
   onLoad(options) {
@@ -100,7 +113,7 @@ export default {
     this.selectedScopeType = options.type || '';
     this.selectedScopeId = options.id || '';
     this.selectedDate = options.date || '';
-    this.scopeName = options.scopeName || '';
+    this.scopeName = decodeURIComponent(options.scopeName || ''); // 解码中文名称
     this.getDetailLists();
   },
   watch: {
@@ -116,7 +129,9 @@ export default {
     },
     formatDate(dateStr) {
       if (!dateStr) return '';
-      const d = new Date(dateStr);
+      const compatibleDate = dateStr.replace(/\s+/g, 'T').replace(/-/g, '/');
+      const d = new Date(compatibleDate);
+      if (isNaN(d.getTime())) return '';
       return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
     },
     switchTab(tabType) {
@@ -124,11 +139,12 @@ export default {
     },
     getDetailLists() {
       if (!this.selectedScopeType || !this.selectedScopeId || !this.selectedDate) {
+        uni.showToast({ title: '参数不全', icon: 'none' });
         return;
       }
-      this.isLoading = true;
+      
       uni.request({
-        url: `${API_CONFIG.baseUrl}/homework/detailList`,
+        url: `${API_CONFIG.baseUrl}/homework/status-list`,
         method: 'GET',
         data: {
           type: this.selectedScopeType,
@@ -139,14 +155,16 @@ export default {
           'Authorization': `Bearer ${this.token}`
         },
         success: (res) => {
-          this.isLoading = false;
+          console.log('后端返回数据：', res.data); // 打印日志，方便调试
+          
           if (res.data.code === 200) {
             this.detailLists = {
-              completed: res.data.data.completed || [],
-              pending: res.data.data.pending || [],
-              late: res.data.data.late || []
+              submitted: res.data.data.submittedList || [],
+              pending: res.data.data.pendingList || [],
+              late: res.data.data.lateList || []
             };
-            this.currentList = this.detailLists.completed;
+            // 默认显示已交列表
+            this.currentList = this.detailLists.submitted;
           } else {
             uni.showToast({
               title: res.data.msg || '获取名单失败',
@@ -155,8 +173,7 @@ export default {
           }
         },
         fail: (err) => {
-          this.isLoading = false;
-          console.error('获取名单失败:', err);
+          console.error('请求失败：', err);
           uni.showToast({
             title: '网络错误，请稍后重试',
             icon: 'none'
@@ -164,46 +181,48 @@ export default {
         }
       });
     },
-    gotoUserDetail(userId) {
-      if (userId) {
-        uni.navigateTo({
-          url: `/pages/volunteer/homework/detail?userId=${userId}`
-        });
-      }
-    }
   }
 };
 </script>
 
 <style scoped>
+/* 基础布局样式 */
 .view-container {
-  min-height: 100vh;
+  height: 100vh; 
   display: flex;
   flex-direction: column;
   background-color: #F4F4F5;
   width: 100%;
-  overflow: hidden;
+  overflow: hidden; 
+  position: relative; 
 }
 
-.art-header {
+/* 顶部标题栏样式 */
+.art-header { 
   background: linear-gradient(160deg, #A31D1D 0%, #851212 100%);
   padding: 88rpx 30rpx 30rpx;
   border-bottom-left-radius: 48rpx;
   border-bottom-right-radius: 48rpx;
   width: 100%;
   box-sizing: border-box;
-  flex-shrink: 0;
-}
+  flex-shrink: 0; 
+  margin-bottom: 30rpx;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999;
+} 
 
-.nav-bar {
+.nav-bar { 
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20rpx;
   margin-bottom: 30rpx;
   width: 100%;
-}
+} 
 
+/* 返回按钮样式 */
 .back-btn {
   width: 48rpx;
   height: 48rpx;
@@ -219,17 +238,19 @@ export default {
   transform: rotate(-45deg);
 }
 
-.nav-brand {
+.nav-brand { 
   flex: 1;
   text-align: center;
-}
-.brand-en {
+} 
+
+.brand-en { 
   font-size: 18rpx;
   color: rgba(255,255,255,0.5);
   display: block;
   margin-bottom: 4rpx;
-}
-.brand-cn {
+} 
+
+.brand-cn { 
   font-size: 36rpx;
   font-weight: bold;
   color: #fff;
@@ -254,18 +275,21 @@ export default {
 
 .scroll-content {
   flex: 1;
-  width: 100%;
+  height: 0; 
   box-sizing: border-box;
-  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  padding-top: 320rpx;
+  background-color: #F4F4F5;
 }
 
 .content-wrapper {
-  padding: 0 30rpx 120rpx;
+  padding: 0 30rpx;
   box-sizing: border-box;
+  min-height: calc(100% + 1px);
 }
 
-.section-box {
+.section-box { 
   background: #fff;
   margin-bottom: 30rpx;
   border-radius: 24rpx;
@@ -275,6 +299,7 @@ export default {
   box-sizing: border-box;
 }
 
+/* 范围信息样式 */
 .scope-info {
   text-align: center;
 }
@@ -289,6 +314,7 @@ export default {
   color: #666;
 }
 
+/* 人员列表样式 */
 .member-list {
   padding: 0;
 }
@@ -321,6 +347,7 @@ export default {
   margin-left: 8rpx;
 }
 
+/* 状态标签样式 */
 .status-tag {
   padding: 8rpx 16rpx;
   border-radius: 12rpx;
@@ -342,10 +369,16 @@ export default {
   color: #FF6B35;
 }
 
-.empty-tip {
-  text-align: center;
+/* 空数据提示 */
+.empty-tip { 
+  text-align: center; 
   padding: 80rpx 0;
   color: #999;
   font-size: 28rpx;
+}
+
+/* 底部安全区*/
+.safe-area-spacer { 
+  height: 200rpx; 
 }
 </style>

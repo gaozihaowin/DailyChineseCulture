@@ -168,12 +168,15 @@ export default {
       coreServices: [
         { text: '我的课程', iconUrl: 'https://img.icons8.com/color/96/books.png', bgColor: '#FFF0F0' },
         { text: '我的订单', iconUrl: 'https://img.icons8.com/color/96/purchase-order.png', bgColor: '#F0F8FF' },
-        // ✅ 修复后的完整行，引号闭合、路径全小写
+        // 你的功能：我的证书（带跳转）
         { text: '我的证书', iconUrl: 'https://img.icons8.com/color/96/best-seller.png', bgColor: '#FFFAF0', path: '/pages/certificate/mycertificate' },
-        { text: '我的考试', iconUrl: 'https://img.icons8.com/color/96/test-passed.png', bgColor: '#F0FFF4' }
+        // 你的功能：我的考试
+        { text: '我的考试', iconUrl: 'https://img.icons8.com/color/96/test-passed.png', bgColor: '#F0FFF4' },
+        // 队友的功能：申请记录
+        { text: '申请记录', iconUrl: 'https://img.icons8.com/fluency/48/clipboard.png', bgColor: '#F0FFF4', path: '/pages/Mine/apply-admin/list' }
       ],
       commonServices: [
-        { text: '咨询服务单', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#FFF5F5', extra: '' },
+        { text: '管理员申请', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#FFF5F5', extra: '' },
         { text: '返现与提现', iconUrl: 'https://img.icons8.com/fluency/48/wallet.png', bgColor: '#F5F7FA', extra: '' },
         { text: '我的社群', iconUrl: 'https://img.icons8.com/fluency/48/conference-call.png', bgColor: '#F0F9FF', extra: '加入' }
       ],
@@ -267,46 +270,44 @@ export default {
     },
     
     async switchIdentity(role) {
-      if (this.currentIdentity === role.name) { 
-        this.isIdentityOpen = false; 
-        return; 
+      if (this.currentIdentity === role.name) {
+        this.isIdentityOpen = false;
+        return;
       }
-      
+    
       if (!this.token) return this.toLogin();
       uni.showLoading({ title: '切换中...', mask: true });
-      
+    
       try {
         const res = await uni.request({
-          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.switchIdentity}`,
+          url: `${API_CONFIG.baseUrl}/app/user/switch-identity`, // ✅ 写死正确地址
           method: 'POST',
-          header: { 'Authorization': `Bearer ${this.token}`, 'content-type': 'application/json' },
-          data: { user_id: this.userInfo.user_id, identity: role.name }
-        });
-        
-        if (res.statusCode === 200 && res.data.code === 200) {
-          // 切换成功，保存新的 Token
-          if (res.data.data.token) {
-            this.token = res.data.data.token;
-            uni.setStorageSync('token', res.data.data.token);
+          header: {
+            'Authorization': `Bearer ${this.token}`,
+            'content-type': 'application/json'
+          },
+          data: {
+            identity: role.name
           }
-
-          // 将目标身份存入全局，准备跳转
+        });
+    
+        if (res.statusCode === 200 && res.data.code === 200) {
           uni.setStorageSync('currentIdentity', role.name);
-          this.isIdentityOpen = false; 
+          this.isIdentityOpen = false;
           uni.hideLoading();
           uni.showToast({ title: `已切换为${role.name}`, icon: 'success' });
-          
+    
           setTimeout(() => {
             const targetUrl = role.name === '志愿者端' ? '/pages/volunteer/index' : '/pages/Main/index';
             uni.reLaunch({ url: targetUrl });
           }, 300);
         } else {
-          uni.hideLoading(); 
-          uni.showToast({ title: res.data.msg || '切换身份失败', icon: 'none' });
+          uni.hideLoading();
+          uni.showToast({ title: res.data?.msg || '切换失败', icon: 'none' });
         }
       } catch (error) {
-        uni.hideLoading(); 
-        uni.showToast({ title: '网络连接异常', icon: 'none' });
+        uni.hideLoading();
+        uni.showToast({ title: '网络异常', icon: 'none' });
       }
     },
     
@@ -321,6 +322,8 @@ export default {
       
       if (item.text === '我的课程') {
         uni.$emit('switchTab', 1);
+      } else if (item.text === '管理员申请') {
+        uni.navigateTo({ url: '/pages/Mine/apply-admin/index' });
       } else if (item.path) {
         // 日志2：确认进入了跳转分支
         console.log("🚀 准备跳转路径：", item.path);

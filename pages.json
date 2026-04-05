@@ -37,6 +37,25 @@
 			}
 		},
 		{
+<<<<<<< HEAD
+=======
+			"path": "pages/Mine/apply-admin/index",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/Mine/apply-admin/list",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
+		        "path": "pages/Main/index",
+		        "style": { "navigationStyle": "custom" }
+		},
+		{
+>>>>>>> 9f3d088bff9fc320892a9faf4114d5f565bc097c
 			"path": "pages/CourseDetail/index",
 			"style": {
 				"navigationStyle": "custom",
@@ -54,9 +73,7 @@
 		},
 		{
 			"path": "pages/volunteer/homework/statslist",
-			"style": {
-				"navigationBarTitleText": ""
-			}
+				"style": { "navigationStyle": "custom" }
 		},
 		{
 			"path": "pages/volunteer-history/volunteer-history",
@@ -83,6 +100,31 @@
 				"navigationBarTextStyle": "black",
 				"navigationStyle": "custom"
 			}
+		},
+		{
+			"path": "pages/chat-group/chatdetail",
+			"style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "pages/chat-group/chatindex",
+			"style": { "navigationStyle": "custom" }
+		},
+		{
+		        "path": "pages/volunteer/homework/homework-list",
+		        "style": { "navigationStyle": "custom" }
+		},{
+			"path": "pages/volunteer-manage/member-list",
+			"style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "components/chat-view/chat-view",
+			"style": {
+				"navigationBarTitleText": ""
+			}
+		},
+		{
+			"path": "pages/chat-group/add-member",
+			"style": { "navigationStyle": "custom" }
 		}
 	],
 	"globalStyle": {

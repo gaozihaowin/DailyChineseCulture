@@ -523,53 +523,55 @@ export default {
      * 切换身份：志愿者/学员，同步后端身份标识
      */
     async switchIdentity(role) {
-      if (this.currentIdentity === role.name) {
-        this.isIdentityOpen = false;
-        return;
-      }
-      
-      const cacheToken = uni.getStorageSync('token');
-      if (!this.token && !cacheToken) {
-        this.toLogin();
-        return;
-      }
-      this.token = cacheToken;
-      
-      uni.showLoading({ title: '切换中...', mask: true });
-      try {
-        const res = await uni.request({
-          url: `${API_CONFIG.baseUrl}${API_CONFIG.paths.switchIdentity}`,
-          method: 'POST',
-          header: {
-            'Authorization': `Bearer ${this.token}`,
-            'content-type': 'application/json'
-          },
-          data: {
-            user_id: this.userInfo.user_id,
-            identity: role.name
+          if (this.currentIdentity === role.name) {
+            this.isIdentityOpen = false;
+            return;
           }
-        });
-        if (res.statusCode === 200 && res.data.code === 200) {
-          const data = res.data.data;
-          this.currentIdentity = data.currentIdentity || role.name;
-          uni.setStorageSync('currentIdentity', this.currentIdentity);
-          this.isIdentityOpen = false;
-          uni.hideLoading();
-          uni.showToast({ title: `已切换为${role.name}`, icon: 'none' });
-          const targetUrl = role.name === '学员端' 
-            ? '/pages/Main/index' 
-            : '/pages/volunteer/index';
-          uni.reLaunch({ url: targetUrl });
-        } else {
-          uni.hideLoading();
-          uni.showToast({ title: res.data.msg || '切换身份失败', icon: 'none' });
-        }
-      } catch (error) {
-        uni.hideLoading();
-        console.error('切换身份失败:', error);
-        uni.showToast({ title: '网络连接异常', icon: 'none' });
-      }
-    },
+          
+          const cacheToken = uni.getStorageSync('token');
+          if (!cacheToken) { this.toLogin(); return; }
+          this.token = cacheToken;
+          
+          uni.showLoading({ title: '切换中...', mask: true });
+          
+          try {
+            const res = await uni.request({
+              url: `${API_CONFIG.baseUrl}/app/user/switch-identity`,
+              method: 'POST',
+              header: {
+                'Authorization': `Bearer ${this.token}`,
+                'content-type': 'application/json'
+              },
+              data: {
+                identity: role.name
+              }
+            });
+            
+            if (res.statusCode === 200 && res.data.code === 200) {
+              this.currentIdentity = role.name;
+              uni.setStorageSync('currentIdentity', role.name);
+              
+              this.isIdentityOpen = false;
+              uni.hideLoading();
+              uni.showToast({ title: `已切换为${role.name}`, icon: 'none' });
+            
+              setTimeout(() => {
+                if (role.name === '学员端') {
+                  uni.reLaunch({ url: '/pages/Main/index' });
+                } else {
+                  uni.reLaunch({ url: '/pages/volunteer/index' });
+                }
+              }, 300);
+            } else {
+              uni.hideLoading();
+              uni.showToast({ title: res.data?.msg || '切换失败', icon: 'none' });
+            }
+          } catch (error) {
+            uni.hideLoading();
+            console.error('切换失败：', error);
+            uni.showToast({ title: '网络异常', icon: 'none' });
+          }
+        },
     
     /**
      * 通用菜单点击事件：带路径则跳转，无路径则提示
