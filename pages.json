@@ -6,12 +6,10 @@
     	}
   	},
 	"pages": [
-		// 首页
 		{
 		        "path": "pages/Main/index",
 		        "style": { "navigationStyle": "custom" }
 		},
-		// 我的证书页面
 		{
 		  "path": "pages/certificate/mycertificate",
 		  "style": {
@@ -105,8 +103,7 @@
 		{
 		        "path": "pages/volunteer/homework/homework-list",
 		        "style": { "navigationStyle": "custom" }
-		},
-		{
+		},{
 			"path": "pages/volunteer-manage/member-list",
 			"style": { "navigationStyle": "custom" }
 		},

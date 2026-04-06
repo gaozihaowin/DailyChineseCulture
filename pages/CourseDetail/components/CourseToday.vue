@@ -100,13 +100,11 @@
     <uni-popup
       ref="taskPopup"
       type="bottom"
-      background-color="transparent" 
-      mask-background-color="rgba(0,0,0,0.6)" 
-      class="safe-popup" 
+      background-color="#fff"
+      border-radius="24rpx 24rpx 0 0"
+      class="safe-popup"
     >
-      <view class="task-popup-container">
-        <view class="popup-drag-handle"></view>
-
+      <view class="popup-content">
         <view class="popup-header">
           <text class="popup-title">{{ currentTask?.taskName || '' }}</text>
           <view class="popup-close" @click="closeTaskPopup">
@@ -114,59 +112,59 @@
           </view>
         </view>
 
-        <scroll-view scroll-y class="popup-scroll">
-          
-          <view v-if="currentTask?.taskType === 'VIDEO'" class="video-container">
-            <video
-              v-if="currentTask.taskUrl"
-              :src="currentTask.taskUrl"
-              class="task-video"
-              controls
-              object-fit="contain"
-            ></video>
-            <view v-else class="video-placeholder">
-              <view class="placeholder-icon-circle">
-                <uni-icons type="videocam" size="40" color="#d1d5db"></uni-icons>
+        <view class="popup-body">
+          <scroll-view scroll-y class="popup-scroll">
+            <view v-if="currentTask?.taskType === 'VIDEO'" class="video-container">
+              <video
+                v-if="currentTask.taskUrl"
+                :src="currentTask.taskUrl"
+                class="task-video"
+                controls
+                object-fit="contain"
+              ></video>
+              <view v-else class="video-placeholder">
+                <view class="placeholder-icon-circle">
+                  <uni-icons type="videocam" size="40" color="#d1d5db"></uni-icons>
+                </view>
+                <text class="placeholder-text">暂无视频内容</text>
               </view>
-              <text class="placeholder-text">暂无视频内容</text>
             </view>
-          </view>
 
-          <view v-else-if="currentTask?.taskType === 'READ'" class="read-container">
-            <rich-text
-              v-if="currentTask.taskDesc || currentTask.taskUrl"
-              :nodes="currentTask.taskUrl ? `<a href='${currentTask.taskUrl}' style='color:#9e2a2b; text-decoration:underline;'>点击查看阅读材料</a><br><br>${currentTask.taskDesc}` : currentTask.taskDesc"
-              class="read-content"
-            ></rich-text>
-            <view v-else class="read-placeholder">
-              <text class="placeholder-text">暂无阅读内容</text>
+            <view v-else-if="currentTask?.taskType === 'READ'" class="read-container">
+              <rich-text
+                v-if="currentTask.taskDesc || currentTask.taskUrl"
+                :nodes="currentTask.taskUrl ? `<a href='${currentTask.taskUrl}' style='color:#9e2a2b; text-decoration:underline;'>点击查看阅读材料</a><br><br>${currentTask.taskDesc}` : currentTask.taskDesc"
+                class="read-content"
+              ></rich-text>
+              <view v-else class="read-placeholder">
+                <text class="placeholder-text">暂无阅读内容</text>
+              </view>
             </view>
-          </view>
 
-          <view v-else-if="currentTask?.taskType === 'HOMEWORK'" class="homework-container">
-            <view class="homework-input-wrapper">
-              <textarea
-                v-model="homeworkContent"
-                class="homework-textarea"
-                :placeholder="currentTask?.isDone === 1 ? '你已提交过心得体会' : '请输入你的心得体会，记录此刻的灵感...'"
-                placeholder-class="textarea-placeholder"
-                maxlength="2000"
-                :disabled="currentTask?.isDone === 1"
-              ></textarea>
-              <text class="word-count">{{ homeworkContent.length }} / 2000</text>
+            <view v-else-if="currentTask?.taskType === 'HOMEWORK'" class="homework-container">
+              <view class="homework-input-wrapper">
+                <textarea
+                  v-model="homeworkContent"
+                  class="homework-textarea"
+                  :placeholder="currentTask?.isDone === 1 ? '你已提交过心得体会' : '请输入你的心得体会，记录此刻的灵感...'"
+                  placeholder-class="textarea-placeholder"
+                  maxlength="2000"
+                  :disabled="currentTask?.isDone === 1"
+                ></textarea>
+                <text class="word-count">{{ homeworkContent.length }} / 2000</text>
+              </view>
             </view>
-          </view>
 
-          <view v-else class="extra-container">
-            <view class="extra-icon-wrapper">
-              <uni-icons type="star-filled" size="48" color="#10b981"></uni-icons>
+            <view v-else class="extra-container">
+              <view class="extra-icon-wrapper">
+                <uni-icons type="star-filled" size="48" color="#10b981"></uni-icons>
+              </view>
+              <text class="extra-title">{{ currentTask?.taskName }}</text>
+              <text v-if="currentTask?.taskDesc" class="extra-desc">{{ currentTask.taskDesc }}</text>
+              <text v-else class="extra-desc">这是一项选修拓展任务，点击下方按钮完成即可。</text>
             </view>
-            <text class="extra-title">{{ currentTask?.taskName }}</text>
-            <text v-if="currentTask?.taskDesc" class="extra-desc">{{ currentTask.taskDesc }}</text>
-            <text v-else class="extra-desc">这是一项选修拓展任务，点击下方按钮完成即可。</text>
-          </view>
-
-        </scroll-view>
+          </scroll-view>
+        </view>
 
         <view class="popup-footer">
           <button
@@ -450,39 +448,25 @@ onMounted(() => {
   z-index: 99999 !important;
 }
 
-.task-popup-container {
+.popup-content {
   display: flex;
   flex-direction: column;
-  height: 75vh;  /* 稍微加高一点，视觉更舒展 */
-  max-height: 75vh;
-  background-color: #ffffff; 
-  border-radius: 40rpx 40rpx 0 0; /* 更平滑的顶级大圆角 */
-  overflow: hidden; 
-  position: relative;
-}
-
-/* 顶部胶囊指示条 (主流 App 标配) */
-.popup-drag-handle {
-  width: 72rpx;
-  height: 8rpx;
-  background-color: #e5e7eb;
-  border-radius: 4rpx;
-  margin: 20rpx auto 0;
+  max-height: 80vh;
 }
 
 .popup-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx 40rpx 24rpx; /* 调整内边距，取消生硬的下边框 */
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
   flex-shrink: 0;
-  background-color: #ffffff;
 }
 
 .popup-title {
-  font-size: 36rpx; /* 字体加大加粗 */
-  font-weight: 700;
-  color: #111827;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1a1a1a;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -491,59 +475,45 @@ onMounted(() => {
 }
 
 .popup-close {
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f3f4f6; /* 更柔和的背景色 */
-  border-radius: 50%;
-  flex-shrink: 0;
-  transition: background-color 0.2s;
-  
-  &:active {
-    background-color: #e5e7eb;
-  }
+  padding: 8rpx;
+}
+
+.popup-body {
+  flex: 1;
+  overflow: hidden;
 }
 
 .popup-scroll {
-  flex: 1;
-  height: 0; 
-  padding: 10rpx 40rpx 40rpx; /* 侧边距加宽，阅读体验更好 */
+  height: 100%;
+  padding: 24rpx 32rpx;
   box-sizing: border-box;
-  background-color: #ffffff; 
 }
 
-/* 底部操作区：弥散阴影代替生硬边框 */
 .popup-footer {
-  padding: 24rpx 40rpx;
-  padding-bottom: calc(32rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
-  background-color: #ffffff; 
-  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.03); /* 高级悬浮感阴影 */
+  display: flex;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #f0f0f0;
   flex-shrink: 0;
 }
 
-/* 沉浸式高质感按钮 */
 .submit-btn {
   width: 100%;
-  height: 96rpx;
-  line-height: 96rpx;
-  background: linear-gradient(135deg, #e53935, #b71c1c); /* 优化后的中国红渐变 */
-  border-radius: 48rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #e53935, #b71c1c);
+  border-radius: 44rpx;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
   text-align: center;
   border: none;
-  box-shadow: 0 12rpx 32rpx rgba(183, 28, 28, 0.25); /* 按钮自身的发光阴影 */
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  &.btn-disabled {
-    background: #f3f4f6;
-    color: #9ca3af;
-    box-shadow: none;
-  }
+.submit-btn.btn-disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
 }
 
 .submit-btn-hover {

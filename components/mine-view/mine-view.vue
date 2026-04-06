@@ -170,8 +170,6 @@ export default {
         { text: '我的订单', iconUrl: 'https://img.icons8.com/color/96/purchase-order.png', bgColor: '#F0F8FF' },
         // 你的功能：我的证书（带跳转）
         { text: '我的证书', iconUrl: 'https://img.icons8.com/color/96/best-seller.png', bgColor: '#FFFAF0', path: '/pages/certificate/mycertificate' },
-        // 你的功能：我的考试
-        { text: '我的考试', iconUrl: 'https://img.icons8.com/color/96/test-passed.png', bgColor: '#F0FFF4' },
         // 队友的功能：申请记录
         { text: '申请记录', iconUrl: 'https://img.icons8.com/fluency/48/clipboard.png', bgColor: '#F0FFF4', path: '/pages/Mine/apply-admin/list' }
       ],
