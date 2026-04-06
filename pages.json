@@ -7,16 +7,6 @@
   	},
 	"pages": [
 		{
-		        "path": "pages/Main/index",
-		        "style": { "navigationStyle": "custom" }
-		},
-		{
-		  "path": "pages/certificate/mycertificate",
-		  "style": {
-		    "navigationBarTitleText": "我的证书"
-		  }
-		},
-		{
 			"path": "pages/Login/index",
 			"style": {
 				"navigationStyle": "custom" 
@@ -27,6 +17,16 @@
 			"style": {
 				"navigationStyle": "custom"
 			}
+		},
+		{
+		        "path": "pages/Main/index",
+		        "style": { "navigationStyle": "custom" }
+		},
+		{
+		  "path": "pages/certificate/mycertificate",
+		  "style": {
+		    "navigationBarTitleText": "我的证书"
+		  }
 		},
 		{
 			"path": "pages/Mine/profile-edit",
