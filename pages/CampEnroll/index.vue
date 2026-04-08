@@ -1,6 +1,6 @@
 <template>
   <view class="enroll-container">
-    <NavBar title="" :isTransparent="true" />
+    <NavBar title="" :isTransparent="true" titleColor="#ffffff" />
 
     <view class="fixed-top-zone">
       <view class="cover-section" :style="{ background: getCoverBackground(campInfo.campName) }">

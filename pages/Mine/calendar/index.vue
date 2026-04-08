@@ -1,6 +1,6 @@
 <template>
   <view class="page-container">
-    <NavBar title="笃行日历" />
+    <NavBar title="笃行日历" bgColor="#f4f1eb" />
 
     <view class="month-header">
       <view class="month-nav" @click="prevMonth">

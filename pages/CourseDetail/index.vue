@@ -1,7 +1,7 @@
 <template>
   <view class="container">
     
-    <NavBar :title="courseInfo.title || '课程详情'" :isTransparent="true" />
+    <NavBar :title="courseInfo.title || '课程详情'" :isTransparent="true" titleColor="#ffffff" />
     
     <view class="fixed-top-zone">
       

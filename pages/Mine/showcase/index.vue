@@ -1,6 +1,6 @@
 <template>
   <view class="page-container">
-    <NavBar title="见贤思齐" />
+    <NavBar title="见贤思齐" bgColor="#f4f1eb" />
 
     <view v-if="isLoading && list.length === 0" class="loading-container">
       <view class="loading-spinner"></view>

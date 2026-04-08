@@ -178,9 +178,7 @@ export default {
         { text: '见贤思齐', iconUrl: 'https://img.icons8.com/fluency/48/conference-call.png', bgColor: '#FFF0F8', path: '/pages/Mine/showcase/index' }
       ],
       otherServices: [
-        { text: '用户协议', iconUrl: 'https://img.icons8.com/ios-filled/50/607d8b/info.png' },
-        { text: '关于我们', iconUrl: 'https://img.icons8.com/ios-filled/50/607d8b/help.png' },
-        { text: '系统设置', iconUrl: 'https://img.icons8.com/ios-filled/50/607d8b/settings.png' }
+        { text: '关于我们', iconUrl: 'https://img.icons8.com/ios-filled/50/607d8b/help.png', path: '/pages/Mine/about/index' }
       ]
     }
   },

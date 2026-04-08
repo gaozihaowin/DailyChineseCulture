@@ -1,6 +1,6 @@
 <template>
   <view class="page-container">
-    <NavBar title="修习档案" />
+    <NavBar title="修习档案" bgColor="#f4f1eb" />
 
     <view class="page-header">
       <view class="motto-card">

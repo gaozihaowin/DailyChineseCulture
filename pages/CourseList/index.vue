@@ -1,7 +1,7 @@
 <template>
   <view class="course-list-container">
     
-    <NavBar title="" :isTransparent="true" />
+    <NavBar title="" :isTransparent="true" titleColor="#ffffff" />
 
     <view class="sticky-header-zone">
       <view :style="{ height: (statusBarHeight + 44) + 'px' }"></view>

@@ -2,7 +2,7 @@
 	<view class="page-container">
 		<view class="header-section">
 			<view class="header-bg"></view>
-			<NavBar title="个人资料编辑" :isTransparent="true" />
+			<NavBar title="个人资料编辑" :isTransparent="true" titleColor="#ffffff" />
 		</view>
 
 		<view class="content-section">
