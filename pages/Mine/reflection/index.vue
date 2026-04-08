@@ -1,5 +1,7 @@
 <template>
   <view class="page-container">
+    <NavBar title="我的省察" />
+
     <view v-if="isLoading && list.length === 0" class="loading-container">
       <view class="loading-spinner"></view>
       <text class="loading-text">正在加载省察记录...</text>

@@ -1,5 +1,7 @@
 <template>
   <view class="page-container">
+    <NavBar title="修习档案" />
+
     <view class="page-header">
       <view class="motto-card">
         <text class="motto-text">学如不及，犹恐失之</text>

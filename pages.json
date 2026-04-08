@@ -49,33 +49,25 @@
 		{
 			"path": "pages/Mine/reflection/index",
 			"style": {
-				"navigationBarTitleText": "我的省察",
-				"navigationBarBackgroundColor": "#f4f1eb",
-				"navigationBarTextStyle": "black"
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/Mine/calendar/index",
 			"style": {
-				"navigationBarTitleText": "笃行日历",
-				"navigationBarBackgroundColor": "#f4f1eb",
-				"navigationBarTextStyle": "black"
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/Mine/archive/index",
 			"style": {
-				"navigationBarTitleText": "修习档案",
-				"navigationBarBackgroundColor": "#f4f1eb",
-				"navigationBarTextStyle": "black"
+				"navigationStyle": "custom"
 			}
 		},
 		{
 			"path": "pages/Mine/showcase/index",
 			"style": {
-				"navigationBarTitleText": "见贤思齐",
-				"navigationBarBackgroundColor": "#f4f1eb",
-				"navigationBarTextStyle": "black"
+				"navigationStyle": "custom"
 			}
 		},
 		{

@@ -1,5 +1,7 @@
 <template>
   <view class="page-container">
+    <NavBar title="笃行日历" />
+
     <view class="month-header">
       <view class="month-nav" @click="prevMonth">
         <uni-icons type="left" size="20" color="#5c4d3d"></uni-icons>

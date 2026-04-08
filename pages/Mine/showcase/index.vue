@@ -1,5 +1,7 @@
 <template>
   <view class="page-container">
+    <NavBar title="见贤思齐" />
+
     <view v-if="isLoading && list.length === 0" class="loading-container">
       <view class="loading-spinner"></view>
       <text class="loading-text">正在加载学友佳作...</text>
