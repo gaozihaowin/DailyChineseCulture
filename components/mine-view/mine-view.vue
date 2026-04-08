@@ -167,16 +167,15 @@ export default {
       ],
       coreServices: [
         { text: '我的课程', iconUrl: 'https://img.icons8.com/color/96/books.png', bgColor: '#FFF0F0' },
-        { text: '我的订单', iconUrl: 'https://img.icons8.com/color/96/purchase-order.png', bgColor: '#F0F8FF' },
-        // 你的功能：我的证书（带跳转）
+        { text: '我的省察', iconUrl: 'https://img.icons8.com/fluency/48/task.png', bgColor: '#F0FFF4', path: '/pages/Mine/reflection/index' },
         { text: '我的证书', iconUrl: 'https://img.icons8.com/color/96/best-seller.png', bgColor: '#FFFAF0', path: '/pages/certificate/mycertificate' },
-        // 队友的功能：申请记录
-        { text: '申请记录', iconUrl: 'https://img.icons8.com/fluency/48/clipboard.png', bgColor: '#F0FFF4', path: '/pages/Mine/apply-admin/list' }
+        { text: '申请记录', iconUrl: 'https://img.icons8.com/fluency/48/clipboard.png', bgColor: '#F0F8FF', path: '/pages/Mine/apply-admin/list' }
       ],
       commonServices: [
-        { text: '管理员申请', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#FFF5F5', extra: '' },
-        { text: '返现与提现', iconUrl: 'https://img.icons8.com/fluency/48/wallet.png', bgColor: '#F5F7FA', extra: '' },
-        { text: '我的社群', iconUrl: 'https://img.icons8.com/fluency/48/conference-call.png', bgColor: '#F0F9FF', extra: '加入' }
+        { text: '笃行日历', iconUrl: 'https://img.icons8.com/fluency/48/calendar.png', bgColor: '#FFF5F5', path: '/pages/Mine/calendar/index' },
+        { text: '管理员申请', iconUrl: 'https://img.icons8.com/fluency/48/customer-support.png', bgColor: '#F5F7FA', extra: '' },
+        { text: '修习档案', iconUrl: 'https://img.icons8.com/fluency/48/museum.png', bgColor: '#F0F9FF', path: '/pages/Mine/archive/index' },
+        { text: '见贤思齐', iconUrl: 'https://img.icons8.com/fluency/48/conference-call.png', bgColor: '#FFF0F8', path: '/pages/Mine/showcase/index' }
       ],
       otherServices: [
         { text: '用户协议', iconUrl: 'https://img.icons8.com/ios-filled/50/607d8b/info.png' },

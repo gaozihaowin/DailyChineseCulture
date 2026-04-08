@@ -7,6 +7,7 @@ const isDev = process.env.NODE_ENV === 'development';
 // 导出API配置
 export const API_CONFIG = {
   // 本地开发环境地址（确保和你的后端服务端口一致）
+  //baseUrl: 'http://10.35.241.144:8080',
   baseUrl: 'http://127.0.0.1:8080',
   
   // Apifox 提供的云端 Mock 地址（备用）
