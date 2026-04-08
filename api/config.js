@@ -55,6 +55,8 @@ export const API_CONFIG = {
     completeTask: '/courses/plan/{{planId}}/task/complete', // 任务打卡
     courseData: '/courses/{{campId}}/data', // 获取课程数据看板
     dailyHeatmap: '/daily-record/heatmap', // 获取笃行日历热力图数据
+    studyArchive: '/user/study-archive', // 获取修习档案数据
+    excellentShowcase: '/homework/excellent-showcase', // 获取优秀功课展播
   }
 };
 
