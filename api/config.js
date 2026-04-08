@@ -54,6 +54,7 @@ export const API_CONFIG = {
     todayCourse: '/courses/{{campId}}/today', // 获取今日课程
     completeTask: '/courses/plan/{{planId}}/task/complete', // 任务打卡
     courseData: '/courses/{{campId}}/data', // 获取课程数据看板
+    dailyHeatmap: '/daily-record/heatmap', // 获取笃行日历热力图数据
   }
 };
 
