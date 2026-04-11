@@ -37,6 +37,7 @@
       </view>
     </view>
 
+    <!-- 添加下拉刷新配置 -->
     <scroll-view 
       scroll-y 
       class="scroll-content"
@@ -44,6 +45,9 @@
       :show-scrollbar="true"
       :scroll-with-animation="true"
       :enable-back-to-top="true"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper">
         <view class="section-box scope-info">
@@ -106,6 +110,7 @@ export default {
       },
       currentList: [],
       token: '',
+      refreshing: false
     };
   },
   onLoad(options) {
@@ -122,6 +127,13 @@ export default {
     }
   },
   methods: {
+    // 下拉刷新方法
+    async onRefresh() {
+      this.refreshing = true;
+      await this.getDetailLists();
+      this.refreshing = false;
+    },
+    
     goBack() {
       uni.navigateBack({
         delta: 1
@@ -138,48 +150,52 @@ export default {
       this.activeTab = tabType;
     },
     getDetailLists() {
-      if (!this.selectedScopeType || !this.selectedScopeId || !this.selectedDate) {
-        uni.showToast({ title: '参数不全', icon: 'none' });
-        return;
-      }
-      
-      uni.request({
-        url: `${API_CONFIG.baseUrl}/homework/status-list`,
-        method: 'GET',
-        data: {
-          type: this.selectedScopeType,
-          id: this.selectedScopeId,
-          date: this.selectedDate
-        },
-        header: {
-          'Authorization': `Bearer ${this.token}`
-        },
-        success: (res) => {
-          console.log('后端返回数据：', res.data); // 打印日志，方便调试
-          
-          if (res.data.code === 200) {
-            this.detailLists = {
-              submitted: res.data.data.submittedList || [],
-              pending: res.data.data.pendingList || [],
-              late: res.data.data.lateList || []
-            };
-            // 默认显示已交列表
-            this.currentList = this.detailLists.submitted;
-          } else {
+      return new Promise((resolve) => {
+        if (!this.selectedScopeType || !this.selectedScopeId || !this.selectedDate) {
+          uni.showToast({ title: '参数不全', icon: 'none' });
+          resolve();
+          return;
+        }
+        
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/homework/status-list`,
+          method: 'GET',
+          data: {
+            type: this.selectedScopeType,
+            id: this.selectedScopeId,
+            date: this.selectedDate
+          },
+          header: {
+            'Authorization': `Bearer ${this.token}`
+          },
+           success: (res) => {
+               console.log('后端返回数据：', res.data);
+               
+               if (res.data.code === 200) {
+                const data = res.data.data || {};
+                const hasHomework = data.hasHomework !== false; // 默认有作业
+                   
+                   // 如果没有作业，将所有列表设置为空
+                   this.detailLists = {
+                       submitted: hasHomework ? (data.submittedList || []) : [],
+                       pending: hasHomework ? (data.pendingList || []) : [],
+                       late: hasHomework ? (data.lateList || []) : []
+                   };
+                   this.currentList = this.detailLists[this.activeTab];
+               }
+           },
+          fail: (err) => {
+            console.error('请求失败：', err);
             uni.showToast({
-              title: res.data.msg || '获取名单失败',
+              title: '网络错误，请稍后重试',
               icon: 'none'
             });
+          },
+          complete: () => {
+            resolve();
           }
-        },
-        fail: (err) => {
-          console.error('请求失败：', err);
-          uni.showToast({
-            title: '网络错误，请稍后重试',
-            icon: 'none'
-          });
-        }
-      });
+        });
+      })
     },
   }
 };
