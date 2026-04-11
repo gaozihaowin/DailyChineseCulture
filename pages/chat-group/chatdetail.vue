@@ -18,8 +18,16 @@
       </view>
     </view>
 
-    <!-- 消息区域 -->
-    <scroll-view scroll-y class="scroll-content" v-if="activeTab === 'chat'" :scroll-top="scrollTop">
+    <!-- 消息区域 + 下拉刷新 -->
+    <scroll-view
+      scroll-y
+      class="scroll-content"
+      v-if="activeTab === 'chat'"
+      :scroll-top="scrollTop"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+    >
       <view class="content-wrapper">
         <view class="msg-list">
           <view 
@@ -50,8 +58,15 @@
       </view>
     </scroll-view>
 
-    <!-- 群成员区域 -->
-    <scroll-view scroll-y class="scroll-content" v-if="activeTab === 'members'">
+    <!-- 群成员区域 + 下拉刷新 -->
+    <scroll-view
+      scroll-y
+      class="scroll-content"
+      v-if="activeTab === 'members'"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+    >
       <view class="content-wrapper">
         <view class="member-list-container">
           <view class="section-title">群成员列表</view>
@@ -146,6 +161,7 @@ export default {
       receiverId: null,
       receiverName: '',
       isAdmin: false,
+      refreshing: false // 下拉刷新状态
     };
   },
   onLoad(options) {
@@ -182,6 +198,21 @@ export default {
     }
   },
   methods: {
+    // 下拉刷新
+    async onRefresh() {
+      this.refreshing = true;
+      await this.refreshAllData();
+      this.refreshing = false;
+    },
+
+    // 统一刷新数据
+    async refreshAllData() {
+      await Promise.all([
+        this.getMessages(),
+        this.getMembers()
+      ]);
+    },
+
     isSelfMsg(msg) {
       if (!this.userId || !msg.senderId) return false;
       return String(msg.senderId) === String(this.userId);
@@ -193,43 +224,48 @@ export default {
       uni.navigateBack();
     },
     getMessages() {
-      uni.request({
-        url: API_CONFIG.baseUrl + "/group-chat/messages",
-        data: { 
-          chatId: this.chatId, 
-          userId: this.userId,
-          limit: 100, 
-          offset: 0 
-        },
-        header: { Authorization: "Bearer " + this.token },
-        success: (res) => {
-          if (res.data.code === 200) {
-            let list = res.data.data || [];
-            list.sort((a, b) => new Date(a.sendTime) - new Date(b.sendTime));
-            this.messageList = list;
-            this.$nextTick(() => this.scrollTop = 999999);
-          }
-        }
+      return new Promise((resolve) => {
+        uni.request({
+          url: API_CONFIG.baseUrl + "/group-chat/messages",
+          data: { 
+            chatId: this.chatId, 
+            userId: this.userId,
+            limit: 100, 
+            offset: 0 
+          },
+          header: { Authorization: "Bearer " + this.token },
+          success: (res) => {
+            if (res.data.code === 200) {
+              let list = res.data.data || [];
+              list.sort((a, b) => new Date(a.sendTime) - new Date(b.sendTime));
+              this.messageList = list;
+              this.$nextTick(() => this.scrollTop = 999999);
+            }
+            resolve();
+          },
+          fail: () => resolve()
+        });
       });
     },
     getMembers() {
-      uni.request({
-        url: API_CONFIG.baseUrl + "/group-chat/members",
-        data: { chatId: this.chatId },
-        header: { Authorization: "Bearer " + this.token },
-        success: (res) => {
-          if (res.data.code === 200) {
-            this.memberList = res.data.data || [];
-            let me = this.memberList.find(u => String(u.userId) === String(this.userId));
-            this.isAdmin = me && me.role === 'admin';
-          }
-        }
+      return new Promise((resolve) => {
+        uni.request({
+          url: API_CONFIG.baseUrl + "/group-chat/members",
+          data: { chatId: this.chatId },
+          header: { Authorization: "Bearer " + this.token },
+          success: (res) => {
+            if (res.data.code === 200) {
+              this.memberList = res.data.data || [];
+              let me = this.memberList.find(u => String(u.userId) === String(this.userId));
+              this.isAdmin = me && me.role === 'admin';
+            }
+            resolve();
+          },
+          fail: () => resolve()
+        });
       });
     },
 
-    // ==========================
-    // 修改角色 —— 改成 POST
-    // ==========================
     openChangeRole(user) {
       let newRole = user.role === 'admin' ? 'member' : 'admin';
       let roleText = newRole === 'admin' ? '管理员' : '普通成员';
@@ -241,7 +277,7 @@ export default {
           if (ok.confirm) {
             uni.request({
               url: API_CONFIG.baseUrl + "/group-chat/member/role",
-              method: "PUT", // 👈 改成 POST
+              method: "PUT", 
               header: {
                 Authorization: "Bearer " + this.token
               },
@@ -262,9 +298,6 @@ export default {
       });
     },
     
-    // ==========================
-    // 删除成员 —— 改成 POST
-    // ==========================
     deleteMember(user) {
       uni.showModal({
         title: '删除成员',
@@ -273,7 +306,7 @@ export default {
           if (ok.confirm) {
             uni.request({
               url: API_CONFIG.baseUrl + "/group-chat/member/remove",
-              method: "DELETE", // 👈 改成 POST
+              method: "DELETE", 
               header: {
                 Authorization: "Bearer " + this.token
               },
@@ -293,9 +326,6 @@ export default {
       });
     },
 
-    // ==========================
-    // 以下完全不动，保持你原来代码
-    // ==========================
     send() {
       if (!this.content.trim()) return;
       uni.request({
@@ -340,7 +370,6 @@ export default {
 </script>
 
 <style scoped>
-/* 样式完全不变，保持你原来的样式 */
 .chat-page {
   height: 100vh;
   background-color: #F4F4F5;
