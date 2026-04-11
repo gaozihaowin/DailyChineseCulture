@@ -14,7 +14,7 @@
       </view> 
     </view>
 
-    <!-- 滚动内容区 -->
+    <!--添加下拉刷新 -->
     <scroll-view 
       scroll-y 
       class="scroll-content"
@@ -22,6 +22,9 @@
       :show-scrollbar="true"
       :scroll-with-animation="true"
       :enable-back-to-top="true"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper">
         <!-- 作业详情 -->
@@ -42,15 +45,39 @@
             </view>
             <view class="detail-item">
               <text class="detail-label">作业状态：</text>
-              <text 
-                class="detail-value" 
-                :class="{ 
-                  smallExcellent: homeworkDetail.isSmallGroupExcellent && !homeworkDetail.isBigGroupExcellent,
-                  bigExcellent: homeworkDetail.isBigGroupExcellent
-                }"
-              >
-                {{ homeworkDetail.isBigGroupExcellent ? '大组优秀' : (homeworkDetail.isSmallGroupExcellent ? '小组优秀' : '普通作业') }}
-              </text>
+              <view class="status-tags">
+                              <!-- 优秀状态标签 -->
+                              <view 
+                                v-if="homeworkDetail.isSmallGroupExcellent" 
+                                class="status-tag small-excellent-tag"
+                                @tap="toggleSmallGroupExcellent"
+                              >
+                                小组优秀
+                              </view>
+                              <view 
+                                v-if="homeworkDetail.isBigGroupExcellent" 
+                                class="status-tag big-excellent-tag"
+                                @tap="toggleBigGroupExcellent"
+                              >
+                                大组优秀
+                              </view>
+                              <!-- 证书标签 -->
+                              <view 
+                                v-for="cert in certificates" 
+                                :key="cert.type"
+                                class="status-tag certificate-tag"
+                                @tap="cancelCertificate(cert)"
+                              >
+                                {{ cert.type }}
+                              </view>
+                              <!-- 普通作业标签 -->
+                              <view 
+                                v-if="!homeworkDetail.isSmallGroupExcellent && !homeworkDetail.isBigGroupExcellent && certificates.length === 0" 
+                                class="status-tag normal-tag"
+                              >
+                                普通作业
+                              </view>
+                            </view>
             </view>
           </view>
 
@@ -81,6 +108,13 @@
             >
               {{ homeworkDetail.isBigGroupExcellent ? '取消大组优秀' : '标记大组优秀' }}
             </button>
+            
+            <button 
+              class="action-button cert-btn" 
+              @tap="openCertModal()"
+            >
+              颁发证书
+            </button>
           </view>
         </view>
         
@@ -92,6 +126,31 @@
         <view class="safe-area-spacer"></view>
       </view>
     </scroll-view>
+    
+    <!-- 颁发证书模态框 -->
+    <view v-if="showCertModal" class="modal-mask" @click="closeCertModal">
+      <view class="modal-content" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">颁发证书</text>
+          <view class="modal-close" @click="closeCertModal">×</view>
+        </view>
+        <view class="modal-body">
+          <view class="form-item">
+            <text class="form-label">证书类型</text>
+            <input 
+              class="form-input" 
+              v-model="certType" 
+              placeholder="请输入证书类型"
+              placeholder-style="color: #999; font-size: 28rpx;"
+            />
+          </view>
+        </view>
+        <view class="modal-footer">
+          <button class="modal-btn cancel-btn" @click="closeCertModal">取消</button>
+          <button class="modal-btn confirm-btn" @click="issueCertificate">确认颁发</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -105,7 +164,12 @@ export default {
       homeworkId: '', // 作业ID
       homeworkDetail: null, // 作业详情数据
       token: '', // 登录令牌
-      dutyType: '' // 角色类型：学班/检班/学委/检委/学组/检组
+      dutyType: '', // 角色类型：学班/检班/学委/检委/学组/检组
+      showCertModal: false, // 颁发证书模态框
+      certType: '', // 证书类型
+      certificates: [], // 证书列表
+      // 下拉刷新状态
+      refreshing: false
     };
   },
   onLoad(options) {
@@ -125,15 +189,26 @@ export default {
     if (!this.token) {
       uni.showToast({ title: '请先登录', icon: 'none' });
       setTimeout(() => {
-        uni.redirectTo({ url: '/pages/login/login' });
+        uni.redirectTo({ url: '/pages/Login/index' });
       }, 1500);
       return;
     }
 
-    // 获取作业详情
-    this.getHomeworkDetail();
+    // 获取作业详情和证书列表
+        this.getHomeworkDetail().then(() => {
+          // 作业详情获取成功后，获取证书列表
+          this.getCertificates();
+        });
   },
   methods: {
+    // 下拉刷新方法
+    async onRefresh() {
+      this.refreshing = true;
+      await this.getHomeworkDetail();
+      await this.getCertificates();
+      this.refreshing = false;
+    },
+
     // 返回上一页
     goBack() {
       uni.navigateBack({ delta: 1 });
@@ -171,28 +246,33 @@ export default {
 
     // 获取作业详情
     getHomeworkDetail() {
-      uni.request({
-        url: `${API_CONFIG.baseUrl}/homework/detail?homeworkId=${this.homeworkId}`,
-        method: 'GET',
-        header: {
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        },
-        success: (res) => {
-          if (res.data?.code === 200) {
-            this.homeworkDetail = {
-              ...res.data.data || {},
-              isSmallGroupExcellent: Number(res.data.data?.isSmallGroupExcellent) === 1,
-              isBigGroupExcellent: Number(res.data.data?.isBigGroupExcellent) === 1
-            };
-          } else {
-            uni.showToast({ title: res.data?.msg || '获取作业详情失败', icon: 'none' });
+      return new Promise((resolve) => {
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/homework/detail?homeworkId=${this.homeworkId}`,
+          method: 'GET',
+          header: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+          },
+          success: (res) => {
+            if (res.data?.code === 200) {
+              this.homeworkDetail = {
+                ...res.data.data || {},
+                isSmallGroupExcellent: Number(res.data.data?.isSmallGroupExcellent) === 1,
+                isBigGroupExcellent: Number(res.data.data?.isBigGroupExcellent) === 1
+              };
+            } else {
+              uni.showToast({ title: res.data?.msg || '获取作业详情失败', icon: 'none' });
+            }
+          },
+          fail: () => {
+            uni.showToast({ title: '网络错误，获取详情失败', icon: 'none' });
+          },
+          complete: () => {
+            resolve();
           }
-        },
-        fail: () => {
-          uni.showToast({ title: '网络错误，获取详情失败', icon: 'none' });
-        }
-      });
+        });
+      })
     },
 
     // 标记/取消小组优秀
@@ -278,6 +358,128 @@ export default {
               },
               fail: () => {
                 uni.showToast({ title: '网络错误，操作失败', icon: 'none' });
+              }
+            });
+          }
+        }
+      });
+    },
+
+    // 打开颁发证书模态框
+    openCertModal() {
+      this.showCertModal = true;
+    },
+
+    // 关闭颁发证书模态框
+    closeCertModal() {
+      this.showCertModal = false;
+      this.certType = '';
+    },
+
+    // 获取作业的证书列表
+    getCertificates() {
+      return new Promise((resolve) => {
+        if (!this.homeworkDetail || !this.homeworkDetail.userId) {
+          this.certificates = [];
+          resolve();
+          return;
+        }
+        
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/volunteer/certificate/list-by-homework`,
+          method: 'POST',
+          header: {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            homeworkId: this.homeworkId
+          },
+          success: (res) => {
+            if (res.data?.code === 200) {
+              this.certificates = res.data.data || [];
+            }
+          },
+          complete: () => {
+            resolve();
+          }
+        });
+      })
+    },
+
+    // 颁发证书
+    issueCertificate() {
+      if (!this.certType.trim()) {
+        uni.showToast({ title: '请输入证书类型', icon: 'none' });
+        return;
+      }
+
+      if (!this.homeworkDetail || !this.homeworkDetail.userId) {
+        uni.showToast({ title: '作业信息不完整', icon: 'none' });
+        return;
+      }
+
+      uni.request({
+        url: `${API_CONFIG.baseUrl}/volunteer/certificate/issue`,
+        method: 'POST',
+        header: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          volunteerId: this.homeworkDetail.userId,
+          certificateType: this.certType,
+          homeworkId: this.homeworkId
+        },
+        success: (res) => {
+          if (res.data?.code === 200) {
+            uni.showToast({ title: '颁发成功', icon: 'success' });
+            this.getCertificates();
+            this.closeCertModal();
+          } else {
+            uni.showToast({ title: res.data?.msg || '颁发失败', icon: 'none' });
+          }
+        },
+        fail: () => {
+          uni.showToast({ title: '网络错误，颁发失败', icon: 'none' });
+        }
+      });
+    },
+
+    // 取消颁发证书
+    cancelCertificate(cert) {
+      if (!this.homeworkDetail || !this.homeworkDetail.userId) {
+        uni.showToast({ title: '作业信息不完整', icon: 'none' });
+        return;
+      }
+
+      uni.showModal({
+        title: '确认操作',
+        content: `确定要取消颁发"${cert.type}"证书吗？`,
+        success: (res) => {
+          if (res.confirm) {
+            uni.request({
+              url: `${API_CONFIG.baseUrl}/volunteer/certificate/cancel`,
+              method: 'POST',
+              header: {
+                'Authorization': `Bearer ${this.token}`,
+                'Content-Type': 'application/json'
+              },
+              data: {
+                volunteerId: this.homeworkDetail.userId,
+                certificateType: cert.type,
+                homeworkId: this.homeworkId
+              },
+              success: (res) => {
+                if (res.data?.code === 200) {
+                  uni.showToast({ title: '取消成功', icon: 'success' });
+                  this.getCertificates();
+                } else {
+                  uni.showToast({ title: res.data?.msg || '取消失败', icon: 'none' });
+                }
+              },
+              fail: () => {
+                uni.showToast({ title: '网络错误，取消失败', icon: 'none' });
               }
             });
           }
@@ -452,6 +654,54 @@ export default {
   white-space: pre-wrap;
 }
 
+/* 状态标签样式 */
+.status-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+.status-tag {
+  font-size: 24rpx;
+  font-weight: bold;
+  padding: 6rpx 16rpx;
+  border-radius: 16rpx;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.status-tag:hover {
+  transform: translateY(-2rpx);
+}
+/* 小组优秀标签 */
+.small-excellent-tag {
+  background-color: #4CAF50;
+  color: white;
+}
+.small-excellent-tag:hover {
+  background-color: #45a049;
+}
+/* 大组优秀标签 */
+.big-excellent-tag {
+  background-color: #2196F3;
+  color: white;
+}
+.big-excellent-tag:hover {
+  background-color: #1976D2;
+}
+/* 证书标签 */
+.certificate-tag {
+  background-color: #FFD700;
+  color: #333;
+}
+.certificate-tag:hover {
+  background-color: #FFC107;
+}
+/* 普通作业标签 */
+.normal-tag {
+  background-color: #999;
+  color: white;
+}
+
 /* 操作按钮区 */
 .action-area {
   display: flex;
@@ -496,6 +746,137 @@ export default {
 .big-excellent-btn:disabled {
   background-color: #ccc !important;
   color: #666 !important;
+}
+
+/* 颁发证书按钮样式 */
+.cert-btn {
+  background-color: #9C27B0;
+  color: white;
+}
+
+/* 模态框样式 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(10rpx);
+}
+.modal-content {
+  background-color: white;
+  border-radius: 24rpx;
+  width: 85%;
+  max-width: 550rpx;
+  padding: 40rpx;
+  box-sizing: border-box;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s ease-out;
+}
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40rpx;
+  padding-bottom: 24rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  font-family: 'Microsoft YaHei', sans-serif;
+}
+.modal-close {
+  font-size: 48rpx;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.modal-close:hover {
+  color: #333;
+  transform: rotate(90deg);
+}
+.modal-body {
+  margin-bottom: 40rpx;
+}
+.form-item {
+  margin-bottom: 30rpx;
+}
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 16rpx;
+  font-weight: 600;
+}
+
+.form-input {
+  width: 100%;
+  padding: 30rpx 30rpx; 
+  min-height: 90rpx;
+  border: 2rpx solid #e5e5e5;
+  border-radius: 16rpx;
+  font-size: 28rpx; 
+  color: #333;
+  box-sizing: border-box;
+  transition: all 0.3s;
+  background-color: #f9f9f9;
+  line-height: 1.5; 
+}
+.form-input:focus {
+  border-color: #A31D1D;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 4rpx rgba(163, 29, 29, 0.1);
+}
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+.modal-btn {
+  flex: 1;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  border: none;
+  box-sizing: border-box;
+  font-weight: 600;
+  transition: all 0.3s;
+  letter-spacing: 2rpx;
+}
+.cancel-btn {
+  background-color: #f5f5f5;
+  color: #666;
+}
+.cancel-btn:hover {
+  background-color: #e0e0e0;
+  transform: translateY(-2rpx);
+}
+.confirm-btn {
+  background-color: #A31D1D;
+  color: white;
+  background: linear-gradient(135deg, #A31D1D 0%, #851212 100%);
+  box-shadow: 0 8rpx 20rpx rgba(163, 29, 29, 0.2);
+}
+.confirm-btn:hover {
+  transform: translateY(-2rpx);
+  box-shadow: 0 12rpx 28rpx rgba(163, 29, 29, 0.3);
 }
 
 /* 底部安全区 */
