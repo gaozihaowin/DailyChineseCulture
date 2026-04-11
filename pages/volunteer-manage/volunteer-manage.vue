@@ -30,9 +30,14 @@
       </view>
     </view>
 
-    <scroll-view scroll-y class="scroll-content">
+    <scroll-view 
+      scroll-y 
+      class="scroll-content"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+    >
       <view class="content-wrapper">
-        <!-- 管理范围选择 -->
         <view v-if="managementScopes.length > 0" class="section-box scope-selector">
           <view class="selector-title">选择管理范围：</view>
           <scroll-view class="scope-list" scroll-x>
@@ -49,9 +54,7 @@
           </scroll-view>
         </view>
 
-        <!-- 管理成员内容 -->
         <view v-if="activeTab === 'members'" class="section-box task-content">
-          <!-- 层级列表（学班/检班/学委/检委时显示） -->
           <view v-if="showHierarchyList" class="hierarchy-container">
             <view v-if="hierarchyData.list.length === 0 && selectedScope" class="empty-tip">
               <text>暂无数据</text>
@@ -85,7 +88,6 @@
               </view>
             </view>
           </view>
-          <!-- 直接显示成员列表（学组/检组时显示） -->
           <view v-else class="member-container">
             <view v-if="memberInfo.smallGroupList && memberInfo.smallGroupList.length === 0 && selectedScope" class="empty-tip">
               <text>暂无成员信息</text>
@@ -131,9 +133,7 @@
           </view>
         </view>
 
-        <!-- 分配岗位内容 -->
         <view v-if="activeTab === 'duty'">
-          <!-- 我的管理范围 -->
           <view v-if="selectedScope" class="section-box duty-scope-section">
             <view class="section-title">我的管理范围</view>
             <view class="scope-info">
@@ -160,7 +160,6 @@
             </view>
           </view>
 
-          <!-- 可分配的岗位 -->
           <view v-if="selectedScope">
             <view v-if="dutyInfo.assignableDuties && dutyInfo.assignableDuties.length > 0" class="section-box duty-assign-section">
               <view class="section-title">可分配的岗位</view>
@@ -195,8 +194,8 @@
                       class="user-item"
                     >
                       <view class="user-info" @click="gotoUserDetail(user.userId)">
-                        <view class="username">{{ user.username }}</view>
-                        <view class="phone">{{ user.phone }}</view>
+                        <view class="username">{{ user.nickname || user.account || user.username || '--' }}</view>
+                        <view class="phone">{{ user.phone || '--' }}</view>
                       </view>
                       <view class="assign-btn" @click="assignDuty(user, duty)">分配</view>
                     </view>
@@ -215,7 +214,6 @@
             </view>
           </view>
 
-          <!-- 未选择管理范围提示 -->
           <view v-else class="section-box">
             <view class="empty-tip">
               <text>请选择管理范围</text>
@@ -223,12 +221,10 @@
           </view>
         </view>
 
-        <!-- 底部安全区占位 -->
         <view class="safe-area-spacer"></view>
       </view>
     </scroll-view>
 
-    <!-- 无管理范围提示 -->
     <view v-if="managementScopes.length === 0" class="no-scope-tip"> 
       <text>暂无管理范围权限</text> 
     </view>
@@ -252,6 +248,7 @@ export default {
        searchTimer: null, 
        token: uni.getStorageSync('token') || '', 
        showHierarchyList: true, 
+       refreshing: false
      } 
    }, 
    
@@ -260,13 +257,18 @@ export default {
    }, 
    
    methods: { 
-     // 初始化 
+     async onRefresh() {
+       this.refreshing = true;
+       await this.loadManagementScopes();
+       this.refreshing = false;
+     },
+     
      init() { 
        if (this.token) { 
          this.loadManagementScopes(); 
        } else { 
          uni.showToast({ title: '请先登录', icon: 'none' }); 
-         uni.redirectTo({ url: '/pages/login/login' }); 
+         uni.redirectTo({ url: '/pages/Login/index' }); 
        } 
      }, 
      
@@ -281,12 +283,11 @@ export default {
        }); 
      }, 
      
-     // 获取管理范围
      async loadManagementScopes() { 
        try { 
          if (!this.token) { 
            uni.showToast({ title: '请先登录', icon: 'none' }); 
-           uni.redirectTo({ url: '/pages/login/login' }); 
+           uni.redirectTo({ url: '/pages/Login/index' }); 
            return; 
          } 
          
@@ -337,17 +338,14 @@ export default {
        return '未知范围'; 
      }, 
      
-     // 选择管理范围
      selectScope(scope) { 
        this.selectedScope = scope; 
        
        if (this.activeTab === 'members') { 
-         // 学组/检组：直接显示成员列表 
          if (scope.targetType === 'small_group') { 
            this.showHierarchyList = false; 
            this.loadMemberInfo(); 
          } else { 
-           // 学班/检班/学委/检委：显示层级列表 
            this.showHierarchyList = true; 
            this.loadMemberHierarchyList(); 
          } 
@@ -359,12 +357,10 @@ export default {
        this.searchResults = {}; 
      }, 
      
-     // 切换标签
      switchTab(tab) { 
        this.activeTab = tab; 
        if (this.selectedScope) { 
          if (tab === 'members') { 
-           // 切换到管理成员 
            if (this.selectedScope.targetType === 'small_group') { 
              this.showHierarchyList = false; 
              this.loadMemberInfo(); 
@@ -373,7 +369,6 @@ export default {
              this.loadMemberHierarchyList(); 
            } 
          } else if (tab === 'duty') { 
-           // 切换到分配岗位 
            this.loadDutyInfo(); 
          } 
        } 
@@ -395,12 +390,9 @@ export default {
        } 
      }, 
      
-     // 获取成员层级列表
      loadMemberHierarchyList() { 
        if (!this.token || !this.selectedScope) return; 
  
- 
-       // 根据targetType获取正确的组织ID
        let targetId;
        if (this.selectedScope.targetType === 'class') {
          targetId = this.selectedScope.classId;
@@ -441,7 +433,6 @@ export default {
        }); 
      },
     
-    // 初始化展开状态
     initExpandStatus(items) {
       if (!items) return;
       items.forEach(item => {
@@ -452,9 +443,7 @@ export default {
       });
     },
     
-    // 切换展开状态
     toggleExpand(item) {
-      // 小组类型跳转到成员列表页面
       if (item.type === 'smallGroup') {
         this.gotoMemberList(item);
         return;
@@ -465,7 +454,6 @@ export default {
       }
     },
     
-    // 跳转到成员列表页面
     gotoMemberList(item) {
       if (item.type === 'smallGroup' && item.id) {
         uni.navigateTo({
@@ -474,7 +462,6 @@ export default {
       }
     },
     
-    // 获取成员信息
     async loadMemberInfo() {
       try {
         if (!this.token || !this.selectedScope.assignmentId) {
@@ -515,7 +502,6 @@ export default {
       }
     },
     
-    // 加载岗位信息
     async loadDutyInfo() {
       try {
         if (!this.token || !this.selectedScope.assignmentId) {
@@ -865,7 +851,6 @@ export default {
   color: #666;
 }
 
-/* 层级列表样式 */
 .task-content {
   padding: 30rpx;
 }
@@ -962,7 +947,6 @@ export default {
   border-bottom: none;
 }
 
-/* 成员列表样式 */
 .section-title {
   font-size: 28rpx;
   font-weight: bold;
@@ -1044,7 +1028,6 @@ export default {
   color: #FF6B35;
 }
 
-/* 分配岗位样式 */
 .duty-scope-section, .duty-assign-section {
   padding: 30rpx;
 }
@@ -1153,7 +1136,6 @@ export default {
   align-items: center;
 }
 
-/* 底部安全区 */
 .safe-area-spacer { 
   height: 200rpx; 
 }
