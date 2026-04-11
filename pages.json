@@ -146,6 +146,14 @@
 		{
 			"path": "pages/chat-group/add-member",
 			"style": { "navigationStyle": "custom" }
+		},
+		{
+			"path": "pages/volunteer/volunteer-certificates",
+			"style": { "navigationStyle": "custom" }
+		},
+	    {
+	    	"path": "pages/volunteer/admin",
+	    	"style": { "navigationStyle": "custom" }
 		}
 	],
 	"globalStyle": {

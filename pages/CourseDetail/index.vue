@@ -109,20 +109,50 @@ const extractCampName = (name) => {
 
 // ----------------- 核心交互与数据 -----------------
 
-// 聊天室入口点击事件（占位）
-const goToChat = () => {
-  uni.showToast({
-    title: '小组交流功能开发中，敬请期待',
-    icon: 'none',
-    duration: 2000
-  });
-  
-  // TODO: 后续在这里编写跳转聊天的逻辑
-  // 示例:
-  // uni.navigateTo({
-  //   url: `/pages/Chat/index?campId=${courseId.value}`
-  // });
-};
+// 聊天室入口点击事件
+const goToChat = async () => {
+  try {
+    // 获取用户当前正在学习的小组信息
+    const response = await uni.request({
+      url: `${API_CONFIG.baseUrl}/user/current-group`,
+      method: 'GET',
+      header: {
+        'Authorization': `Bearer ${uni.getStorageSync('token')}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        campId: courseId.value
+      }
+    });
+    if (response.statusCode === 200 && response.data.code === 200) {
+      const groupInfo = response.data.data;
+      if (groupInfo && groupInfo.chatId) {
+        uni.redirectTo({
+          url: `/pages/chat-group/chatdetail?chatId=${groupInfo.chatId}&name=${encodeURIComponent(groupInfo.chatName || groupInfo.smallGroupName || '小组群')}`
+        });
+      } else {
+        uni.showToast({
+          title: '您还未分配到小组',
+          icon: 'none',
+          duration: 2000
+        });
+      }
+    } else {
+      uni.showToast({
+        title: response.data?.msg || '获取小组信息失败',
+        icon: 'none',
+        duration: 2000
+      });
+    }
+  } catch (error) {
+    console.error('获取小组信息失败:', error);
+    uni.showToast({
+      title: '网络异常',
+      icon: 'none',
+      duration: 2000
+    });
+  }
+ };
 
 // 获取课程详细信息
 const fetchCourseInfo = async (id) => {

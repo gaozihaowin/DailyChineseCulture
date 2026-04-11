@@ -39,6 +39,9 @@
       :show-scrollbar="true"
       :scroll-with-animation="true"
       :enable-back-to-top="true"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper"> 
         <!-- 日期选择 -->
@@ -63,39 +66,40 @@
               :key="homework.homeworkId"
               class="homework-item"
             >
-              <!-- 优秀作业标签 -->
-              <view v-if="homework.isSmallGroupExcellent || homework.isBigGroupExcellent" class="excellent-tag">
-                {{ homework.isBigGroupExcellent ? '大组优秀' : '小组优秀' }}
+              <!-- 证书角标容器 -->
+              <view class="cert-tags-container">
+                    <!-- 小组优秀角标 -->
+                    <view 
+                    v-if="homework.isSmallGroupExcellent" 
+                    class="cert-tag small-excellent-tag"
+                    >
+                    小组优秀
+                    </view>
+                     <!-- 大组优秀角标 -->
+                    <view 
+                    v-if="homework.isBigGroupExcellent" 
+                    class="cert-tag big-excellent-tag"
+                    >
+                    大组优秀
+                    </view>
+                    <!-- 自定义证书角标 -->
+                    <view 
+                    v-for="cert in homework.certificates" 
+                    :key="cert.type"
+                     class="cert-tag custom-cert-tag"
+                    >
+                    {{ cert.type }}
+                </view>
               </view>
               
               <view class="homework-header">
                 <text class="homework-info">提交人员：{{ homework.name }}</text>
                 <text class="homework-info">提交时间：{{ formatDateTime(homework.submitTime) }}</text>
-				<text class="homework-info">所属分组：{{ homework.organization }}</text>
+				        <text class="homework-info">所属分组：{{ homework.organization }}</text>
               </view>
               
               <view class="homework-footer">
                 <button class="detail-btn" @click="navigateToHomeworkDetail(homework.homeworkId, homework.userId, homework.name)">查看详情</button>
-                
-                <!-- 小组优秀按钮 -->
-                <button
-                  class="small-excellent-btn"
-                  :class="{ active: homework.isSmallGroupExcellent }"
-                  @click="toggleSmallGroupExcellent(homework.homeworkId, !homework.isSmallGroupExcellent)"
-                  :disabled="!canOperateSmallGroup(homework)"
-                >
-                  {{ homework.isSmallGroupExcellent ? '取消小组优秀' : '标记小组优秀' }}
-                </button>
-                
-                <!-- 大组优秀按钮 -->
-                <button
-                  class="big-excellent-btn"
-                  :class="{ active: homework.isBigGroupExcellent }"
-                  @click="toggleBigGroupExcellent(homework.homeworkId, !homework.isBigGroupExcellent)"
-                  :disabled="!canOperateBigGroup(homework)"
-                >
-                  {{ homework.isBigGroupExcellent ? '取消大组优秀' : '标记大组优秀' }}
-                </button>
               </view>
             </view>
           </view>
@@ -121,7 +125,10 @@ export default {
       dutyType: '',
       activeTab: 'all',
       homeworkList: [],
-      token: uni.getStorageSync('token') || ''
+      token: uni.getStorageSync('token') || '',
+      
+      // 下拉刷新状态
+      refreshing: false
     };
   },
   onLoad(options) {
@@ -131,11 +138,19 @@ export default {
     this.dutyType = options.dutyType;
     this.getHomeworkList();
   },
+  
   methods: {
     goBack() {
       uni.navigateBack({
         delta: 1, 
       });
+    },
+    
+    //  下拉刷新触发
+    async onRefresh() {
+      this.refreshing = true;
+      await this.getHomeworkList(); // 重新加载数据
+      this.refreshing = false; // 关闭刷新
     },
     
     // 日期格式化
@@ -161,164 +176,91 @@ export default {
     
     // 获取作业列表
     getHomeworkList() {
-      if (!this.token) {
-        uni.showToast({ title: '请先登录', icon: 'none' });
-        return;
-      }
-    
-      // 构造参数
-      const params = {
-        type: 'small_group', // 固定为small_group
-        id: this.smallGroupId, 
-        status: this.activeTab === 'excellent' ? 'excellent' : undefined, 
-        date: this.selectedDate 
-      };
-    
-      // 拼接查询字符串
-      const queryString = Object.keys(params)
-        .filter(key => params[key] !== undefined && params[key] !== null)
-        .map(key => `${key}=${encodeURIComponent(params[key])}`)
-        .join('&');
-    
-      uni.request({
-        url: `${API_CONFIG.baseUrl}/homework/list${queryString ? '?' + queryString : ''}`,
-        method: 'GET', 
-        header: {
-          'Authorization': `Bearer ${this.token}` 
-        },
-        success: (res) => {
-          if (res.data?.code === 200) {
-            this.homeworkList = res.data.data.list || [];
-            this.homeworkList = this.homeworkList.map(item => ({
-              ...item,
-              isSmallGroupExcellent: Number(item.isSmallGroupExcellent) === 1,
-              isBigGroupExcellent: Number(item.isBigGroupExcellent) === 1
-            }));
-          } else {
-            uni.showToast({ title: res.data?.msg || '获取作业列表失败', icon: 'none' });
-            this.homeworkList = [];
-          }
-        },
-        fail: (err) => {
-          uni.showToast({ title: '网络错误', icon: 'none' });
-          this.homeworkList = [];
+      return new Promise((resolve) => { 
+        if (!this.token) {
+          uni.showToast({ title: '请先登录', icon: 'none' });
+          resolve();
+          return;
         }
-      });
-    },
-    
-    // 是否可操作小组优秀
-    canOperateSmallGroup(homework) {
-      // 所有角色都可操作小组优秀
-      if (['学班', '检班', '学委', '检委', '学组', '检组'].includes(this.dutyType)) {
-        return true;
-      }
-      return false;
-    },
-
-    // 是否可操作大组优秀（所有角色都需先标记小组优秀）
-    canOperateBigGroup(homework) {
-      // 1. 学组/检组：无权限操作大组优秀
-      if (this.dutyType === '学组' || this.dutyType === '检组') {
-        return false;
-      }
-      // 2. 学委/检委/学班/检班：必须先标记为小组优秀才能操作大组优秀
-      return homework.isSmallGroupExcellent;
-    },
-    
-    // 标记/取消小组优秀
-    toggleSmallGroupExcellent(homeworkId, isExcellent) {
-      uni.showModal({
-        title: '确认操作',
-        content: isExcellent ? '确定标记为小组优秀作业吗？' : '确定取消小组优秀作业吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.request({
-              url: `${API_CONFIG.baseUrl}/camp/homework/mark-small-group`,
-              method: 'POST',
-              header: {
-                'Authorization': `Bearer ${this.token}`, 
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              data: {
-                homeworkId: homeworkId, 
-                isSmallGroupExcellent: isExcellent ? 1 : 0 
-              },
-              success: (res) => {
-                if (res.data?.code === 200) {
-                  uni.showToast({ title: isExcellent ? '标记小组优秀成功' : '取消小组优秀成功', icon: 'success' });
-                  // 更新本地作业列表
-                  const homework = this.homeworkList.find(item => item.homeworkId === homeworkId);
-                  if (homework) {
-                    homework.isSmallGroupExcellent = isExcellent;
-                    // 如果取消小组优秀，同时取消大组优秀
-                    if (!isExcellent) {
-                      homework.isBigGroupExcellent = false;
-                    }
-                  }
-                } else {
-                  uni.showToast({ title: res.data?.msg || '操作失败', icon: 'none' });
-                }
-              },
-              fail: (err) => {
-                uni.showToast({ title: '网络错误', icon: 'none' });
-              }
-            });
-          }
-        }
-      });
-    },
-
-    // 标记/取消大组优秀
-    toggleBigGroupExcellent(homeworkId, isExcellent) {
-      // 学组/检组无权限
-      if (this.dutyType === '学组' || this.dutyType === '检组') {
-        uni.showToast({ title: '无权限操作大组优秀', icon: 'none' });
-        return;
-      }
       
-      const homework = this.homeworkList.find(item => item.homeworkId === homeworkId);
-      // 未标记小组优秀（所有有权限的角色通用）
-      if (isExcellent && !homework?.isSmallGroupExcellent) {
-        uni.showToast({ title: '请先将该作业标记为小组优秀', icon: 'none' });
-        return;
-      }
-
-      uni.showModal({
-        title: '确认操作',
-        content: isExcellent ? '确定标记为大组优秀作业吗？' : '确定取消大组优秀作业吗？',
-        success: (res) => {
-          if (res.confirm) {
-            uni.request({
-              url: `${API_CONFIG.baseUrl}/camp/homework/mark-big-group`,
-              method: 'POST',
-              header: {
-                'Authorization': `Bearer ${this.token}`, 
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              data: {
-                homeworkId: homeworkId, 
-                isBigGroupExcellent: isExcellent ? 1 : 0 
-              },
-              success: (res) => {
-                if (res.data?.code === 200) {
-                  uni.showToast({ title: isExcellent ? '标记大组优秀成功' : '取消大组优秀成功', icon: 'success' });
-                  // 更新本地作业列表
-                  const homework = this.homeworkList.find(item => item.homeworkId === homeworkId);
-                  if (homework) {
-                    homework.isBigGroupExcellent = isExcellent;
-                  }
-                } else {
-                  uni.showToast({ title: res.data?.msg || '操作失败', icon: 'none' });
-                }
-              },
-              fail: (err) => {
-                uni.showToast({ title: '网络错误', icon: 'none' });
-              }
-            });
+        const params = {
+          type: 'small_group',
+          id: this.smallGroupId, 
+          status: this.activeTab === 'excellent' ? 'excellent' : undefined, 
+          date: this.selectedDate 
+        };
+      
+        const queryString = Object.keys(params)
+          .filter(key => params[key] !== undefined && params[key] !== null)
+          .map(key => `${key}=${encodeURIComponent(params[key])}`)
+          .join('&');
+      
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/homework/list${queryString ? '?' + queryString : ''}`,
+          method: 'GET', 
+          header: {
+            'Authorization': `Bearer ${this.token}` 
+          },
+          success: (res) => {
+            if (res.data?.code === 200) {
+              this.homeworkList = res.data.data.list || [];
+              this.homeworkList = this.homeworkList.map(item => ({
+                ...item,
+                isSmallGroupExcellent: Number(item.isSmallGroupExcellent) === 1,
+                isBigGroupExcellent: Number(item.isBigGroupExcellent) === 1,
+                // 兼容多证书列表
+                 certificates: item.certificates || []
+              }));
+            } else {
+              uni.showToast({ title: res.data?.msg || '获取作业列表失败', icon: 'none' });
+              this.homeworkList = [];
+            }
+          },
+          fail: (err) => {
+            uni.showToast({ title: '网络错误', icon: 'none' });
+            this.homeworkList = [];
+          },
+          complete: () => {
+            resolve(); // 结束
           }
-        }
-      });
+        });
+      })
     },
+	
+	cancelCertificate(homework, cert) {
+	      uni.showModal({
+	        title: '确认操作',
+	        content: `确定要取消颁发"${cert.type || cert.text}"证书吗？`,
+	        success: (res) => {
+	          if (res.confirm) {
+	            uni.request({
+	              url: `${API_CONFIG.baseUrl}/volunteer/certificate/cancel`,
+	              method: 'POST',
+	              header: {
+	                'Authorization': `Bearer ${this.token}`,
+	                'Content-Type': 'application/json'
+	              },
+	              data: {
+	                volunteerId: homework.userId,
+	                certificateType: cert.type || cert.text,
+	                homeworkId: homework.homeworkId
+	              },
+	              success: (res) => {
+	                if (res.data?.code === 200) {
+	                  uni.showToast({ title: '取消成功', icon: 'success' });
+	                  this.getHomeworkList();
+	                } else {
+	                  uni.showToast({ title: res.data?.msg || '取消失败', icon: 'none' });
+	                }
+	              },
+	              fail: () => {
+	                uni.showToast({ title: '网络错误，取消失败', icon: 'none' });
+	              }
+	            });
+	          }
+	        }
+	      });
+	    },
     
     // 跳转到作业详情
     navigateToHomeworkDetail(homeworkId, userId, userName) {
@@ -510,21 +452,50 @@ export default {
   border: none;
 }
 
-/* 优秀作业标签 */
-.excellent-tag {
+/* 证书角标容器 */
+.cert-tags-container {
   position: absolute;
   top: 20rpx;
-  right: 20rpx;
-  background-color: #A31D1D;
-  color: #fff;
+  left: 20rpx;
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  z-index: 1;
+}
+
+/* 通用证书角标样式 */
+.cert-tag {
   font-size: 20rpx;
+  font-weight: bold;
   padding: 4rpx 12rpx;
   border-radius: 6rpx;
-  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cert-tag:active {
+  transform: scale(0.95);
+}
+
+/* 小组优秀角标 */
+.small-excellent-tag {
+  background-color: #4CAF50;
+}
+
+/* 大组优秀角标 */
+.big-excellent-tag {
+  background-color: #2196F3;
+}
+
+/* 自定义证书角标 */
+.custom-cert-tag {
+  background-color: #FFD700;
+  color: #333;
 }
 
 .homework-header {
   margin-bottom: 15rpx;
+  margin-top: 40rpx; /* 给角标留出空间 */
 }
 
 /* 作业信息样式 */
@@ -541,12 +512,11 @@ export default {
 
 .homework-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   padding-top: 20rpx;
   border-top: 1rpx solid #e5e5e5;
   margin-top: 0;
-  gap: 10rpx;
 }
 
 .detail-btn {
@@ -562,50 +532,6 @@ export default {
 
 .detail-btn:hover {
   background-color: #851212;
-}
-
-/* 小组优秀按钮样式 */
-.small-excellent-btn {
-  padding: 12rpx 20rpx;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  border: none;
-  flex-shrink: 0;
-}
-.small-excellent-btn:not(.active) {
-  background-color: #4CAF50;
-  color: white;
-}
-.small-excellent-btn.active {
-  background-color: #FFD700;
-  color: #333;
-  font-weight: bold;
-}
-.small-excellent-btn:disabled {
-  background-color: #ccc;
-  color: #666;
-}
-
-/* 大组优秀按钮样式 */
-.big-excellent-btn {
-  padding: 12rpx 20rpx;
-  border-radius: 12rpx;
-  font-size: 24rpx;
-  border: none;
-  flex-shrink: 0;
-}
-.big-excellent-btn:not(.active) {
-  background-color: #2196F3;
-  color: white;
-}
-.big-excellent-btn.active {
-  background-color: #9C27B0;
-  color: white;
-  font-weight: bold;
-}
-.big-excellent-btn:disabled {
-  background-color: #ccc;
-  color: #666;
 }
 
 /* 底部安全区 */

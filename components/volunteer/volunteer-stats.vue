@@ -18,6 +18,9 @@
       :enhanced="true"
       :show-scrollbar="true"
       v-if="managementScopes.length > 0"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper"> 
         <!-- 管理范围选择 -->
@@ -52,7 +55,7 @@
           <view v-if="isLoading" class="empty-tip">
             <text>加载中...</text>
           </view>
-          <view v-else-if="!hasHomework || hierarchyData.length === 0" class="empty-tip">
+          <view v-else-if="!hasHomework" class="empty-tip">
             <text>暂无统计数据</text>
           </view>
           <view v-else>
@@ -219,7 +222,8 @@ export default {
       hierarchyData: [], 
       token: '', 
       isLoading: false,
-      hasHomework: false 
+      hasHomework: false,
+      refreshing: false
     }; 
   }, 
   mounted() {
@@ -235,6 +239,15 @@ export default {
     uni.$off('refreshVolunteerStats');
   },
   methods: { 
+    // 下拉刷新方法
+    async onRefresh() {
+      this.refreshing = true;
+      // 重新加载数据
+      await this.getManagementScopes();
+      // 结束刷新
+      this.refreshing = false;
+    },
+    
     formatDate(dateStr) { 
       if (!dateStr) return '';
       const compatibleDate = dateStr.replace(/\s+/g, 'T').replace(/-/g, '/');
@@ -323,44 +336,49 @@ export default {
     }, 
     
     getHierarchyStatistics() {
-      if (!this.selectedScope || !this.selectedScope.id) {
-        return;
-      }
-      
-      this.isLoading = true;
-      uni.request({
-        url: `${API_CONFIG.baseUrl}/homework/statistics/hierarchy`,
-        method: 'GET',
-        data: {
-          type: this.selectedScope.type,
-          id: this.selectedScope.id,
-          date: this.selectedDate
-        },
-        header: {
-          'Authorization': `Bearer ${this.token}`
-        },
-        success: (res) => {
-          this.isLoading = false;
-          console.log('接口返回数据：', res.data); // 保留日志，方便调试
-          
-          if (res.data.code === 200) {
-            const rawList = res.data.data?.list || [];
-            this.hasHomework = rawList.length > 0 ? rawList[0].hasHomework : false;
-            this.hierarchyData = this.formatHierarchyData(rawList.filter(item => item.hasHomework));
-          } else {
+      return new Promise((resolve) => {
+        if (!this.selectedScope || !this.selectedScope.id) {
+          resolve();
+          return;
+        }
+        
+        this.isLoading = true;
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/homework/statistics/hierarchy`,
+          method: 'GET',
+          data: {
+            type: this.selectedScope.type,
+            id: this.selectedScope.id,
+            date: this.selectedDate
+          },
+          header: {
+            'Authorization': `Bearer ${this.token}`
+          },
+          success: (res) => {
+            this.isLoading = false;
+            console.log('接口返回数据：', res.data);
+            
+            if (res.data.code === 200) {
+              const rawList = res.data.data?.list || [];
+              this.hasHomework = rawList.length > 0 ? rawList[0].hasHomework : false;
+              this.hierarchyData = this.formatHierarchyData(rawList.filter(item => item.hasHomework));
+            } else {
+              this.hasHomework = false;
+              this.hierarchyData = [];
+              uni.showToast({ title: res.data.msg || '获取统计数据失败', icon: 'none' });
+            }
+            resolve();
+          },
+          fail: (err) => {
+            this.isLoading = false;
             this.hasHomework = false;
             this.hierarchyData = [];
-            uni.showToast({ title: res.data.msg || '获取统计数据失败', icon: 'none' });
+            console.error('接口请求失败：', err);
+            uni.showToast({ title: '网络错误，请稍后重试', icon: 'none' });
+            resolve();
           }
-        },
-        fail: (err) => {
-          this.isLoading = false;
-          this.hasHomework = false;
-          this.hierarchyData = [];
-          console.error('接口请求失败：', err);
-          uni.showToast({ title: '网络错误，请稍后重试', icon: 'none' });
-        }
-      });
+        });
+      })
     },
     
     // 格式化数据

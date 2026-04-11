@@ -183,6 +183,32 @@ export default {
 			this.isAgree = !this.isAgree;
 		},
 		
+		checkVolunteerAdmin() {
+			return new Promise((resolve) => {
+				const token = uni.getStorageSync('token');
+				if (!token) {
+					resolve(false);
+					return;
+				}
+				uni.request({
+					url: API_CONFIG.baseUrl + '/volunteer/check-admin',
+					method: 'GET',
+					header: {
+						'Authorization': 'Bearer ' + token
+					},
+					success: (res) => {
+						console.log("【后端完整返回】", res.data);
+						const isAdmin = res.data.data === true || res.data.data === 'true';
+						console.log("【是否管理员】", isAdmin);
+						resolve(isAdmin);
+					},
+					fail: () => {
+						resolve(false);
+					}
+				});
+			});
+		},
+		
 		handleLogin() {
 			if (!this.isAgree) {
 				uni.showToast({ title: '请先同意协议', icon: 'none' });
@@ -202,7 +228,7 @@ export default {
 						username: this.username.trim(),
 						password: this.password.trim()
 					},
-					success: (res) => {
+					success: async (res) => {
 						uni.hideLoading();
 						this.isLoading = false;
 						const apiData = res.data;
@@ -223,12 +249,17 @@ export default {
 							
 							uni.showToast({ title: '登录成功', icon: 'success' });
 						
-							setTimeout(() => {
+							setTimeout(async () => {
 								console.log('开始执行页面跳转...');
 								try {
 									const isComplete = apiData.data.isComplete;
+									const isAdmin = await this.checkVolunteerAdmin();
 									
-									if (isComplete === false) {
+									if (isAdmin) {
+										uni.reLaunch({
+											url: '/pages/volunteer/admin'
+										});}
+									else if (isComplete === false) {
 										console.log('用户信息不完整，跳转到学员端信息补全页面');
 										uni.reLaunch({ 
 											url: '/pages/Login/complete-info',
@@ -240,7 +271,7 @@ export default {
 												uni.showToast({ title: '跳转失败', icon: 'none' });
 											}
 										});
-									} else {
+									}  else {
 										console.log('用户信息完整，跳转到学员端首页');
 										uni.reLaunch({ 
 											url: '/pages/Main/index', 
@@ -367,7 +398,7 @@ export default {
 				uni.hideLoading();
 				
 				const apiData = response.data || {};
-				if (response.statusCode === 200 &&apiData.code === 200) {
+				if (response.statusCode === 200 && apiData.code === 200) {
 					console.log('=== 微信登录成功，开始处理跳转 ===');
 					console.log('微信返回数据：', apiData);
 					
@@ -387,31 +418,12 @@ export default {
 					
 					uni.showToast({ title: '微信登录成功', icon: 'success' });
 					
-					setTimeout(() => {
-						console.log('开始执行微信页面跳转...');
-						try {
-							uni.reLaunch({
-								url: '/pages/Main/index',
-								success: (res) => {
-									console.log('微信跳转学员端成功', res);
-								},
-								fail: (err) => {
-									console.error('微信跳转失败：', err);
-									uni.redirectTo({
-										url: '/pages/Main/index',
-										success: (res2) => {
-											console.log('微信跳转学员端成功', res2);
-										},
-										fail: (err2) => {
-											console.error('微信也失败：', err2);
-											uni.showToast({ title: `跳转失败：${err2.errMsg}`, icon: 'none' });
-										}
-									});
-								}
-							});
-						} catch (error) {
-							console.error('微信登录跳转异常：', error);
-							uni.showToast({ title: '页面跳转异常', icon: 'none' });
+					setTimeout(async () => {
+						const isAdmin = await this.checkVolunteerAdmin();
+						if (isAdmin) {
+							uni.reLaunch({ url: '/pages/volunteer/admin' });
+						} else {
+							uni.reLaunch({ url: '/pages/Main/index' });
 						}
 					}, 500);
 				} else {
@@ -519,11 +531,10 @@ export default {
 }
 .app-slogan {
 	font-size: 26rpx;
-	color: #a09594;
+	color: #a09494;
 	margin-top: 12rpx;
 }
 
-/* ================= 输入框容器优化 ================= */
 .form-section {
 	padding: 0 70rpx;
 	z-index: 1;
@@ -535,9 +546,9 @@ export default {
 .form-input {
 	width: 100%;
 	height: 110rpx;
-	padding: 0 100rpx; /* 左右预留图标空间 */
-	background-color: #f6f5f3; /* 柔和宣纸灰背景 */
-	border-radius: 24rpx; /* 更圆润的边缘 */
+	padding: 0 100rpx;
+	background-color: #f6f5f3;
+	border-radius: 24rpx;
 	font-size: 30rpx;
 	color: #333;
 	box-sizing: border-box;
@@ -550,7 +561,7 @@ export default {
 	box-shadow: 0 8rpx 24rpx rgba(158, 42, 43, 0.06);
 }
 .form-input[disabled] {
-	background-color: #f5f5f5;
+	background-color: #f5f5f3;
 	color: #999;
 }
 .custom-placeholder { 
@@ -558,7 +569,6 @@ export default {
 	font-size: 28rpx; 
 }
 
-/* ================= 左侧前置图标优化 ================= */
 .input-icon-box {
 	position: absolute;
 	left: 36rpx;
@@ -570,7 +580,6 @@ export default {
 	z-index: 10;
 }
 
-/* 优化后的账号Icon */
 .css-icon-user {
 	display: flex;
 	flex-direction: column;
@@ -591,7 +600,6 @@ export default {
 	border-bottom: none;
 }
 
-/* 优化后的密码锁Icon */
 .css-icon-lock {
 	display: flex;
 	flex-direction: column;
@@ -620,7 +628,6 @@ export default {
 	border-radius: 50%;
 }
 
-/* ================= 右侧密码防窥小眼睛优化 ================= */
 .toggle-password {
 	position: absolute;
 	right: 20rpx;
@@ -644,7 +651,6 @@ export default {
 	position: relative;
 	transition: all 0.3s ease;
 }
-/* 瞳孔 */
 .icon-eye::after {
 	content: '';
 	position: absolute;
@@ -657,7 +663,6 @@ export default {
 	border-radius: 50%;
 	transition: all 0.3s ease;
 }
-/* 闭眼状态的斜杠 */
 .icon-eye-closed::before {
 	content: '';
 	position: absolute;
@@ -670,7 +675,6 @@ export default {
 	z-index: 2;
 	border-radius: 2rpx;
 }
-/* 睁眼点亮状态 */
 .eye-active .icon-eye {
 	border-color: #9e2a2b;
 }
@@ -678,7 +682,6 @@ export default {
 	background-color: #9e2a2b;
 }
 
-/* ================= 按钮与下方链接 ================= */
 .btn-login {
 	width: 100%;
 	height: 110rpx;
@@ -687,7 +690,7 @@ export default {
 	color: #fff;
 	font-size: 34rpx;
 	font-weight: bold;
-	border-radius: 24rpx; /* 与输入框统一圆角 */
+	border-radius: 24rpx;
 	box-shadow: 0 16rpx 36rpx rgba(158, 42, 43, 0.2);
 	margin-top: 40rpx;
 	letter-spacing: 12rpx;
@@ -718,7 +721,6 @@ export default {
 .link-text { color: #888; }
 .link-text.highlight { color: #9e2a2b; font-weight: bold; }
 
-/* ================= 底部区域 ================= */
 .footer-section {
   margin-top: 120rpx;
   padding: 0 70rpx 80rpx;
@@ -785,7 +787,6 @@ export default {
 }
 .highlight-text { color: #9e2a2b; }
 
-/* ================= 微信授权弹窗 ================= */
 .wx-auth-modal {
   position: fixed;
   top: 0;

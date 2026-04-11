@@ -13,6 +13,7 @@
       </view>
     </view>
 
+    <!-- 添加下拉刷新 -->
     <scroll-view 
       scroll-y 
       class="scroll-content"
@@ -20,6 +21,9 @@
       :show-scrollbar="true"
       :scroll-with-animation="true"
       :enable-back-to-top="true"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper">
         <!-- 成员列表 -->
@@ -69,7 +73,9 @@ export default {
       assignmentId: '',       // 分配ID
       smallGroupName: '',     // 小组名称
       memberList: [],         // 成员列表
-      token: uni.getStorageSync('token') || ''
+      token: uni.getStorageSync('token') || '',
+      // 下拉刷新状态
+      refreshing: false
     }
   },
   
@@ -86,6 +92,13 @@ export default {
   },
   
   methods: {
+    // 下拉刷新方法
+    async onRefresh() {
+      this.refreshing = true;
+      await this.loadMemberList();
+      this.refreshing = false;
+    },
+    
     // 返回上一页
     goBack() {
       uni.navigateBack({

@@ -13,13 +13,15 @@
       </view>
     </view>
 
-    <!-- 可滚动内容 -->
     <scroll-view
       scroll-y
       class="scroll-content"
       :enhanced="true"
       :show-scrollbar="false"
       :enable-back-to-top="true"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper">
         <!-- 成员列表卡片 -->
@@ -70,7 +72,8 @@ export default {
     return {
       chatId: '',
       token: '',
-      userList: []
+      userList: [],
+      refreshing: false // 下拉刷新状态
     };
   },
 
@@ -81,6 +84,13 @@ export default {
   },
 
   methods: {
+    // 下拉刷新
+    async onRefresh() {
+      this.refreshing = true;
+      await this.getAvailableMembers();
+      this.refreshing = false;
+    },
+
     goBack() {
       uni.navigateBack();
     },
@@ -91,32 +101,36 @@ export default {
 
     // 获取可添加成员
     getAvailableMembers() {
-      uni.request({
-        url: API_CONFIG.baseUrl + '/group-chat/available-members',
-        method: 'GET',
-        data: { chatId: this.chatId },
-        header: { Authorization: 'Bearer ' + this.token },
-        success: (res) => {
-          try {
-            if (res.data.code === 200) {
-              const data = res.data.data || {};
-              const list = data.members || [];
-              this.userList = list.map(u => {
-                u.checked = false;
-                return u;
-              });
-            } else {
-              uni.showToast({ title: '加载失败', icon: 'none' });
+      return new Promise((resolve) => {
+        uni.request({
+          url: API_CONFIG.baseUrl + '/group-chat/available-members',
+          method: 'GET',
+          data: { chatId: this.chatId },
+          header: { Authorization: 'Bearer ' + this.token },
+          success: (res) => {
+            try {
+              if (res.data.code === 200) {
+                const data = res.data.data || {};
+                const list = data.members || [];
+                this.userList = list.map(u => {
+                  u.checked = false;
+                  return u;
+                });
+              } else {
+                uni.showToast({ title: '加载失败', icon: 'none' });
+                this.userList = [];
+              }
+            } catch (e) {
               this.userList = [];
+              uni.showToast({ title: '数据异常', icon: 'none' });
             }
-          } catch (e) {
-            this.userList = [];
-            uni.showToast({ title: '数据异常', icon: 'none' });
+            resolve();
+          },
+          fail: () => {
+            uni.showToast({ title: '网络错误', icon: 'none' });
+            resolve();
           }
-        },
-        fail: () => {
-          uni.showToast({ title: '网络错误', icon: 'none' });
-        }
+        });
       });
     },
 

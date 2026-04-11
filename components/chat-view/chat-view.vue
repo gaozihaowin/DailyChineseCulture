@@ -101,31 +101,63 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  viewport-fit: cover; 
 }
+
 .art-header {
   background: #a31d1d;
-  padding: 48rpx 30rpx 24rpx;
+  padding: calc(var(--status-bar-height) + 20rpx) 30rpx 24rpx;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99;
 }
-.placeholder { width: 48rpx; height: 48rpx; }
-.nav-brand { flex: 1; text-align: center; } 
-.brand-en { font-size: 18rpx; color: rgba(255,255,255,0.5); display: block; margin-bottom: 4rpx; } 
-.brand-cn { font-size: 36rpx; font-weight: bold; color: #fff; }
+
+.placeholder { 
+  width: 48rpx; 
+  height: 48rpx; 
+}
+
+.nav-brand { 
+  flex: 1; 
+  text-align: center; 
+} 
+
+.brand-en { 
+  font-size: 18rpx; 
+  color: rgba(255,255,255,0.5); 
+  display: block; 
+  margin-bottom: 4rpx; 
+} 
+
+.brand-cn { 
+  font-size: 36rpx; 
+  font-weight: bold; 
+  color: #fff; 
+}
+
 .empty-state {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .empty-text {
   font-size: 28rpx;
   color: #999;
 }
+
 .scroll-content {
   flex: 1;
+  padding-top: calc(var(--status-bar-height) + 120rpx);
 }
+
 .content-wrapper {
   padding: 20rpx 30rpx;
 }
+
 .group-item {
   background: #fff;
   border-radius: 16rpx;

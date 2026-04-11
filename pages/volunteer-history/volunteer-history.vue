@@ -13,6 +13,7 @@
       </view>
     </view>
 
+    <!-- 添加下拉刷新 -->
     <scroll-view 
       scroll-y 
       class="scroll-content"
@@ -20,6 +21,9 @@
       :show-scrollbar="true"
       :scroll-with-animation="true"
       :enable-back-to-top="true"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper">
         <view class="section-box fade-in-up">
@@ -64,7 +68,9 @@ export default {
   data() {
     return {
       token: '',
-      historyList: []
+      historyList: [],
+      //  下拉刷新状态
+      refreshing: false
     };
   },
   onLoad() {
@@ -76,6 +82,13 @@ export default {
     this.getVolunteerHistory();
   },
   methods: {
+    // 下拉刷新方法
+    async onRefresh() {
+      this.refreshing = true;
+      await this.getVolunteerHistory();
+      this.refreshing = false;
+    },
+    
     goBack() {
       uni.navigateBack({ delta: 1 });
     },
