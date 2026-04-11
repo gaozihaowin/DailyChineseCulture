@@ -65,7 +65,7 @@
 
               <view class="task-content">
                 <view class="title-row">
-                  <text class="task-title">{{ task.taskName }}</text>
+                  <text class="task-title">{{ task.title || '未命名任务' }}</text>
                   <view 
                     class="required-tag" 
                     :class="task.isRequired === 1 ? 'tag-required' : 'tag-optional'"
@@ -73,7 +73,7 @@
                     {{ task.isRequired === 1 ? '必修' : '选修' }}
                   </view>
                 </view>
-                <text v-if="task.taskDesc" class="task-subtitle">{{ task.taskDesc }}</text>
+                <text v-if="task.subtitle" class="task-subtitle">{{ task.subtitle }}</text>
               </view>
 
               <view class="task-status">
@@ -101,12 +101,12 @@
       ref="taskPopup"
       type="bottom"
       background-color="#fff"
-      border-radius="24rpx 24rpx 0 0"
+      border-radius="32rpx 32rpx 0 0"
       class="safe-popup"
     >
       <view class="popup-content">
         <view class="popup-header">
-          <text class="popup-title">{{ currentTask?.taskName || '' }}</text>
+          <text class="popup-title">{{ currentTask?.title || '' }}</text>
           <view class="popup-close" @click="closeTaskPopup">
             <uni-icons type="closeempty" size="20" color="#9ca3af"></uni-icons>
           </view>
@@ -114,6 +114,7 @@
 
         <view class="popup-body">
           <scroll-view scroll-y class="popup-scroll">
+            
             <view v-if="currentTask?.taskType === 'VIDEO'" class="video-container">
               <video
                 v-if="currentTask.taskUrl"
@@ -132,8 +133,8 @@
 
             <view v-else-if="currentTask?.taskType === 'READ'" class="read-container">
               <rich-text
-                v-if="currentTask.taskDesc || currentTask.taskUrl"
-                :nodes="currentTask.taskUrl ? `<a href='${currentTask.taskUrl}' style='color:#9e2a2b; text-decoration:underline;'>点击查看阅读材料</a><br><br>${currentTask.taskDesc}` : currentTask.taskDesc"
+                v-if="currentTask.subtitle || currentTask.taskUrl"
+                :nodes="currentTask.taskUrl ? `<a href='${currentTask.taskUrl}' style='color:#9e2a2b; text-decoration:underline; font-weight:600; font-size:32rpx;'>点击查看阅读材料</a><br><br>${currentTask.subtitle || ''}` : currentTask.subtitle"
                 class="read-content"
               ></rich-text>
               <view v-else class="read-placeholder">
@@ -142,11 +143,66 @@
             </view>
 
             <view v-else-if="currentTask?.taskType === 'HOMEWORK'" class="homework-container">
-              <view class="homework-input-wrapper">
+              <text class="homework-section-title">今日功课</text>
+
+              <view class="checklist-wrapper">
+                <view
+                  class="checklist-item"
+                  :class="{ 'is-checked': homeworkChecklist.readOriginal }"
+                  @click="homeworkChecklist.readOriginal = !homeworkChecklist.readOriginal"
+                >
+                  <view class="check-circle">
+                    <uni-icons v-if="homeworkChecklist.readOriginal" type="checkmarkempty" size="14" color="#ffffff"></uni-icons>
+                  </view>
+                  <text class="check-text">1、读原文一遍</text>
+                </view>
+
+                <view
+                  class="checklist-item"
+                  :class="{ 'is-checked': homeworkChecklist.onTime }"
+                  @click="homeworkChecklist.onTime = !homeworkChecklist.onTime"
+                >
+                  <view class="check-circle">
+                    <uni-icons v-if="homeworkChecklist.onTime" type="checkmarkempty" size="14" color="#ffffff"></uni-icons>
+                  </view>
+                  <text class="check-text">2、准时上交功课</text>
+                </view>
+
+                <view
+                  class="checklist-item"
+                  :class="{ 'is-checked': homeworkChecklist.goodDeed }"
+                  @click="homeworkChecklist.goodDeed = !homeworkChecklist.goodDeed"
+                >
+                  <view class="check-circle">
+                    <uni-icons v-if="homeworkChecklist.goodDeed" type="checkmarkempty" size="14" color="#ffffff"></uni-icons>
+                  </view>
+                  <text class="check-text">3、日行一善</text>
+                </view>
+
+                <view
+                  class="checklist-item"
+                  :class="{ 'is-checked': homeworkChecklist.introspection }"
+                  @click="homeworkChecklist.introspection = !homeworkChecklist.introspection"
+                >
+                  <view class="check-circle">
+                    <uni-icons v-if="homeworkChecklist.introspection" type="checkmarkempty" size="14" color="#ffffff"></uni-icons>
+                  </view>
+                  <text class="check-text">4、每日自省</text>
+                </view>
+
+                <view class="checklist-hint">
+                  <text class="hint-text">1) 不抱怨，不说谎</text>
+                  <text class="hint-text">2) 时刻保持感恩敬畏</text>
+                </view>
+              </view>
+
+              <text class="homework-section-title" style="margin-top: 24rpx;">学习践行心得</text>
+
+              <view class="homework-input-wrapper" :class="{ 'is-disabled': currentTask?.isDone === 1 }">
                 <textarea
                   v-model="homeworkContent"
                   class="homework-textarea"
-                  :placeholder="currentTask?.isDone === 1 ? '你已提交过心得体会' : '请输入你的心得体会，记录此刻的灵感...'"
+                  :placeholder="currentTask?.isDone === 1 ? '你已提交过心得体会' : '写读书践行心得：30个字以上...'"
                   placeholder-class="textarea-placeholder"
                   maxlength="2000"
                   :disabled="currentTask?.isDone === 1"
@@ -159,10 +215,11 @@
               <view class="extra-icon-wrapper">
                 <uni-icons type="star-filled" size="48" color="#10b981"></uni-icons>
               </view>
-              <text class="extra-title">{{ currentTask?.taskName }}</text>
-              <text v-if="currentTask?.taskDesc" class="extra-desc">{{ currentTask.taskDesc }}</text>
+              <text class="extra-title">{{ currentTask?.title }}</text>
+              <text v-if="currentTask?.subtitle" class="extra-desc">{{ currentTask.subtitle }}</text>
               <text v-else class="extra-desc">这是一项选修拓展任务，点击下方按钮完成即可。</text>
             </view>
+
           </scroll-view>
         </view>
 
@@ -193,11 +250,6 @@ const props = defineProps({
     type: [Number, String],
     required: true
   },
-  // =========================================
-  // 升维改造：新增 targetPlanId，支持查看任意一天的课程
-  // 如果传入了 planId，后端会返回对应那天的数据
-  // 如果为 null，则后端自动返回"今天"的数据
-  // =========================================
   targetPlanId: {
     type: [Number, String],
     default: null
@@ -210,6 +262,12 @@ const courseData = ref(null);
 const isLoading = ref(true);
 const currentTask = ref(null);
 const homeworkContent = ref('');
+const homeworkChecklist = ref({
+  readOriginal: false,
+  onTime: true,
+  goodDeed: false,
+  introspection: false
+});
 const taskPopup = ref(null);
 const isSubmitting = ref(false);
 
@@ -217,10 +275,6 @@ const fetchTodayData = async () => {
   try {
     isLoading.value = true;
 
-    // =========================================
-    // 升维改造：构建 URL，支持可选的 planId 查询参数
-    // 如果传入了 targetPlanId，则请求指定那天的数据
-    // =========================================
     let url = API_CONFIG.paths.todayCourse.replace('{{campId}}', props.campId.toString());
     if (props.targetPlanId) {
       url += `?planId=${props.targetPlanId}`;
@@ -273,6 +327,12 @@ const getTaskIconColor = (taskType) => {
 const openTaskPopup = (task) => {
   currentTask.value = task;
   homeworkContent.value = '';
+  homeworkChecklist.value = {
+    readOriginal: false,
+    onTime: true,
+    goodDeed: false,
+    introspection: false
+  };
   if (taskPopup.value) {
       taskPopup.value.open();
   }
@@ -293,9 +353,18 @@ const submitTask = async () => {
 
   const task = currentTask.value;
 
-  if (task.taskType === 'HOMEWORK' && !homeworkContent.value.trim()) {
-    uni.showToast({ title: '请输入心得体会后再提交', icon: 'none' });
-    return;
+  if (task.taskType === 'HOMEWORK') {
+    if (homeworkContent.value.trim().length < 30) {
+      // 🚨 核心修复：将 showToast 改为弹窗，确保用户 100% 看到拦截提示
+      uni.showModal({
+        title: '字数不足',
+        content: '读书践行心得请不少于 30 字，在事上磨炼。',
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#9e2a2b'
+      });
+      return;
+    }
   }
 
   isSubmitting.value = true;
@@ -308,10 +377,21 @@ const submitTask = async () => {
 
     if (task.taskType === 'HOMEWORK') {
       url = API_CONFIG.paths.submitHomework || `/courses/homework/submit`;
-      payload = { 
-        planId: planId, 
-        taskId: task.taskId, 
-        content: homeworkContent.value 
+      const c = homeworkChecklist.value;
+      const formattedContent = `【今日功课】
+${c.readOriginal ? '☑️' : '🔲'} 1、读原文一遍
+${c.onTime ? '☑️' : '🔲'} 2、准时上交功课
+${c.goodDeed ? '☑️' : '🔲'} 3、日行一善
+${c.introspection ? '☑️' : '🔲'} 4、每日自省
+  1) 不抱怨，不说谎；
+  2) 时刻保持感恩敬畏
+
+【学习践行心得】
+${homeworkContent.value}`;
+      payload = {
+        planId: planId,
+        taskId: task.taskId,
+        content: formattedContent
       };
     } else {
       url = API_CONFIG.paths.completeTask.replace('{{planId}}', planId.toString());
@@ -341,32 +421,39 @@ const submitTask = async () => {
       uni.$emit('refreshCourseList');
     } else {
       uni.hideLoading();
-      uni.showToast({ title: apiData.msg || '提交失败', icon: 'none' });
+      closeTaskPopup();
+      setTimeout(() => {
+        uni.showModal({
+          title: '提交失败',
+          content: apiData.msg || '服务器开小差了，请稍后再试',
+          showCancel: false,
+          confirmColor: '#9e2a2b'
+        });
+      }, 300);
     }
   } catch (error) {
     uni.hideLoading();
+    closeTaskPopup();
+    setTimeout(() => {
+      uni.showModal({
+        title: '网络错误',
+        content: '请检查您的网络连接是否正常',
+        showCancel: false,
+        confirmColor: '#9e2a2b'
+      });
+    }, 300);
     console.error('提交请求失败:', error);
   } finally {
     isSubmitting.value = false;
   }
 };
 
-// =========================================
-// 双重 Watch 监听：确保切换"天"时能实时响应
-// =========================================
-
-// 监听 campId 变化（营期切换）
 watch(() => props.campId, (newCampId) => {
   if (newCampId) {
     fetchTodayData();
   }
 });
 
-// =========================================
-// 升维改造核心：监听 targetPlanId 变化
-// 当父组件（如课程大纲）切换到不同天时，
-// targetPlanId 会变化，触发数据重新拉取
-// =========================================
 watch(() => props.targetPlanId, (newVal) => {
   fetchTodayData();
 });
@@ -451,22 +538,24 @@ onMounted(() => {
 .popup-content {
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  min-height: 55vh; 
+  max-height: 85vh;
+  background-color: #ffffff;
 }
 
 .popup-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 32rpx 40rpx; 
+  border-bottom: 1rpx solid #f3f4f6;
   flex-shrink: 0;
 }
 
 .popup-title {
-  font-size: 34rpx;
+  font-size: 34rpx; 
   font-weight: 600;
-  color: #1a1a1a;
+  color: #111827;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -475,49 +564,55 @@ onMounted(() => {
 }
 
 .popup-close {
-  padding: 8rpx;
+  padding: 10rpx;
 }
 
 .popup-body {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .popup-scroll {
+  flex: 1;
   height: 100%;
-  padding: 24rpx 32rpx;
+  padding: 32rpx 40rpx;
   box-sizing: border-box;
 }
 
 .popup-footer {
   display: flex;
-  padding: 24rpx 32rpx;
+  padding: 24rpx 40rpx;
   padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid #f3f4f6;
   flex-shrink: 0;
+  background-color: #ffffff;
 }
 
 .submit-btn {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
+  height: 92rpx; 
+  line-height: 92rpx;
   background: linear-gradient(135deg, #e53935, #b71c1c);
-  border-radius: 44rpx;
+  border-radius: 46rpx;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
   text-align: center;
   border: none;
+  box-shadow: 0 8rpx 20rpx rgba(183, 28, 28, 0.2);
 }
 
 .submit-btn.btn-disabled {
   background: #f3f4f6;
   color: #9ca3af;
+  box-shadow: none;
 }
 
 .submit-btn-hover {
-  transform: scale(0.98); /* 点击时的物理反馈缩小效果 */
+  transform: scale(0.98); 
   box-shadow: 0 4rpx 12rpx rgba(183, 28, 28, 0.15);
 }
 
@@ -529,7 +624,8 @@ onMounted(() => {
   width: 100%; 
   border-radius: 24rpx;
   overflow: hidden;
-  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.06); /* 视频模块增加层次阴影 */
+  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.06); 
+  margin-bottom: 20rpx;
 }
 
 .task-video { 
@@ -567,41 +663,121 @@ onMounted(() => {
 
 .read-container { 
   width: 100%; 
+  min-height: 350rpx; 
 }
 
 .read-content { 
-  font-size: 30rpx; /* 更适合长文阅读的字号 */
-  line-height: 1.85; 
+  font-size: 32rpx; 
+  line-height: 1.8; 
   color: #374151; 
-  letter-spacing: 1rpx;
+  letter-spacing: 1.5rpx;
+  word-break: break-all;
 }
 
 .read-placeholder { 
   display: flex; 
   align-items: center; 
   justify-content: center; 
-  padding: 100rpx 0; 
+  padding: 120rpx 0; 
 }
 
-/* 高级感拉满的作业输入区 */
-.homework-container { 
-  width: 100%; 
+/* 🚨 高级感拉满的作业输入区：紧凑与主题化美化 */
+.homework-container {
+  width: 100%;
+}
+
+.homework-section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 16rpx; /* 间距紧凑 */
+  letter-spacing: 1rpx;
+  display: block;
+}
+
+.checklist-wrapper {
+  background-color: rgba(168, 50, 53, 0.03); /* 融入暗红主题浅色底 */
+  border: 1px solid rgba(168, 50, 53, 0.08); /* 融入主题边框 */
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx; /* 更紧凑的内边距 */
+  margin-bottom: 24rpx; /* 下方留白紧凑 */
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 0; /* 减小行间距 */
+  border-bottom: 1rpx dashed rgba(168, 50, 53, 0.1); /* 主题色虚线分割 */
+}
+
+.checklist-item:last-of-type {
+  border-bottom: none;
+}
+
+.check-circle {
+  width: 32rpx; /* 圆圈微调小 */
+  height: 32rpx;
+  border-radius: 50%;
+  border: 2rpx solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.checklist-item.is-checked .check-circle {
+  background-color: #9e2a2b;
+  border-color: #9e2a2b;
+}
+
+.check-text {
+  font-size: 28rpx;
+  color: #4b5563;
+  line-height: 1.4;
+  transition: color 0.2s ease;
+}
+
+.checklist-item.is-checked .check-text {
+  color: #111827;
+  font-weight: 500; /* 选中时文字微加粗，提示明确 */
+}
+
+.checklist-hint {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx dashed rgba(168, 50, 53, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.hint-text {
+  font-size: 22rpx;
+  color: #9ca3af;
+  line-height: 1.5;
+  padding-left: 48rpx; /* 避开左侧圆圈 */
 }
 
 .homework-input-wrapper {
   background-color: #f9fafb;
   border: 2rpx solid #f3f4f6;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   padding: 24rpx;
   transition: all 0.3s ease;
-  
-  /* 微弱的内发光，体现输入框的凹陷感 */
   box-shadow: inset 0 4rpx 8rpx rgba(0, 0, 0, 0.02);
+}
+
+.homework-input-wrapper:focus-within {
+  background-color: #ffffff;
+  border-color: rgba(168, 50, 53, 0.3); /* 聚焦时主题边框 */
+  box-shadow: 0 0 0 4rpx rgba(168, 50, 53, 0.05);
 }
 
 .homework-textarea { 
   width: 100%; 
-  height: 380rpx; 
+  height: 400rpx; /* 保持大气，但不过分拖沓 */
   font-size: 30rpx; 
   line-height: 1.7; 
   color: #1f2937; 
@@ -618,10 +794,15 @@ onMounted(() => {
 .word-count { 
   display: block; 
   text-align: right; 
-  font-size: 24rpx; 
+  font-size: 22rpx; 
   color: #d1d5db; 
   margin-top: 16rpx; 
   font-weight: 500;
+}
+
+.homework-input-wrapper.is-disabled {
+  background-color: #f3f4f6;
+  opacity: 0.8;
 }
 
 .extra-container { 
@@ -629,31 +810,31 @@ onMounted(() => {
   flex-direction: column; 
   align-items: center; 
   justify-content: center; 
-  padding: 80rpx 30rpx; 
+  padding: 100rpx 30rpx; 
   text-align: center; 
 }
 
 .extra-icon-wrapper { 
-  width: 140rpx; 
-  height: 140rpx; 
+  width: 160rpx; 
+  height: 160rpx; 
   background: linear-gradient(135deg, #ecfdf5, #a7f3d0); 
   border-radius: 50%; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
   margin-bottom: 40rpx; 
-  box-shadow: 0 16rpx 32rpx rgba(16, 185, 129, 0.2); /* 发光效果 */
+  box-shadow: 0 16rpx 32rpx rgba(16, 185, 129, 0.2);
 }
 
 .extra-title { 
-  font-size: 36rpx; 
+  font-size: 38rpx; 
   font-weight: 700; 
   color: #111827; 
-  margin-bottom: 16rpx; 
+  margin-bottom: 20rpx; 
 }
 
 .extra-desc { 
-  font-size: 28rpx; 
+  font-size: 30rpx; 
   color: #6b7280; 
   line-height: 1.6; 
 }
