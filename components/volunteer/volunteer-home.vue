@@ -82,7 +82,7 @@ export default {
           name: '志愿证书',
           iconUrl: 'https://img.icons8.com/color/96/certificate.png', 
           bgColor: '#F0F8FF',
-          path: '/pages/volunteer-cert/volunteer-cert' // 补充志愿证书页面路径
+          path: '/pages/volunteer/volunteer-certificates' // 补充志愿证书页面路径
         },
         { 
           name: '群聊', 
