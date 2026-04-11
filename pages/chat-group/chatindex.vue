@@ -19,6 +19,9 @@
       :enhanced="true"
       :show-scrollbar="true"
       v-if="managementScopes.length > 0"
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
     >
       <view class="content-wrapper"> 
         <view class="section-box scope-selector"> 
@@ -74,7 +77,7 @@
         </view>
 
         <view class="safe-area-spacer"></view> 
-      </view>
+      </view> 
     </scroll-view>
 
     <view v-else class="no-scope-tip"> 
@@ -94,7 +97,8 @@ export default {
       selectedScope: null,
       groupList: [],
       hasCreatedAllRequiredGroups: false,
-      isLoading: false
+      isLoading: false,
+      refreshing: false // 下拉刷新状态
     };
   },
   mounted() {
@@ -102,28 +106,46 @@ export default {
     this.getManagementScopes();
   },
   methods: {
+    // 下拉刷新
+    async onRefresh() {
+      this.refreshing = true;
+      await this.getManagementScopes();
+      this.refreshing = false;
+    },
+    
     navBack() {
       uni.navigateBack();
     },
     getManagementScopes() {
-      if (!this.token) {
-        uni.showToast({ title: '请先登录', icon: 'none' });
-        return;
-      }
-      this.isLoading = true;
-      uni.request({
-        url: `${API_CONFIG.baseUrl}/volunteer/scopes`,
-        header: { Authorization: `Bearer ${this.token}` },
-        success: (res) => {
-          this.isLoading = false;
-          if (res.data.code === 200) {
-            this.managementScopes = this.formatScopeData(res.data.data);
-            if (this.managementScopes.length > 0) {
-              this.selectedScope = this.managementScopes[0];
-              this.loadGroupListByScope();
-            }
-          }
+      return new Promise((resolve) => {
+        if (!this.token) {
+          uni.showToast({ title: '请先登录', icon: 'none' });
+          resolve();
+          return;
         }
+        this.isLoading = true;
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/volunteer/scopes`,
+          header: { Authorization: `Bearer ${this.token}` },
+          success: (res) => {
+            this.isLoading = false;
+            if (res.data.code === 200) {
+              this.managementScopes = this.formatScopeData(res.data.data);
+              if (this.managementScopes.length > 0) {
+                this.selectedScope = this.managementScopes[0];
+                this.loadGroupListByScope().finally(() => resolve());
+              } else {
+                resolve();
+              }
+            } else {
+              resolve();
+            }
+          },
+          fail: () => {
+            this.isLoading = false;
+            resolve();
+          }
+        });
       });
     },
 
@@ -169,64 +191,70 @@ export default {
     },
 
     loadGroupListByScope() {
-      if (!this.selectedScope) return;
-      this.isLoading = true;
-
-      uni.request({
-        url: `${API_CONFIG.baseUrl}/group-chat/list`,
-        header: { Authorization: `Bearer ${this.token}` },
-        data: {
-          dutyType: this.selectedScope.dutyType,
-          targetId: this.selectedScope.id
-        },
-        success: (res) => {
-          this.isLoading = false;
-          if (res.data.code === 200) {
-            this.groupList = res.data.data.map(item => {
-              let typeTagClass, typeText, memberDesc;
-              if (item.type === '班级群') {
-                typeTagClass = 'class';
-                typeText = '班级群';
-              } else if (item.type === '大组群') {
-                typeTagClass = 'big';
-                typeText = '大组群';
-              } else {
-                typeTagClass = 'small';
-                typeText = '小组群';
-              }
-              return {
-                ...item,
-                typeTagClass,
-                typeText,
-                memberDesc,
-                unreadCount: item.unreadCount || 0
-              };
-            });
-
-            const dutyType = this.selectedScope.dutyType;
-            const hasClassGroup = this.groupList.some(g => g.type === '班级群');
-            const hasBigGroup = this.groupList.some(g => g.type === '大组群');
-            const hasSmallGroup = this.groupList.some(g => g.type === '小组群');
-            
-            if (["学组", "检组"].includes(dutyType)) {
-              this.hasCreatedAllRequiredGroups = hasSmallGroup;
-            } 
-            else if (["学委", "检委"].includes(dutyType)) {
-              this.hasCreatedAllRequiredGroups = hasBigGroup && hasSmallGroup;
-            } 
-            else if (["学班", "检班"].includes(dutyType)) {
-              this.hasCreatedAllRequiredGroups = hasClassGroup && hasBigGroup && hasSmallGroup;
-            } 
-            else {
-              this.hasCreatedAllRequiredGroups = false;
-            }
-          }
-        },
-        fail: () => {
-          this.isLoading = false;
-          this.hasCreatedAllRequiredGroups = false;
-          this.groupList = [];
+      return new Promise((resolve) => {
+        if (!this.selectedScope) {
+          resolve();
+          return;
         }
+        this.isLoading = true;
+
+        uni.request({
+          url: `${API_CONFIG.baseUrl}/group-chat/list`,
+          header: { Authorization: `Bearer ${this.token}` },
+          data: {
+            dutyType: this.selectedScope.dutyType,
+            targetId: this.selectedScope.id
+          },
+          success: (res) => {
+            this.isLoading = false;
+            if (res.data.code === 200) {
+              this.groupList = res.data.data.map(item => {
+                let typeTagClass, typeText;
+                if (item.type === '班级群') {
+                  typeTagClass = 'class';
+                  typeText = '班级群';
+                } else if (item.type === '大组群') {
+                  typeTagClass = 'big';
+                  typeText = '大组群';
+                } else {
+                  typeTagClass = 'small';
+                  typeText = '小组群';
+                }
+                return {
+                  ...item,
+                  typeTagClass,
+                  typeText,
+                  unreadCount: item.unreadCount || 0
+                };
+              });
+
+              const dutyType = this.selectedScope.dutyType;
+              const hasClassGroup = this.groupList.some(g => g.type === '班级群');
+              const hasBigGroup = this.groupList.some(g => g.type === '大组群');
+              const hasSmallGroup = this.groupList.some(g => g.type === '小组群');
+              
+              if (["学组", "检组"].includes(dutyType)) {
+                this.hasCreatedAllRequiredGroups = hasSmallGroup;
+              } 
+              else if (["学委", "检委"].includes(dutyType)) {
+                this.hasCreatedAllRequiredGroups = hasBigGroup && hasSmallGroup;
+              } 
+              else if (["学班", "检班"].includes(dutyType)) {
+                this.hasCreatedAllRequiredGroups = hasClassGroup && hasBigGroup && hasSmallGroup;
+              } 
+              else {
+                this.hasCreatedAllRequiredGroups = false;
+              }
+            }
+            resolve();
+          },
+          fail: () => {
+            this.isLoading = false;
+            this.hasCreatedAllRequiredGroups = false;
+            this.groupList = [];
+            resolve();
+          }
+        });
       });
     },
 
@@ -406,7 +434,6 @@ export default {
 .group-tag.big { background-color: #4CAF50; }
 .group-tag.small { background-color: #2196F3; }
 .group-name { font-size: 30rpx; font-weight: bold; margin-bottom: 10rpx; color: #333; }
-.group-desc { font-size: 24rpx; color: #999; }
 .unread-badge {
   position: absolute;
   right: 20rpx;
