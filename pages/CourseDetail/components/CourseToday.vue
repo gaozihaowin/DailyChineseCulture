@@ -95,7 +95,7 @@
     <uni-popup
       ref="taskPopup"
       type="bottom"
-      background-color="transparent"
+      background-color="#fdfaf6"
       class="safe-popup"
     >
       <view class="popup-box">
@@ -714,8 +714,10 @@ onMounted(() => { if (props.campId) fetchTodayData(); });
 .render-area { padding-top: 10rpx; }
 
 .popup-footer {
-  flex-shrink: 0; /* 保证底部不被压缩 */
+  flex-shrink: 0;
   padding: 30rpx 40rpx;
+  padding-bottom: calc(30rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(30rpx + env(safe-area-inset-bottom));
   background-color: #ffffff;
   border-top: 1rpx solid #f0f0f0;
 }
