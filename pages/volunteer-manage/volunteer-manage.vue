@@ -457,7 +457,14 @@ export default {
     gotoMemberList(item) {
       if (item.type === 'smallGroup' && item.id) {
         uni.navigateTo({
-          url: `/pages/volunteer-manage/member-list?smallGroupId=${item.id}&smallGroupName=${item.name}&assignmentId=${this.selectedScope.assignmentId}`
+          url: `/pages/volunteer-manage/member-list?
+            campId=${this.selectedScope.campId}
+            &classId=${this.selectedScope.classId}
+            &bigGroupId=${item.pid}
+            &smallGroupId=${item.id}
+            &smallGroupName=${item.name}
+            &assignmentId=${this.selectedScope.assignmentId}
+          `.replace(/\s+/g, '')
         });
       }
     },
