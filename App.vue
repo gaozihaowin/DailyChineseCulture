@@ -1,5 +1,9 @@
 <script>
 	export default {
+		globalData: {
+		    ws: null,               // 全局唯一 WebSocket
+		    isWsConnecting: false   // 防止重复连接
+		  },
 		onLaunch: function() {
 			console.log('App Launch')
 		},
