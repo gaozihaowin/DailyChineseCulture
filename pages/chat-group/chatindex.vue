@@ -26,18 +26,18 @@
       <view class="content-wrapper"> 
         <view class="section-box scope-selector"> 
           <view class="selector-title">选择管理范围：</view> 
-          <scroll-view class="scope-list" scroll-x> 
-            <view 
-              v-for="scope in managementScopes" 
-              :key="scope.id" 
-              class="scope-item" 
-              :class="{ active: selectedScope === scope }" 
-              @click="selectScope(scope)" 
-            > 
-              <view class="scope-duty">{{ scope.dutyType }}</view> 
+          <scroll-view class="scope-list" scroll-x>
+            <view
+              v-for="(scope, index) in managementScopes"
+              :key="`scope-${index}`"
+              class="scope-item"
+              :class="{ active: selectedIndex === index }"
+              @click="selectScopeByIndex(index)"
+            >
+              <view class="scope-duty">{{ scope.dutyType }}</view>
               <view class="scope-target">{{ scope.fullName }}</view>
             </view>
-          </scroll-view> 
+          </scroll-view>
         </view> 
 
         <view class="section-box task-content">
@@ -57,7 +57,7 @@
             
             <view 
               v-for="group in groupList" 
-              :key="group.chatId" 
+              :key="`group-${group.chatId}`" 
               class="group-item"
               @click="openGroupChat(group)"
             >
@@ -65,8 +65,9 @@
                 {{ group.typeText }}
               </view>
               <view class="group-name">{{ group.name }}</view>
+              
               <view v-if="group.unreadCount > 0" class="unread-badge">
-                {{ group.unreadCount }}
+                {{ group.unreadCount > 99 ? '99+' : group.unreadCount }}
               </view>
             </view>
           </view>
@@ -98,24 +99,150 @@ export default {
       groupList: [],
       hasCreatedAllRequiredGroups: false,
       isLoading: false,
-      refreshing: false // 下拉刷新状态
+      refreshing: false,
+      ws: null,
+      selectedIndex: 0
     };
   },
-  mounted() {
+
+  onLoad() {
     this.token = uni.getStorageSync('token');
     this.getManagementScopes();
+    this.initWebSocket();
   },
+
+  onHide() {
+    if (this.ws) {
+      this.ws.onMessage(null);
+    }
+  },
+  onUnload() {
+    if (this.ws) {
+      this.ws.onMessage(null);
+    }
+  },
+
   methods: {
-    // 下拉刷新
     async onRefresh() {
       this.refreshing = true;
-      await this.getManagementScopes();
+      await this.reloadGroupList();
       this.refreshing = false;
     },
     
+    async reloadGroupList() {
+      if (this.isLoading) return;
+      this.isLoading = true;
+      this.token = uni.getStorageSync('token');
+    
+      await this.getManagementScopes();
+      if (this.selectedScope) {
+        await this.loadGroupListByScope();
+        await this.loadUnreadCounts();
+      }
+      
+      this.isLoading = false;
+    },
+
+    // 全局唯一 WebSocket
+    initWebSocket() {
+      const app = getApp();
+      if (app.globalData.ws) {
+        this.ws = app.globalData.ws;
+        this.listenWs();
+        return;
+      }
+      if (app.globalData.isWsConnecting) return;
+
+      app.globalData.isWsConnecting = true;
+      this.token = uni.getStorageSync('token');
+      if (!this.token) return;
+
+      const wsUrl = 'ws://localhost:8080/ws/group-chat';
+      const ws = wx.connectSocket({
+        url: wsUrl,
+        header: { Authorization: 'Bearer ' + this.token }
+      });
+
+      ws.onOpen(() => {
+        app.globalData.isWsConnecting = false;
+        ws.send({
+          data: JSON.stringify({ type: 'auth', token: this.token })
+        });
+      });
+
+      ws.onClose(() => {
+        app.globalData.ws = null;
+        app.globalData.isWsConnecting = false;
+      });
+
+      ws.onError(() => {
+        app.globalData.isWsConnecting = false;
+      });
+
+      app.globalData.ws = ws;
+      this.ws = ws;
+      this.listenWs();
+    },
+
+    listenWs() {
+      if (!this.ws) return;
+      this.ws.onMessage((res) => {
+        try {
+          const msg = JSON.parse(res.data);
+          if (msg.type === 'message') {
+            this.loadUnreadCounts();
+          }
+        } catch (e) {}
+      });
+    },
+
+    updateUnreadCount(chatId, unreadCount) {
+      const group = this.groupList.find(g => g.chatId === chatId);
+      if (group) {
+        group.unreadCount = unreadCount;
+      }
+    },
+
+    async loadUnreadCounts() {
+      for (let group of this.groupList) {
+        try {
+          group.unreadCount = await this.getUnreadCount(group.chatId);
+        } catch (e) {
+          group.unreadCount = 0;
+        }
+      }
+    },
+
+    getUnreadCount(chatId) {
+      return new Promise((resolve) => {
+        uni.request({
+          url: API_CONFIG.baseUrl + "/group-chat/unread-count",
+          data: { chatId },
+          header: { Authorization: "Bearer " + this.token },
+          success: (res) => {
+            resolve(res.data.code === 200 ? res.data.data || 0 : 0);
+          },
+          fail: () => resolve(0)
+        });
+      });
+    },
+
+    markAllMessagesAsRead(chatId) {
+      return new Promise((resolve, reject) => {
+        uni.request({
+          url: API_CONFIG.baseUrl + "/group-chat/mark-all-read?chatId=" +this.chatId,
+          method: "PUT",
+          header: { Authorization: "Bearer " + this.token },
+          success: (res) => resolve(res),
+          fail: (err) => reject(err)
+        });
+      });
+    },
+
     navBack() {
       uni.navigateBack();
     },
+    
     getManagementScopes() {
       return new Promise((resolve) => {
         if (!this.token) {
@@ -132,6 +259,7 @@ export default {
             if (res.data.code === 200) {
               this.managementScopes = this.formatScopeData(res.data.data);
               if (this.managementScopes.length > 0) {
+                this.selectedIndex = 0;
                 this.selectedScope = this.managementScopes[0];
                 this.loadGroupListByScope().finally(() => resolve());
               } else {
@@ -185,13 +313,14 @@ export default {
       return scopes;
     },
 
-    selectScope(scope) {
-      this.selectedScope = scope;
+    selectScopeByIndex(index) {
+      this.selectedIndex = index;
+      this.selectedScope = this.managementScopes[index];
       this.loadGroupListByScope();
     },
 
     loadGroupListByScope() {
-      return new Promise((resolve) => {
+      return new Promise(async (resolve) => {
         if (!this.selectedScope) {
           resolve();
           return;
@@ -205,7 +334,7 @@ export default {
             dutyType: this.selectedScope.dutyType,
             targetId: this.selectedScope.id
           },
-          success: (res) => {
+          success: async (res) => {
             this.isLoading = false;
             if (res.data.code === 200) {
               this.groupList = res.data.data.map(item => {
@@ -224,7 +353,7 @@ export default {
                   ...item,
                   typeTagClass,
                   typeText,
-                  unreadCount: item.unreadCount || 0
+                  unreadCount: 0
                 };
               });
 
@@ -245,6 +374,8 @@ export default {
               else {
                 this.hasCreatedAllRequiredGroups = false;
               }
+
+              await this.loadUnreadCounts();
             }
             resolve();
           },
@@ -308,8 +439,15 @@ export default {
     },
 
     openGroupChat(group) {
-      uni.navigateTo({
-        url: `/pages/chat-group/chatdetail?chatId=${group.chatId}&name=${group.name}`
+      this.markAllMessagesAsRead(group.chatId).then(() => {
+        group.unreadCount = 0;
+        uni.navigateTo({
+          url: `/pages/chat-group/chatdetail?chatId=${group.chatId}&groupName=${encodeURIComponent(group.name)}`
+        });
+      }).catch(() => {
+        uni.navigateTo({
+          url: `/pages/chat-group/chatdetail?chatId=${group.chatId}&groupName=${encodeURIComponent(group.name)}`
+        });
       });
     }
   }
@@ -327,7 +465,7 @@ export default {
   position: relative;
 }
 .art-header { 
-  background: linear-gradient(160deg, #A31D1D 0%, #851212 100%);
+  background: linear-gradient(160deg, #A31D1D 0%, #801212 100%);
   padding: 88rpx 30rpx 30rpx;
   border-bottom-left-radius: 48rpx;
   border-bottom-right-radius: 48rpx;
@@ -434,20 +572,25 @@ export default {
 .group-tag.big { background-color: #4CAF50; }
 .group-tag.small { background-color: #2196F3; }
 .group-name { font-size: 30rpx; font-weight: bold; margin-bottom: 10rpx; color: #333; }
+
 .unread-badge {
   position: absolute;
-  right: 20rpx;
-  bottom: 20rpx;
-  background-color: #ff4d4f;
+  top: 16rpx;
+  right: 16rpx;
+  background: #ff4757;
   color: #fff;
-  width: 32rpx;
-  height: 32rpx;
-  border-radius: 50%;
+  font-size: 20rpx;
+  font-weight: bold;
+  min-width: 36rpx;
+  height: 36rpx;
+  border-radius: 18rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20rpx;
+  padding: 0 12rpx;
+  z-index: 10;
 }
+
 .no-scope-tip {
   flex: 1;
   display: flex;
