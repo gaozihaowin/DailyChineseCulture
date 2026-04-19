@@ -248,6 +248,7 @@ export default {
       audioUrl: '',
       recorder: null,
       audioContext: null,
+      isPlaying: false,
 
       currentMsg: null,
       showFloatMenu: false,
@@ -256,7 +257,6 @@ export default {
 
       showAtDropdown: false,
       atUserList: [],
-	  isAudioPlaying: false,
     };
   },
 
@@ -265,6 +265,8 @@ export default {
     this.groupName = options.groupName ? decodeURIComponent(options.groupName) : '';
     this.token = uni.getStorageSync('token');
     this.userId = uni.getStorageSync('userId') || '';
+
+    this.initAudioPlayer();
 
     this.recorder = uni.getRecorderManager();
     this.recorder.onStop((res) => {
@@ -283,8 +285,8 @@ export default {
 
     this.getMembers();
     this.getMessages().then(() => {
-          this.markAllMessagesAsRead();
-        });
+      this.markAllMessagesAsRead();
+    });
   },
 
   onShow() {
@@ -296,6 +298,13 @@ export default {
       this.ws.onMessage(null);
     }
     if (this.isRecording) this.cancelRecording();
+    
+    if (this.audioContext) {
+      this.audioContext.pause();
+      this.audioContext.seek(0);
+      this.isPlaying = false;
+    }
+
     this.closeFloatMenu();
   },
 
@@ -304,6 +313,13 @@ export default {
       this.ws.onMessage(null);
     }
     if (this.isRecording) this.cancelRecording();
+    
+    if (this.audioContext) {
+      this.audioContext.pause();
+      this.audioContext.seek(0);
+      this.isPlaying = false;
+    }
+
     this.closeFloatMenu();
   },
 
@@ -327,6 +343,28 @@ export default {
   },
 
   methods: {
+    initAudioPlayer() {
+      const audio = uni.createInnerAudioContext();
+      audio.loop = false;
+      try {
+        audio.obeyMuteSwitch = false;
+      } catch (e) {}
+
+      audio.onEnded(() => {
+        this.isPlaying = false;
+        audio.pause();
+        audio.seek(0);
+      });
+
+      audio.onError((err) => {
+        console.error('音频错误', err);
+        this.isPlaying = false;
+        uni.showToast({ title: '播放失败', icon: 'none' });
+      });
+
+      this.audioContext = audio;
+    },
+
     initWebSocket() {
       const app = getApp();
       if (app.globalData.ws) {
@@ -620,8 +658,10 @@ export default {
       if (!this.isRecording) return;
       this.isRecording = false;
       clearInterval(this.recordTimer);
+      this.audioUrl = '';
+      
       this.recorder.stop();
-
+    
       const waitUpload = () => {
         if (this.recordSec < 1) {
           uni.showToast({ title: '录音时间太短', icon: 'none' });
@@ -635,13 +675,7 @@ export default {
       };
       waitUpload();
     },
-
-    cancelRecording() {
-      this.isRecording = false;
-      clearInterval(this.recordTimer);
-      this.recorder.stop();
-    },
-
+    
     sendVoice(filePath, duration) {
       uni.uploadFile({
         url: API_CONFIG.baseUrl + '/group-chat/upload-voice',
@@ -667,63 +701,78 @@ export default {
             });
           }
         },
-        fail: () => {
+        fail: (err) => {
+          console.error('上传失败:', err);
           uni.showToast({ title: '语音发送失败', icon: 'none' });
         }
       });
     },
 
-    playVoice(url) {
-      if (!url) {
-        uni.showToast({ title: '语音地址不存在', icon: 'none' })
-        return
-      }
-    
-      const fullUrl = "http://localhost:8080" + url;
-    
-      // 初始化音频上下文
-      if (!this.audioContext) {
-        this.audioContext = uni.createInnerAudioContext();
-        
-        // 监听播放结束事件
-        this.audioContext.onEnded(() => {
-          this.audioContext.seek(0);
-		  this.audioContext.pause(); 
-        });
-    
-        this.audioContext.onError((err) => {
-          console.error('音频播放错误:', err);
-          uni.showToast({ title: '音频播放失败', icon: 'none' });
-        });
-      }
-    
-      const audio = this.audioContext;
-	  
-	  audio.loop = false;
-    
-      // 同一个音频：暂停 / 继续播放
-      if (audio.src === fullUrl) {
-        if (!audio.paused) {
-          audio.pause();
-        } else {
-          audio.play();
-        }
-        return;
-      }
-      
-      // 不同音频：先暂停当前
-      if (!audio.paused) {
-        audio.pause();
-      }
-    
-      // 设置新地址
-      audio.src = fullUrl;
-      
-      audio.onCanplay(() => {
-        audio.play();
-      });
+    cancelRecording() {
+      this.isRecording = false;
+      clearInterval(this.recordTimer);
+      this.recorder.stop();
     },
 
+   playVoice(url) {
+     if (!url) {
+       uni.showToast({ title: '无地址', icon: 'none' });
+       return;
+     }
+     
+     if (this.isPlaying && this.audioContext) {
+       try {
+         this.audioContext.stop();
+         this.audioContext.destroy();
+       } catch (e) {
+         console.log('停止音频时出错:', e);
+       }
+       this.audioContext = null;
+       this.isPlaying = false;
+     }
+     
+     const audioId = 'audio_' + Date.now() + '_' + Math.floor(Math.random() * 1000000);
+     const audio = uni.createInnerAudioContext(audioId);
+     this.audioContext = audio;
+     
+     const timestamp = Date.now();
+     const random = Math.random().toString(36).substr(2, 9);
+     const fullUrl = `http://localhost:8080${url}?t=${timestamp}&r=${random}`;
+     
+     audio.onCanplay(() => {
+       if (audio === this.audioContext) {
+         audio.play();
+         this.isPlaying = true;
+       }
+     });
+     
+     audio.onPlay(() => {
+       console.log('开始播放:', fullUrl);
+     });
+     
+     audio.onEnded(() => {
+       console.log('播放结束');
+       this.isPlaying = false;
+       if (audio === this.audioContext) {
+         audio.destroy();
+         this.audioContext = null;
+       }
+     });
+     
+     audio.onError((err) => {
+       console.error('播放错误:', err);
+       this.isPlaying = false;
+       uni.showToast({ title: '播放失败', icon: 'none' });
+       if (audio === this.audioContext) {
+         audio.destroy();
+         this.audioContext = null;
+       }
+     });
+     
+     // 5. 设置音频源
+     audio.src = fullUrl;
+     console.log('设置音频源:', fullUrl);
+   },
     showMsgMenu(msg, e) {
       this.currentMsg = msg;
       const isSelf = this.isSelfMsg(msg);
