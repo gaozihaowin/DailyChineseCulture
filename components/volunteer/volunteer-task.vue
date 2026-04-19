@@ -215,10 +215,29 @@ export default {
       return data.map(scope => {
         let label = '';
         const camp = scope.camp_name || scope.campName;
-        if (['学班','检班'].includes(scope.dutyType)) label = `${camp}-${scope.className}`;
-        if (['学委','检委'].includes(scope.dutyType)) label = `${camp}-${scope.className}-${scope.bigGroupName}`;
-        if (['学组','检组'].includes(scope.dutyType)) label = `${camp}-${scope.className}-${scope.bigGroupName}-${scope.smallGroupName}`;
-        return { ...scope, label, id: scope.targetId || scope.classId || scope.bigGroupId || scope.smallGroupId };
+    
+        if (['学班','检班'].includes(scope.dutyType)) {
+          label = `${camp}-${scope.className}`;
+        }
+        if (['学委','检委'].includes(scope.dutyType)) {
+          label = `${camp}-${scope.className}-${scope.bigGroupName}`;
+        }
+        if (['学组','检组'].includes(scope.dutyType)) {
+          label = `${camp}-${scope.className}-${scope.bigGroupName}-${scope.smallGroupName}`;
+        }
+    
+        let id;
+        if (['学班','检班'].includes(scope.dutyType)) {
+          id = scope.classId;        // 班级 → 用 classId
+        } else if (['学委','检委'].includes(scope.dutyType)) {
+          id = scope.bigGroupId;     // 大组 → 用 bigGroupId
+        } else if (['学组','检组'].includes(scope.dutyType)) {
+          id = scope.smallGroupId;   // 小组 → 用 smallGroupId
+        } else {
+          id = scope.targetId;      
+        }
+    
+        return { ...scope, label, id };
       });
     },
     selectScope(scope) {
